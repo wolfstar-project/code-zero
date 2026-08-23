@@ -88,10 +88,16 @@
           },
           "additionalProperties": false
         },
-        "version": {
+        "build": {
           "type": "object",
           "properties": {
             "label": {
+              "type": "string"
+            },
+            "releaseAria": {
+              "type": "string"
+            },
+            "commitAria": {
               "type": "string"
             }
           },

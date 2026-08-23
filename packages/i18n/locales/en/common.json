@@ -28,8 +28,10 @@
       "label": "System status",
       "healthy": "Healthy"
     },
-    "version": {
-      "label": "Version"
+    "build": {
+      "label": "Build",
+      "releaseAria": "View release v{version} on GitHub — opens in a new tab",
+      "commitAria": "View commit {commit} on GitHub — opens in a new tab"
     }
   }
 }

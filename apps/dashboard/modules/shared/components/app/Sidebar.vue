@@ -61,10 +61,10 @@
           <span class="h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_8px_var(--az-accent-glow)]" />
           {{ $t('common.system.healthy') }}
         </p>
-        <div class="mt-3 flex items-center justify-between mono">
-          <span class="text-muted">{{ $t('common.version.label') }}</span>
-          <span class="text-ink">v{{ version }}</span>
-        </div>
+        <p class="m-0 mt-3 label-upper">{{ $t('common.build.label') }}</p>
+        <!-- Sits directly under the signed-in user, where an operator reading a bug report looks
+             for what the deployment in front of them actually is. -->
+        <BuildEnvironment />
       </template>
       <div
         v-else
@@ -100,8 +100,8 @@
 </template>
 
 <script setup lang="ts">
-import { version } from '~~/package.json';
-
+// Used as a value by the `<component :is>` above, not as a tag, so auto-import does not
+// cover it: the nav renders a link where an item has a route and a plain button otherwise.
 import { NuxtLink } from '#components';
 
 const collapsed = useSidebarCollapsed();

@@ -28,8 +28,10 @@
       "label": "Stato del sistema",
       "healthy": "Operativo"
     },
-    "version": {
-      "label": "Versione"
+    "build": {
+      "label": "Build",
+      "releaseAria": "Vedi la release v{version} su GitHub — si apre in una nuova scheda",
+      "commitAria": "Vedi il commit {commit} su GitHub — si apre in una nuova scheda"
     }
   }
 }

@@ -24,6 +24,7 @@
   "dependencies": {
     "@agent-zero/api": "workspace:*",
     "@agent-zero/auth": "workspace:*",
+    "@agent-zero/build-env": "workspace:*",
     "@agent-zero/i18n": "workspace:*",
     "@agent-zero/mail": "workspace:*",
     "@agent-zero/shared": "workspace:*",

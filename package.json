@@ -17,7 +17,7 @@
     "i18n:report": "turbo run i18n:report",
     "i18n:schema": "turbo run i18n:schema",
     "i18n:status": "turbo run i18n:status",
-    "knip": "turbo run build --filter=@agent-zero/i18n --filter=@agent-zero/auth && knip",
+    "knip": "turbo run build --filter=@agent-zero/i18n --filter=@agent-zero/auth --filter=@agent-zero/build-env && knip",
     "lint": "turbo run lint",
     "lint:ci": "aube run format:check && aube run lint && aube run knip",
     "lint:fix": "turbo run lint:fix",

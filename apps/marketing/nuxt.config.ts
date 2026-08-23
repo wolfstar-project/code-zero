@@ -35,6 +35,11 @@ export default defineNuxtConfig({
   // `modules/` is scanned by Nuxt itself, so the local feature modules (shared, home, contact,
   // blog, i18n-strip-empty) register themselves without being listed here.
   modules: [
+    // Publishes what this build is (version, commit, branch, deploy channel) under
+    // `runtimeConfig.public.buildInfo`. On Vercel the values are resolved while the build runs;
+    // every other target resolves what it can and the server completes the rest at boot, so a
+    // self-hosted bundle still reports the commit it was built from. See packages/build-env.
+    '@agent-zero/build-env/nuxt',
     '@unocss/nuxt',
     '@nuxt/icon',
     '@nuxt/content',

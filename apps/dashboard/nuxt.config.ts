@@ -69,6 +69,11 @@ export default defineNuxtConfig({
     // Upstash on Vercel — otherwise): ViteHub picks the driver from the deployment preset, and a
     // serverless function has no writable filesystem to keep task history on.
     ['vite-hub/nuxt', { preset: viteHubPreset, kv: true }],
+    // Publishes what this build is (version, commit, branch, deploy channel) under
+    // `runtimeConfig.public.buildInfo`. On Vercel the values are resolved while the build runs;
+    // every other target resolves what it can and the server completes the rest at boot, so a
+    // self-hosted bundle still reports the commit it was built from. See packages/build-env.
+    '@agent-zero/build-env/nuxt',
     '@unocss/nuxt',
     '@nuxt/icon',
     '@nuxtjs/i18n',

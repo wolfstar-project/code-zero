@@ -1,0 +1,47 @@
+{
+  "name": "@agent-zero/build-env",
+  "version": "0.4.0",
+  "type": "module",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    },
+    "./nuxt": {
+      "types": "./dist/nuxt.d.mts",
+      "default": "./dist/nuxt.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "clean": "tsc -b --clean",
+    "lint": "oxlint --config ../../tooling/oxc/packages.oxlintrc.json --type-aware --type-check src",
+    "lint:fix": "oxlint --fix --config ../../tooling/oxc/packages.oxlintrc.json --type-aware --type-check src",
+    "test": "vitest run src --passWithNoTests",
+    "typecheck": "tsc --project tsconfig.json --pretty false --noEmit"
+  },
+  "dependencies": {
+    "ufo": "^1.6.4"
+  },
+  "devDependencies": {
+    "@nuxt/kit": "^4.5.2",
+    "@nuxt/schema": "^4.5.2",
+    "oxlint": "^1.44.0",
+    "oxlint-tsgolint": "^7.0.2001",
+    "tsdown": "^0.22.14",
+    "typescript": "^5.9.2",
+    "vitest": "^4.1.10"
+  },
+  "peerDependencies": {
+    "@nuxt/kit": "^4.5.2"
+  },
+  "peerDependenciesMeta": {
+    "@nuxt/kit": {
+      "optional": true
+    }
+  }
+}
