@@ -210,6 +210,15 @@ describe('createAuth with organizations', () => {
     expect(ids).toContain('last-login-method');
   });
 
+  it('always registers TOTP two-factor authentication', () => {
+    const ids = authBetterAuthOptions({
+      databaseUrl: completeEnvironment.DATABASE_URL,
+      config: defaultAuthConfig,
+    }).plugins.map((plugin) => plugin.id);
+
+    expect(ids).toContain('two-factor');
+  });
+
   it('withholds the device flow until an operator grants it', () => {
     const off = authBetterAuthOptions({
       databaseUrl: completeEnvironment.DATABASE_URL,

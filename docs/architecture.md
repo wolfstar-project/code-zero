@@ -141,6 +141,16 @@ The app-wide `user.role` column belongs to this boundary too, and is distinct fr
 
 The dashboard renders with SSR. The session cookie is scoped to the app's own origin, so the server resolves it directly from the incoming request before the first paint, rather than rendering a signed-out shell that a client-side check then corrects.
 
+TOTP two-factor authentication is composed unconditionally in `packages/auth`: enabling it is an
+account decision, not a deployment-wide widening of sign-in policy. Enrollment requires an
+existing session and password confirmation, persists an encrypted TOTP secret and encrypted
+one-time backup codes, and only sets `user.twoFactorEnabled` after the first TOTP verification.
+`apps/dashboard` registers the matching client plugin and serves `/two-factor` without a blanket
+route-rule redirect because the page has two mutually exclusive states: an authenticated account
+manages enrollment there, while a password-authenticated visitor who has not received a full
+session yet completes the second-factor challenge there. The Better Auth endpoints authorize each
+state with their own session or signed challenge cookie.
+
 <!-- #endregion authentication-boundary -->
 
 <!-- #region persistence-boundary -->
@@ -155,7 +165,7 @@ Declaring the schema here rather than letting Better Auth's own migration CLI ge
 
 `DATABASE_URL` is the connection string a deployment sets. `AUTH_DATABASE_URL` is still accepted, because the store used to live inside `packages/auth` and a deployment configured before the split must not fail to start on upgrade.
 
-The same rule covers the tables a Better Auth plugin brings with it. `invite` and `invite_use` (Better Enrollment) are declared here alongside `organization` and `member`, so a deployment that never enables the feature still migrates them and simply never writes to them — the alternative is a schema that depends on which flags were set when the migration ran. Two of their columns are deliberate exceptions to the repository's usual habits: an accepted invitation is a permanent audit record, so it carries no foreign key to the organization, team, or account it names and denormalizes `inviter_name`/`inviter_email` in order to survive their deletion; and `invite_use` carries only `used_at` rather than the shared timestamp pair, because a use is a point-in-time fact that must not look rewritable.
+The same rule covers the tables a Better Auth plugin brings with it. `invite` and `invite_use` (Better Enrollment), `two_factor` (TOTP and backup codes), and the organization tables are declared here, so every deployment migrates one deterministic schema. Two invitation columns are deliberate exceptions to the repository's usual habits: an accepted invitation is a permanent audit record, so it carries no foreign key to the organization, team, or account it names and denormalizes `inviter_name`/`inviter_email` in order to survive their deletion; and `invite_use` carries only `used_at` rather than the shared timestamp pair, because a use is a point-in-time fact that must not look rewritable.
 
 <!-- #endregion persistence-boundary -->
 

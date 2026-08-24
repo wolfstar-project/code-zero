@@ -1,9 +1,9 @@
-import { account, session, user, verification } from './auth.js';
+import { account, session, twoFactor, user, verification } from './auth.js';
 import { deviceCode } from './device.js';
 import { invite, inviteUse } from './enrollment.js';
 import { invitation, member, organization } from './organization.js';
 
-export { account, session, user, verification } from './auth.js';
+export { account, session, twoFactor, user, verification } from './auth.js';
 export { timestampColumns } from './columns.js';
 export { deviceCode } from './device.js';
 export { invite, inviteUse } from './enrollment.js';
@@ -25,6 +25,7 @@ export const schema = {
   session,
   account,
   verification,
+  twoFactor,
   organization,
   member,
   invitation,

@@ -95,6 +95,7 @@ describe('schema', () => {
       'member',
       'organization',
       'session',
+      'twoFactor',
       'user',
       'verification',
     ]);

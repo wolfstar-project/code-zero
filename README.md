@@ -191,6 +191,13 @@ change them. The flip side of that build-time capture is a deployment contract: 
 those policy variables, rebuild the app, or the auth pages will keep advertising the old
 capabilities (the server still enforces its own policy either way).
 
+Every account can enable TOTP two-factor authentication from the signed-in user menu. Setup at
+`/two-factor` requires the account password, displays a QR code plus one-time backup codes, and
+does not become active until the first authenticator code verifies. The same route handles the
+second-factor challenge after password sign-in, including backup-code recovery and an optional
+30-day trusted-device cookie. Apply the checked-in database migrations before deploying this
+feature: the Better Auth plugin adds `user.two_factor_enabled` and the `two_factor` table.
+
 The interface ships English and Italian through `@nuxtjs/i18n`, with dictionaries split by scope in
 `packages/i18n/locales/<locale>/` and shared with the marketing site; each app loads only the
 scopes it renders. `aube run i18n:status` builds a

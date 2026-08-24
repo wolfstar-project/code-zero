@@ -239,6 +239,9 @@ export default defineNuxtConfig({
     // than being shown the form. The auth layout, not the shell, because the visitor arriving here
     // typed a code off a terminal and has no business in the navigation.
     '/device': { auth: { only: 'user' } },
+    // Serves both authenticated enrollment and the pre-session challenge after password sign-in.
+    // The Better Auth endpoints enforce the relevant cookie/session for each operation.
+    '/two-factor': { auth: false },
     // Reached from an invitation email, so the visitor is frequently signed out at that moment:
     // requiring a session sends them through /login and back, rather than rejecting the link.
     '/organizations/accept-invitation/**': { appLayout: 'default', auth: { only: 'user' } },
