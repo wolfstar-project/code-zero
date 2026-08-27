@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   defaultViteHubPreset,
+  shouldInlineAuthServerDependency,
   viteHubPresetFromEnvironment,
   viteHubVercelEntryAlias,
   viteHubVercelEntryName,
@@ -86,5 +87,17 @@ describe('viteHubVercelEntryAlias', () => {
     expect(viteHubVercelEntryAlias('/app/.vercel/output/functions/__fallback.func')).toBe(
       `/app/.vercel/output/functions/${viteHubVercelEntryName}`,
     );
+  });
+});
+
+describe('shouldInlineAuthServerDependency', () => {
+  it('keeps the Better Auth Drizzle chain out of Nitro dependency tracing', () => {
+    expect(shouldInlineAuthServerDependency('better-auth/adapters/drizzle')).toBe(true);
+    expect(shouldInlineAuthServerDependency('@better-auth/drizzle-adapter')).toBe(true);
+    expect(shouldInlineAuthServerDependency('drizzle-orm/pg-core')).toBe(true);
+    expect(shouldInlineAuthServerDependency('@better-auth/infra')).toBe(false);
+    expect(shouldInlineAuthServerDependency('@better-auth/core')).toBe(false);
+    expect(shouldInlineAuthServerDependency('better-call')).toBe(false);
+    expect(shouldInlineAuthServerDependency('@agent-zero/database')).toBe(false);
   });
 });

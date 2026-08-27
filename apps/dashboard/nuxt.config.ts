@@ -9,7 +9,11 @@ import { authConfigFromEnvironment, infraFromEnvironment } from '@agent-zero/aut
 import { defaultLocale, i18nLocalesFor, localeCookieName } from '@agent-zero/i18n';
 import { defineNuxtConfig } from 'nuxt/config';
 
-import { viteHubPresetFromEnvironment, viteHubVercelEntryAlias } from './config/env.js';
+import {
+  shouldInlineAuthServerDependency,
+  viteHubPresetFromEnvironment,
+  viteHubVercelEntryAlias,
+} from './config/env.js';
 
 // Resolved once at config evaluation so the dashboard's auth pages publish the same sign-in
 // policy `server/auth.config.ts` enforces at runtime (AUTH_ENABLE_SIGNUP, GitHub OAuth
@@ -191,6 +195,9 @@ export default defineNuxtConfig({
   },
 
   nitro: {
+    externals: {
+      inline: [shouldInlineAuthServerDependency],
+    },
     // Registered as a Nitro module rather than through `nitro.hooks`: a handler under that key
     // replaces the preset's own handler for the same hook, and the `vercel` preset writes
     // `config.json` and each function's `.vc-config.json` from its `compiled` hook — losing it

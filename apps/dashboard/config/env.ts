@@ -109,3 +109,16 @@ export const viteHubVercelEntryName = '__server.func';
 export function viteHubVercelEntryAlias(serverDirectory: string): string {
   return join(dirname(serverDirectory), viteHubVercelEntryName);
 }
+
+// Aube can leave optional peer links inside Better Auth's adapter package pointing at a virtual
+// store entry it did not materialize. Nitro's node-file trace follows that dead link even though
+// the dashboard owns a valid `drizzle-orm` dependency, failing the build before it can package the
+// server. Keeping this narrow dependency chain in the bundle bypasses tracing for those package
+// IDs while every unrelated server dependency remains external and traceable.
+const authServerDependency =
+  /^(?:better-auth(?:\/|$)|@better-auth\/drizzle-adapter(?:\/|$)|drizzle-orm(?:\/|$))/u;
+
+/** Returns whether Nitro must bundle an auth dependency instead of tracing it as an external. */
+export function shouldInlineAuthServerDependency(id: string): boolean {
+  return authServerDependency.test(id);
+}

@@ -23,7 +23,11 @@
           type="button"
           @click="challengeFactor = factor"
         >
-          {{ $t(`auth.twoFactor.factor.${factor}`) }}
+          {{
+            factor === 'totp'
+              ? $t('auth.twoFactor.factor.totp')
+              : $t('auth.twoFactor.factor.backup')
+          }}
         </button>
       </div>
 
