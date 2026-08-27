@@ -10,7 +10,7 @@ import { defaultLocale, i18nLocalesFor, localeCookieName } from '@agent-zero/i18
 import { defineNuxtConfig } from 'nuxt/config';
 
 import {
-  shouldInlineAuthServerDependency,
+  shouldIgnoreBrokenAuthPeerLink,
   viteHubPresetFromEnvironment,
   viteHubVercelEntryAlias,
 } from './config/env.js';
@@ -196,7 +196,9 @@ export default defineNuxtConfig({
 
   nitro: {
     externals: {
-      inline: [shouldInlineAuthServerDependency],
+      traceOptions: {
+        ignore: shouldIgnoreBrokenAuthPeerLink,
+      },
     },
     // Registered as a Nitro module rather than through `nitro.hooks`: a handler under that key
     // replaces the preset's own handler for the same hook, and the `vercel` preset writes

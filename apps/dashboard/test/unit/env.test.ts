@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   defaultViteHubPreset,
-  shouldInlineAuthServerDependency,
+  shouldIgnoreBrokenAuthPeerLink,
   viteHubPresetFromEnvironment,
   viteHubVercelEntryAlias,
   viteHubVercelEntryName,
@@ -90,14 +90,23 @@ describe('viteHubVercelEntryAlias', () => {
   });
 });
 
-describe('shouldInlineAuthServerDependency', () => {
-  it('keeps the Better Auth Drizzle chain out of Nitro dependency tracing', () => {
-    expect(shouldInlineAuthServerDependency('better-auth/adapters/drizzle')).toBe(true);
-    expect(shouldInlineAuthServerDependency('@better-auth/drizzle-adapter')).toBe(true);
-    expect(shouldInlineAuthServerDependency('drizzle-orm/pg-core')).toBe(true);
-    expect(shouldInlineAuthServerDependency('@better-auth/infra')).toBe(false);
-    expect(shouldInlineAuthServerDependency('@better-auth/core')).toBe(false);
-    expect(shouldInlineAuthServerDependency('better-call')).toBe(false);
-    expect(shouldInlineAuthServerDependency('@agent-zero/database')).toBe(false);
+describe('shouldIgnoreBrokenAuthPeerLink', () => {
+  it('only skips the adapter peer link that Aube can leave dangling', () => {
+    expect(
+      shouldIgnoreBrokenAuthPeerLink(
+        'node_modules/.aube/@better-auth+drizzle-adapter@1.6.26_hash/node_modules/drizzle-orm',
+      ),
+    ).toBe(true);
+    expect(
+      shouldIgnoreBrokenAuthPeerLink(
+        String.raw`node_modules\.aube\@better-auth+drizzle-adapter@1.6.26_hash\node_modules\drizzle-orm\package.json`,
+      ),
+    ).toBe(true);
+    expect(shouldIgnoreBrokenAuthPeerLink('node_modules/drizzle-orm/package.json')).toBe(false);
+    expect(
+      shouldIgnoreBrokenAuthPeerLink(
+        'node_modules/.aube/@better-auth+drizzle-adapter@1.6.26_hash/node_modules/better-auth',
+      ),
+    ).toBe(false);
   });
 });
