@@ -4,7 +4,7 @@ import {
   secretValuesFromEnvironment,
   type EvidenceBundle,
   type FeedbackItem,
-} from '@agent-zero/shared';
+} from '@code-zero/shared';
 
 import {
   ProviderConfigurationError,
@@ -206,7 +206,7 @@ class GitLabStatusPublisher implements StatusPublisher {
       fetch: this.options.fetch,
       body: {
         state,
-        context: this.options.name ?? 'Agent Zero',
+        context: this.options.name ?? 'Code Zero',
         description: redactSecrets(evidenceTitle(bundle), secrets).slice(0, MAX_DESCRIPTION),
       },
     });

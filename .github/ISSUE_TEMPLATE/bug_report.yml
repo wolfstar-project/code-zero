@@ -5,7 +5,7 @@ labels: ['bug']
 body:
   - type: markdown
     attributes:
-      value: Thanks for helping improve Agent Zero. Do not include secrets or private repository content.
+      value: Thanks for helping improve Code Zero. Do not include secrets or private repository content.
   - type: checkboxes
     id: existing
     attributes:

@@ -10,7 +10,7 @@ import { packageVersion, resolveBuildInfo } from './resolve.js';
 let rootDirectory: string;
 
 beforeAll(async () => {
-  rootDirectory = await mkdtemp(join(tmpdir(), 'agent-zero-build-env-'));
+  rootDirectory = await mkdtemp(join(tmpdir(), 'code-zero-build-env-'));
   await writeFile(join(rootDirectory, 'package.json'), JSON.stringify({ version: '1.2.3' }));
 });
 
@@ -36,7 +36,7 @@ describe('resolveBuildInfo', () => {
           VERCEL_ENV: 'production',
           VERCEL_GIT_COMMIT_REF: 'main',
           VERCEL_GIT_COMMIT_SHA: '1234567890abcdef',
-          VERCEL_PROJECT_PRODUCTION_URL: 'agent-zero.dev',
+          VERCEL_PROJECT_PRODUCTION_URL: 'code-zero.dev',
         },
       }),
     ).resolves.toStrictEqual({
@@ -47,7 +47,7 @@ describe('resolveBuildInfo', () => {
       time: 1_700_000_000_000,
       prNumber: null,
       previewUrl: null,
-      productionUrl: 'https://agent-zero.dev',
+      productionUrl: 'https://code-zero.dev',
     });
   });
 
@@ -58,7 +58,7 @@ describe('resolveBuildInfo', () => {
         isDevelopment: false,
         now: 1_700_000_000_000,
         // Names the branch but not the commit, so only the commit is left for the run-time pass.
-        environment: { AGENT_ZERO_BUILD_BRANCH: 'main' },
+        environment: { CODE_ZERO_BUILD_BRANCH: 'main' },
         readGitMetadata: () => Promise.resolve({ branch: null, commit: null }),
       }),
     ).resolves.toMatchObject({

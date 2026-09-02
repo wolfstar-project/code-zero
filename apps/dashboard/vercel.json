@@ -2,5 +2,5 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nuxtjs",
   "installCommand": "npm install -g --ignore-scripts=false @endevco/aube@$(node -p 'require(\"../../package.json\").packageManager.split(\"@\").pop()') && cd ../.. && HUSKY=0 aube ci",
-  "buildCommand": "NITRO_PRESET=vercel aube exec turbo run build --filter=@agent-zero/dashboard"
+  "buildCommand": "NITRO_PRESET=vercel aube exec turbo run build --filter=@code-zero/dashboard"
 }

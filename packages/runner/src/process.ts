@@ -44,7 +44,7 @@ export type ProcessRunner = (
 ) => Promise<ProcessOutcome>;
 
 /**
- * The bounded-command half of the only place Agent Zero spawns a process; {@link spawnManagedProcess}
+ * The bounded-command half of the only place Code Zero spawns a process; {@link spawnManagedProcess}
  * is the other half, for a caller that needs a live process instead of one buffered result.
  *
  * There is no shell: the program and its arguments are passed as an argv array, so untrusted text
@@ -79,7 +79,7 @@ export interface ManagedProcessMount {
  * managed process is not a repository command — it needs no checkout access, and a process such as
  * a subscription model CLI needs outbound network access regardless of what the repository's
  * network policy says, since that policy exists to contain an *untrusted checkout's* commands, not
- * to block Agent Zero's own necessary calls. So this takes only what isolating one process actually
+ * to block Code Zero's own necessary calls. So this takes only what isolating one process actually
  * requires: an engine, an image that has the program installed, and explicit read-only mounts for
  * whatever state (such as an existing CLI login session) the process must read from the host.
  */
@@ -101,10 +101,10 @@ export interface ManagedSpawnOptions {
 }
 
 /**
- * The streaming half of the only place Agent Zero spawns a process: a live, long-running child a
+ * The streaming half of the only place Code Zero spawns a process: a live, long-running child a
  * caller talks to over `stdin`/`stdout` rather than a single buffered result.
  *
- * This exists for adapters that must hand a real process handle to code Agent Zero does not
+ * This exists for adapters that must hand a real process handle to code Code Zero does not
  * control — a CLI-backed model transport's vendor SDK, for one, which drives the child itself over
  * a duplex stream and cannot be satisfied by a request/response command. `execFileProcessRunner`
  * stays the right primitive for everything that only needs a command's finished output.
@@ -215,7 +215,7 @@ const COMMAND_PARTS = createRegExp(commandPart, [global]);
  * Convert a repository-provided verification command into the argv that a runner may execute.
  *
  * This is the single command preflight path for every runner. ViteHub Shell parses the command and
- * rejects malformed shell syntax; Agent Zero then applies its deliberately narrower argv-only
+ * rejects malformed shell syntax; Code Zero then applies its deliberately narrower argv-only
  * policy and refuses shell operators because execution always uses `shell: false`.
  */
 export async function commandArgv(command: string): Promise<[string, string[]]> {
@@ -237,7 +237,7 @@ export async function assertSimpleCommand(command: string): Promise<void> {
 }
 
 /**
- * Tokenize a command only after ViteHub Shell and Agent Zero policy have accepted its syntax.
+ * Tokenize a command only after ViteHub Shell and Code Zero policy have accepted its syntax.
  *
  * `magic-regexp` handles the small argv extraction surface; it is not used as a second shell parser.
  */

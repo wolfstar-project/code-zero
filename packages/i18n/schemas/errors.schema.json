@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Agent Zero i18n locale file (errors.json)",
+  "title": "Code Zero i18n locale file (errors.json)",
   "description": "Schema for errors.json. Generated from en/errors.json — do not edit manually.",
   "type": "object",
   "properties": {

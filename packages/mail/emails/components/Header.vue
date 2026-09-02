@@ -26,7 +26,7 @@
         <td valign="middle" class="pl-3 align-middle">
           <span
             class="[font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe_UI',Roboto,Helvetica,Arial,sans-serif] text-[13px] leading-none font-bold tracking-[0.18em] text-[#0B140E] uppercase dark:text-[#EFF3EE]"
-            >Agent Zero</span
+            >Code Zero</span
           >
         </td>
       </tr>

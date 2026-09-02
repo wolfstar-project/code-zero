@@ -63,7 +63,7 @@ describe('sendEmail', () => {
     const [mail] = sent;
     assertSent(mail);
     expect(mail.to).toBe('dana@example.com');
-    expect(mail.subject).toBe('Your public Agent Zero invitation is ready');
+    expect(mail.subject).toBe('Your public Code Zero invitation is ready');
     expect(mail.html).toContain('Dana');
     expect(mail.html).toContain('Acme Ops');
     expect(mail.html).toContain('https://dashboard.example.com/invite?token=abc');
@@ -92,9 +92,9 @@ describe('sendEmail', () => {
     const [mail] = sent;
     assertSent(mail);
     expect(mail.to).toBe('sam@example.com');
-    expect(mail.subject).toBe('You have been invited to Agent Zero');
+    expect(mail.subject).toBe('You have been invited to Code Zero');
     expect(mail.text).toContain('Hello Sam,');
-    expect(mail.text).toContain('Dana invited you to join Acme Ops on Agent Zero.');
+    expect(mail.text).toContain('Dana invited you to join Acme Ops on Code Zero.');
     // The token travels in this message and nowhere else, so the link has to survive both halves
     // of it: the button, and the pasteable address for clients that strip anchors.
     expect(mail.html).toContain('https://dashboard.example.com/invite?token=abc');
@@ -124,7 +124,7 @@ describe('sendEmail', () => {
     const [mail] = sent;
     assertSent(mail);
     expect(mail.text).toContain('Hello,');
-    expect(mail.text).toContain('Dana invited you to create an account on Agent Zero.');
+    expect(mail.text).toContain('Dana invited you to create an account on Code Zero.');
     expect(mail.text).not.toContain('join');
   });
 

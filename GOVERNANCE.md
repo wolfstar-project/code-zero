@@ -1,6 +1,6 @@
 # Governance
 
-Agent Zero is an open-source WolfStar Project repository. This document describes how technical decisions and contributions are handled while the project is in its early development stage.
+Code Zero is an open-source WolfStar Project repository. This document describes how technical decisions and contributions are handled while the project is in its early development stage.
 
 ## Roles
 

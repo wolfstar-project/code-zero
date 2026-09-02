@@ -38,13 +38,13 @@ describe('githubWebhookSecretFromEnvironment', () => {
 
 describe('checkoutPathFromEnvironment', () => {
   it('reads the configured checkout path', () => {
-    expect(checkoutPathFromEnvironment({ AGENT_ZERO_CHECKOUT_PATH: ' /srv/checkout ' })).toBe(
+    expect(checkoutPathFromEnvironment({ CODE_ZERO_CHECKOUT_PATH: ' /srv/checkout ' })).toBe(
       '/srv/checkout',
     );
   });
 
   it('treats an absent or blank path as unconfigured so the route fails closed', () => {
     expect(checkoutPathFromEnvironment({})).toBeUndefined();
-    expect(checkoutPathFromEnvironment({ AGENT_ZERO_CHECKOUT_PATH: '  ' })).toBeUndefined();
+    expect(checkoutPathFromEnvironment({ CODE_ZERO_CHECKOUT_PATH: '  ' })).toBeUndefined();
   });
 });

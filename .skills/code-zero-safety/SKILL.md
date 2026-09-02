@@ -1,9 +1,9 @@
 ---
-name: agent-zero-safety
+name: code-zero-safety
 description: Use for runner changes, autonomous state transitions, repository writes, command execution, secrets, or observe/fix policy.
 ---
 
-# Agent Zero safety
+# Code Zero safety
 
 Safety properties are behavior, not documentation. Back every change with deterministic checks.
 

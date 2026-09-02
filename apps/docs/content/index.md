@@ -1,9 +1,9 @@
 ---
-title: Agent Zero
+title: Code Zero
 description: An autonomous engineer that finds, fixes, and verifies problems in pull requests — with evidence, not assertions.
 navigation: false
 seo:
-  title: Agent Zero
+  title: Code Zero
   description: An open-source autonomous engineer that finds, fixes, and verifies problems in pull requests.
 ---
 
@@ -35,13 +35,13 @@ variant: outline
 size: xl
 ---
 
-What is Agent Zero?
+What is Code Zero?
 :::
 
 :::u-button
 ---
 
-to: https://github.com/wolfstar-project/agent-zero
+to: https://github.com/wolfstar-project/code-zero
 target: _blank
 color: neutral
 variant: outline

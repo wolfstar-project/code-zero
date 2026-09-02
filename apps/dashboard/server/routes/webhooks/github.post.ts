@@ -1,4 +1,4 @@
-import { githubTokenFromEnvironment, ingestWebhook } from '@agent-zero/api';
+import { githubTokenFromEnvironment, ingestWebhook } from '@code-zero/api';
 
 /**
  * The production GitHub webhook entry point at `POST /webhooks/github`.
@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
   const secret = githubWebhookSecretFromEnvironment(process.env);
   if (!secret) throw errors.misconfigured('GITHUB_WEBHOOK_SECRET');
   const checkoutPath = checkoutPathFromEnvironment(process.env);
-  if (!checkoutPath) throw errors.misconfigured('AGENT_ZERO_CHECKOUT_PATH');
+  if (!checkoutPath) throw errors.misconfigured('CODE_ZERO_CHECKOUT_PATH');
 
   const request = toWebRequest(event);
   let outcome;

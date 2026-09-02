@@ -1,5 +1,5 @@
-import { createDatabase, databaseUrlFromEnvironment, schema } from '@agent-zero/database';
 import { dash, sentinel } from '@better-auth/infra';
+import { createDatabase, databaseUrlFromEnvironment, schema } from '@code-zero/database';
 import { betterEnrollment } from '@octopi-ai/better-enrollment';
 import { betterAuth } from 'better-auth';
 import type { BetterAuthOptions, BetterAuthPlugin } from 'better-auth';
@@ -43,7 +43,7 @@ export const ORGANIZATION_INVITATION_DELIVERY_UNAVAILABLE = 'INVITATION_DELIVERY
 /**
  * Delivers a private (email-bound) enrollment invitation.
  *
- * Declared structurally rather than imported from `@agent-zero/mail`: this package owns
+ * Declared structurally rather than imported from `@code-zero/mail`: this package owns
  * authentication policy, and taking a dependency on the mail package would make one capability
  * package depend on another. The link is never returned to whoever created the invitation, so
  * this callback is the only path it travels: it exists solely in the recipient's mailbox, which
@@ -86,7 +86,7 @@ export interface AuthDatabaseOptions {
   /**
    * Postgres connection string holding users and sessions.
    *
-   * The pool is opened by `@agent-zero/database`, which owns the schema and the migrations for
+   * The pool is opened by `@code-zero/database`, which owns the schema and the migrations for
    * those tables.
    */
   readonly databaseUrl: string;
@@ -166,7 +166,7 @@ export function authBetterAuthOptions(options: AuthDatabaseOptions): Pick<
   // Widened to the option type Better Auth declares. Left as the concrete adapter type, the
   // inferred return type embeds types TypeScript cannot name in the emitted declarations.
   //
-  // The client and the tables both come from `@agent-zero/database`: this package owns
+  // The client and the tables both come from `@code-zero/database`: this package owns
   // authentication policy, not the store, so the shape of `user` and `session` stays reviewable in
   // one place and any other consumer of those tables sees the same declarations.
   const database: BetterAuthOptions['database'] = drizzleAdapter(
@@ -211,7 +211,7 @@ function authPlugins(options: AuthDatabaseOptions): BetterAuthPlugin[] {
   // Unconditional: it registers no route and mints nothing. It records which method an account
   // last signed in with, so the sign-in page can lead with it instead of presenting a returning
   // operator with an undifferentiated list. `storeInDatabase` mirrors the value onto
-  // `user.lastLoginMethod` (see `@agent-zero/database`'s `auth.ts`) so the hint survives a new
+  // `user.lastLoginMethod` (see `@code-zero/database`'s `auth.ts`) so the hint survives a new
   // browser; the cookie the plugin also writes only ever covers the one it was set in.
   plugins.push(lastLoginMethod({ storeInDatabase: true }));
 
@@ -495,7 +495,7 @@ function requireEnvironmentValue(
  * policy shape (no signing, no origin) should not be made to supply one, and one that needs
  * invitation links resolves `dashboardUrl` through {@link authOptionsFromEnvironment} instead.
  *
- * The connection string is resolved by `@agent-zero/database` so the store has one variable
+ * The connection string is resolved by `@code-zero/database` so the store has one variable
  * regardless of which process opens it; it accepts the pre-split `AUTH_DATABASE_URL` as well. The
  * error messages name the variable but never echo its value, so a misconfigured deployment cannot
  * leak a secret or a connection string into a crash log.

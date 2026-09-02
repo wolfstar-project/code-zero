@@ -1,7 +1,7 @@
 import { timingSafeEqual } from 'node:crypto';
 import { resolve } from 'node:path';
 
-import type { RunMode } from '@agent-zero/shared';
+import type { RunMode } from '@code-zero/shared';
 
 /**
  * How a principal proved its identity.
@@ -57,16 +57,16 @@ function isRunMode(value: string): value is RunMode {
 /**
  * Parse the access policy from the environment.
  *
- * `AGENT_ZERO_CONTROL_PLANE_TOKENS` holds comma-separated `name:token` pairs,
- * `AGENT_ZERO_CONTROL_PLANE_REPOSITORIES` holds comma-separated repository paths, and
- * `AGENT_ZERO_CONTROL_PLANE_MODES` holds comma-separated `name:mode|mode` grants. Principals
+ * `CODE_ZERO_CONTROL_PLANE_TOKENS` holds comma-separated `name:token` pairs,
+ * `CODE_ZERO_CONTROL_PLANE_REPOSITORIES` holds comma-separated repository paths, and
+ * `CODE_ZERO_CONTROL_PLANE_MODES` holds comma-separated `name:mode|mode` grants. Principals
  * without a grant may only request the non-writable `observe` and `suggest` modes. Returns
  * `undefined` when no tokens are configured, which keeps every mutation rejected.
  */
 export function accessFromEnvironment(
-  tokens = process.env.AGENT_ZERO_CONTROL_PLANE_TOKENS,
-  repositories = process.env.AGENT_ZERO_CONTROL_PLANE_REPOSITORIES,
-  modes = process.env.AGENT_ZERO_CONTROL_PLANE_MODES,
+  tokens = process.env.CODE_ZERO_CONTROL_PLANE_TOKENS,
+  repositories = process.env.CODE_ZERO_CONTROL_PLANE_REPOSITORIES,
+  modes = process.env.CODE_ZERO_CONTROL_PLANE_MODES,
 ): ControlPlaneAccess | undefined {
   if (tokens === undefined || tokens.trim() === '') return undefined;
   const grants = parseModeGrants(modes);
@@ -79,7 +79,7 @@ export function accessFromEnvironment(
     const name = separator > 0 ? trimmed.slice(0, separator).trim() : '';
     const token = separator > 0 ? trimmed.slice(separator + 1).trim() : '';
     if (name === '' || token === '')
-      throw new Error('AGENT_ZERO_CONTROL_PLANE_TOKENS entries must be name:token pairs');
+      throw new Error('CODE_ZERO_CONTROL_PLANE_TOKENS entries must be name:token pairs');
     names.add(name);
     principals.set(token, { name, kind: 'token', modes: grants.get(name) ?? DEFAULT_MODES });
   }
@@ -87,7 +87,7 @@ export function accessFromEnvironment(
   for (const name of grants.keys())
     if (!names.has(name))
       throw new Error(
-        `AGENT_ZERO_CONTROL_PLANE_MODES grants modes to an unknown principal: ${name}`,
+        `CODE_ZERO_CONTROL_PLANE_MODES grants modes to an unknown principal: ${name}`,
       );
   return {
     principals,
@@ -109,17 +109,17 @@ function parseModeGrants(modes: string | undefined): Map<string, readonly RunMod
     const name = separator > 0 ? trimmed.slice(0, separator).trim() : '';
     const granted = separator > 0 ? trimmed.slice(separator + 1).trim() : '';
     if (name === '' || granted === '')
-      throw new Error('AGENT_ZERO_CONTROL_PLANE_MODES entries must be name:mode|mode pairs');
+      throw new Error('CODE_ZERO_CONTROL_PLANE_MODES entries must be name:mode|mode pairs');
     const parsed: RunMode[] = [];
     for (const candidate of granted.split('|')) {
       const mode = candidate.trim();
       if (mode === '') continue;
       if (!isRunMode(mode))
-        throw new Error(`AGENT_ZERO_CONTROL_PLANE_MODES grants an unknown mode: ${mode}`);
+        throw new Error(`CODE_ZERO_CONTROL_PLANE_MODES grants an unknown mode: ${mode}`);
       parsed.push(mode);
     }
     if (parsed.length === 0)
-      throw new Error('AGENT_ZERO_CONTROL_PLANE_MODES entries must be name:mode|mode pairs');
+      throw new Error('CODE_ZERO_CONTROL_PLANE_MODES entries must be name:mode|mode pairs');
     grants.set(name, parsed);
   }
   return grants;
@@ -128,13 +128,13 @@ function parseModeGrants(modes: string | undefined): Map<string, readonly RunMod
 /**
  * Parse the REST/OpenAPI transport's CORS allow-list from the environment.
  *
- * `AGENT_ZERO_CONTROL_PLANE_ORIGINS` holds comma-separated origins. Defaults to none: `tasks.list`,
+ * `CODE_ZERO_CONTROL_PLANE_ORIGINS` holds comma-separated origins. Defaults to none: `tasks.list`,
  * `tasks.get`, and `health` are unauthenticated by design, but a browser's ability to read their
  * responses cross-origin is a separate grant that has to be configured explicitly rather than
  * defaulting open.
  */
 export function controlPlaneOriginsFromEnvironment(
-  origins = process.env.AGENT_ZERO_CONTROL_PLANE_ORIGINS,
+  origins = process.env.CODE_ZERO_CONTROL_PLANE_ORIGINS,
 ): readonly string[] {
   return (origins ?? '')
     .split(',')

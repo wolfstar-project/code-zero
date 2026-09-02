@@ -68,7 +68,7 @@ description: Use when changing apps/dashboard server routes, oRPC contracts, han
   taking the environment record as an argument rather than reading `process.env` themselves. They
   deliberately do not move to Nuxt's `runtimeConfig`: its defaults are baked at build time and
   would require renaming every variable to a `NUXT_`-prefixed form, while a deployment sets
-  `GITHUB_WEBHOOK_SECRET` and `AGENT_ZERO_CHECKOUT_PATH` at run time.
+  `GITHUB_WEBHOOK_SECRET` and `CODE_ZERO_CHECKOUT_PATH` at run time.
 - Keep transport-specific headers, status mapping, and request objects out of runtime packages.
 - Nuxt's Nitro server is the only top-level HTTP host; do not introduce Express, Hono, or a second
   one.
@@ -86,5 +86,5 @@ description: Use when changing apps/dashboard server routes, oRPC contracts, han
 3. Keep the handler thin: validate, authorize, delegate, translate.
 4. Add router tests with `createRouterClient`, without opening a real network port.
 5. Update the README client example when the public router shape changes.
-6. Run `aube run test --filter @agent-zero/api`, then `--filter @agent-zero/dashboard`, typecheck,
+6. Run `aube run test --filter @code-zero/api`, then `--filter @code-zero/dashboard`, typecheck,
    and build. For KV or transport-mounting changes, also run a real `nuxt build` and hit the route.

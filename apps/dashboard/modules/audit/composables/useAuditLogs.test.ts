@@ -1,4 +1,4 @@
-import type { AuditEvent, AuditLogPage } from '@agent-zero/api';
+import type { AuditEvent, AuditLogPage } from '@code-zero/api';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { useAuditLogs } from './useAuditLogs.js';

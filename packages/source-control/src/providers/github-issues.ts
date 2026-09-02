@@ -7,7 +7,7 @@ import {
   type IssueRef,
   type ReviewInput,
   type RunMode,
-} from '@agent-zero/shared';
+} from '@code-zero/shared';
 
 import { assertSafeBranchName } from './github-pulls.js';
 
@@ -30,7 +30,7 @@ export interface ParseIssueOptions {
    * issue is ignored, so arbitrary issue text cannot start a run on its own.
    */
   requireLabel?: string;
-  /** Logins whose issues are ignored, normally including the account Agent Zero posts as. */
+  /** Logins whose issues are ignored, normally including the account Code Zero posts as. */
   ignoreAuthors?: readonly string[];
   /** Whether issues opened by bot accounts are ingested. */
   allowBots?: boolean;
@@ -185,7 +185,7 @@ const MAX_COMMENT_BODY = 30_000;
 const MAX_COMMENT_ITEMS = 10;
 
 /** Marker embedded in every validation comment so later automation can recognize its own output. */
-export const VALIDATION_COMMENT_MARKER = '<!-- agent-zero:issue-validation -->';
+export const VALIDATION_COMMENT_MARKER = '<!-- code-zero:issue-validation -->';
 
 /**
  * Compose the validation verdict a finished issue run reports back on its issue.
@@ -211,7 +211,7 @@ export function prepareIssueValidationComment(bundle: EvidenceBundle): IssueVali
   const secrets = secretValuesFromEnvironment();
   const clean = (text: string): string => redactSecrets(text, secrets);
   const finding = bundle.finding;
-  const lines: string[] = [VALIDATION_COMMENT_MARKER, `### Agent Zero — issue validation`, ''];
+  const lines: string[] = [VALIDATION_COMMENT_MARKER, `### Code Zero — issue validation`, ''];
 
   if (bundle.verdict === 'accepted') {
     lines.push(

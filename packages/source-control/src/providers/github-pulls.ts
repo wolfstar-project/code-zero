@@ -2,7 +2,7 @@ import {
   isRepositoryRelativePath,
   redactSecrets,
   secretValuesFromEnvironment,
-} from '@agent-zero/shared';
+} from '@code-zero/shared';
 
 /** The repository a branch or pull request is created in. */
 export interface RepositoryTarget {

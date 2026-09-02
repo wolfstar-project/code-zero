@@ -1,6 +1,6 @@
-import { defaultConfig, type AgentZeroConfig } from '@agent-zero/config';
-import type { ModelContext, ModelProvider } from '@agent-zero/models';
-import type { Runner } from '@agent-zero/runner';
+import { defaultConfig, type CodeZeroConfig } from '@code-zero/config';
+import type { ModelContext, ModelProvider } from '@code-zero/models';
+import type { Runner } from '@code-zero/runner';
 import type {
   AgentDecision,
   ModelFinding,
@@ -8,14 +8,14 @@ import type {
   RunnerDescription,
   TaskEvent,
   TaskResult,
-} from '@agent-zero/shared';
+} from '@code-zero/shared';
 import { describe, expect, it } from 'vitest';
 
-import { AgentZero, classifyChangeRisk, sanitizeAcceptanceCriteria } from './agent.js';
+import { CodeZero, classifyChangeRisk, sanitizeAcceptanceCriteria } from './agent.js';
 
 const sourceFile = 'export function load() {\n  return null;\n}\n';
 
-function config(overrides: Partial<AgentZeroConfig> = {}): AgentZeroConfig {
+function config(overrides: Partial<CodeZeroConfig> = {}): CodeZeroConfig {
   return {
     ...structuredClone(defaultConfig),
     checks: ['pnpm run test'],
@@ -67,7 +67,7 @@ interface HarnessOptions {
   exitCodes?: number[][];
   /** Number of checks a single attempt runs, used to group `exitCodes`. */
   checksPerAttempt?: number;
-  overrides?: Partial<AgentZeroConfig>;
+  overrides?: Partial<CodeZeroConfig>;
   runner?: Partial<RunnerDescription>;
   files?: Record<string, string>;
   reviewFiles?: string[];
@@ -77,7 +77,7 @@ interface HarnessOptions {
 }
 
 interface Harness {
-  agent: AgentZero;
+  agent: CodeZero;
   writes: { path: string; content: string }[];
   commands: string[];
   modelCalls: ModelContext[];
@@ -155,7 +155,7 @@ function harness(options: HarnessOptions = {}): Harness {
   };
 
   return {
-    agent: new AgentZero({
+    agent: new CodeZero({
       model,
       runner,
       config: config(options.overrides),
@@ -168,7 +168,7 @@ function harness(options: HarnessOptions = {}): Harness {
   };
 }
 
-function run(agent: AgentZero, mode: RunMode): Promise<TaskResult> {
+function run(agent: CodeZero, mode: RunMode): Promise<TaskResult> {
   return agent.run({ repository: '/checkout', feedback: 'load() can return null', mode });
 }
 

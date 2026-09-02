@@ -19,9 +19,9 @@
   inset-block-start: 0.5rem;
   inset-inline-start: 0.5rem;
   padding: 0.5rem 0.875rem;
-  border: 1px solid var(--az-line);
-  background: var(--az-raised);
-  color: var(--az-ink);
+  border: 1px solid var(--cz-line);
+  background: var(--cz-raised);
+  color: var(--cz-ink);
   font-size: 0.8125rem;
   font-weight: 650;
   transform: translateY(-200%);

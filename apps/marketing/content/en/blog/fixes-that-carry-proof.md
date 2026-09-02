@@ -1,6 +1,6 @@
 ---
 title: 'Fixes that carry their own proof'
-description: 'A pull request from Agent Zero is rendered evidence: the commands that verified the change, not a claim that it works.'
+description: 'A pull request from Code Zero is rendered evidence: the commands that verified the change, not a claim that it works.'
 date: '2026-07-15'
 author: 'Maya Chen'
 authorInitials: 'MC'
@@ -10,7 +10,7 @@ tag: 'evidence'
 Reviewers stopped trusting automated pull requests for a simple reason: most of them are guesses
 wearing a confident commit message.
 
-Agent Zero takes the opposite bet. A change is only proposed once the repository's own checks pass
+Code Zero takes the opposite bet. A change is only proposed once the repository's own checks pass
 against it, and the pull request body _is_ the rendered evidence bundle — the acceptance criteria,
 the commands that ran, their output, and the diff review that preceded publication. If
 verification fails, the run ends and reports why. No hopeful pull request, no noise.

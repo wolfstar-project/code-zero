@@ -1,12 +1,12 @@
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
-import type { AgentZeroConfig } from '@agent-zero/config';
-import type { ClaudeCodeProcessSpawner } from '@agent-zero/models';
-import { spawnManagedProcess, type ManagedProcessMount } from '@agent-zero/runner';
+import type { CodeZeroConfig } from '@code-zero/config';
+import type { ClaudeCodeProcessSpawner } from '@code-zero/models';
+import { spawnManagedProcess, type ManagedProcessMount } from '@code-zero/runner';
 
 /** Where the CLI's own config directory is mounted inside its container, regardless of image layout. */
-const CLAUDE_CONFIG_CONTAINER_PATH = '/agent-zero/claude-config';
+const CLAUDE_CONFIG_CONTAINER_PATH = '/code-zero/claude-config';
 
 /**
  * The host UID:GID that owns the mounted config files, so the containerized CLI can read them as
@@ -27,13 +27,13 @@ const hostUidGid: string | undefined =
  * isolation bypass this exists to prevent.
  */
 export function claudeCodeRefusalReason(
-  config: AgentZeroConfig,
+  config: CodeZeroConfig,
   environment: NodeJS.ProcessEnv,
 ): string | undefined {
   if (config.runner.isolation !== 'container') return undefined;
-  if (environment.AGENT_ZERO_CLAUDE_CODE_CONTAINER_IMAGE) return undefined;
+  if (environment.CODE_ZERO_CLAUDE_CODE_CONTAINER_IMAGE) return undefined;
   return (
-    'runner.isolation is "container" but AGENT_ZERO_CLAUDE_CODE_CONTAINER_IMAGE is not set, so ' +
+    'runner.isolation is "container" but CODE_ZERO_CLAUDE_CODE_CONTAINER_IMAGE is not set, so ' +
     "the CLI process cannot be isolated the way this deployment's other command execution is."
   );
 }
@@ -47,12 +47,12 @@ export function claudeCodeRefusalReason(
  * still gets a turn instead of the run failing outright.
  */
 export function environmentForModel(
-  config: AgentZeroConfig,
+  config: CodeZeroConfig,
   environment: NodeJS.ProcessEnv,
 ): NodeJS.ProcessEnv {
   return claudeCodeRefusalReason(config, environment) === undefined
     ? environment
-    : { ...environment, AGENT_ZERO_ENABLE_CLAUDE_CODE_PROVIDER: 'false' };
+    : { ...environment, CODE_ZERO_ENABLE_CLAUDE_CODE_PROVIDER: 'false' };
 }
 
 /**
@@ -62,13 +62,13 @@ export function environmentForModel(
  * trust level `LocalRunner` already gives repository commands. On `container` isolation, it runs in
  * its own ephemeral container instead: no repository checkout mounted (the CLI never touches one,
  * per its `tools: []`/`mcpServers: {}` settings), unrestricted network (the repository's
- * `permissions.network` policy governs an *untrusted checkout's* commands, not Agent Zero's own
+ * `permissions.network` policy governs an *untrusted checkout's* commands, not Code Zero's own
  * necessary calls to the vendor API), and the CLI's own config directory — where `claude login`
  * persisted its session on the host — mounted read-only so the container can read that same login
  * state instead of appearing logged out.
  */
 export function claudeCodeProcessSpawner(
-  config: AgentZeroConfig,
+  config: CodeZeroConfig,
   environment: NodeJS.ProcessEnv,
 ): ClaudeCodeProcessSpawner {
   if (config.runner.isolation !== 'container')
@@ -79,18 +79,18 @@ export function claudeCodeProcessSpawner(
         signal: options.signal,
       });
 
-  const image = environment.AGENT_ZERO_CLAUDE_CODE_CONTAINER_IMAGE;
+  const image = environment.CODE_ZERO_CLAUDE_CODE_CONTAINER_IMAGE;
   if (!image)
     throw new Error(
-      'claudeCodeProcessSpawner requires AGENT_ZERO_CLAUDE_CODE_CONTAINER_IMAGE under container isolation; check claudeCodeRefusalReason first to refuse the transport instead of reaching this.',
+      'claudeCodeProcessSpawner requires CODE_ZERO_CLAUDE_CODE_CONTAINER_IMAGE under container isolation; check claudeCodeRefusalReason first to refuse the transport instead of reaching this.',
     );
-  const containerExecutable = environment.AGENT_ZERO_CLAUDE_CODE_CONTAINER_EXECUTABLE ?? 'claude';
+  const containerExecutable = environment.CODE_ZERO_CLAUDE_CODE_CONTAINER_EXECUTABLE ?? 'claude';
   const { mounts, configEnv } = claudeConfigMounts(environment.CLAUDE_CONFIG_DIR);
 
   return (options) =>
     spawnManagedProcess(
       // `options.command` is an absolute path the vendor SDK resolved on the host — its own
-      // bundled native binary, or `AGENT_ZERO_CLAUDE_CODE_PATH` if set — and that path does not
+      // bundled native binary, or `CODE_ZERO_CLAUDE_CODE_PATH` if set — and that path does not
       // exist inside the container's filesystem. `options.args` carries no host paths (CLI flags
       // and JSON schema text only), so only `command` needs replacing with the CLI the container
       // image actually has installed.
@@ -154,4 +154,4 @@ function claudeConfigMounts(hostConfigDirOverride: string | undefined): {
 }
 
 /** Synthetic $HOME for the default (unset CLAUDE_CONFIG_DIR) mount layout; see claudeConfigMounts. */
-const CLAUDE_HOME_CONTAINER_PATH = '/agent-zero/claude-home';
+const CLAUDE_HOME_CONTAINER_PATH = '/code-zero/claude-home';

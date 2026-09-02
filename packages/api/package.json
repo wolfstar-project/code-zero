@@ -1,5 +1,5 @@
 {
-  "name": "@agent-zero/api",
+  "name": "@code-zero/api",
   "version": "0.3.0",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -37,12 +37,12 @@
     "typecheck": "tsc --project tsconfig.json --pretty false --noEmit"
   },
   "dependencies": {
-    "@agent-zero/agent": "workspace:*",
-    "@agent-zero/config": "workspace:*",
-    "@agent-zero/models": "workspace:*",
-    "@agent-zero/runner": "workspace:*",
-    "@agent-zero/shared": "workspace:*",
-    "@agent-zero/source-control": "workspace:*",
+    "@code-zero/agent": "workspace:*",
+    "@code-zero/config": "workspace:*",
+    "@code-zero/models": "workspace:*",
+    "@code-zero/runner": "workspace:*",
+    "@code-zero/shared": "workspace:*",
+    "@code-zero/source-control": "workspace:*",
     "@orpc/evlog": "2.0.0-beta.26",
     "@orpc/openapi": "2.0.0-beta.26",
     "@orpc/server": "2.0.0-beta.26",

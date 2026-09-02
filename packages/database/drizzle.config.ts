@@ -13,7 +13,7 @@ import { optionalDatabaseUrlFromEnvironment } from './src/client.js';
  * The local default exists because `db:generate` only reads the schema files and never connects;
  * `db:migrate` is what needs a real `DATABASE_URL`.
  */
-const LOCAL_DEVELOPMENT_URL = 'postgres://postgres:postgres@localhost:5432/agent_zero_auth';
+const LOCAL_DEVELOPMENT_URL = 'postgres://postgres:postgres@localhost:5432/code_zero_auth';
 
 export default defineConfig({
   dialect: 'postgresql',

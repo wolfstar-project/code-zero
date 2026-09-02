@@ -50,7 +50,7 @@
       "entry": ["maizzle.config.ts"],
       "ignoreDependencies": [
         // Consumed through the emails/ symlink and turbo's ^build ordering, never imported.
-        "@agent-zero/mail",
+        "@code-zero/mail",
         // Resolved by Maizzle's Tailwind integration from the package name (same as
         // packages/mail).
         "@maizzle/tailwindcss",

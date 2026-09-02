@@ -1,6 +1,6 @@
 # Hosted sandbox provider evaluation
 
-Agent Zero v0.3 defines the vendor-neutral lifecycle in `packages/runner`: provision a credential-free request, expose the resulting checkout only as a `Runner`, stop it explicitly, and expire bounded leases. A provider adapter owns its client and credentials privately. No SDK response or secret is copied into agent state, task history, lease snapshots, or logs.
+Code Zero v0.3 defines the vendor-neutral lifecycle in `packages/runner`: provision a credential-free request, expose the resulting checkout only as a `Runner`, stop it explicitly, and expire bounded leases. A provider adapter owns its client and credentials privately. No SDK response or secret is copied into agent state, task history, lease snapshots, or logs.
 
 ## Evaluation
 
@@ -12,7 +12,7 @@ Agent Zero v0.3 defines the vendor-neutral lifecycle in `packages/runner`: provi
 
 ## Decision
 
-The core does not select a vendor. `SandboxProvider` and `RunnerPool` are the stable boundary; deployment packages can add ViteHub, Cloudflare, or Vercel implementations without changing the agent or server procedures. The first production adapter should pilot ViteHub because its Workspace/Sandbox split most directly represents Agent Zero's need for a durable checkout plus replaceable execution. Cloudflare and Vercel remain deployment-specific adapters behind the same tests.
+The core does not select a vendor. `SandboxProvider` and `RunnerPool` are the stable boundary; deployment packages can add ViteHub, Cloudflare, or Vercel implementations without changing the agent or server procedures. The first production adapter should pilot ViteHub because its Workspace/Sandbox split most directly represents Code Zero's need for a durable checkout plus replaceable execution. Cloudflare and Vercel remain deployment-specific adapters behind the same tests.
 
 Every adapter must prove:
 

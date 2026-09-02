@@ -1,14 +1,14 @@
 <template>
   <NuxtRouteAnnouncer />
-  <NuxtLoadingIndicator color="var(--az-accent)" />
+  <NuxtLoadingIndicator color="var(--cz-accent)" />
   <NuxtLayout>
     <NuxtPage />
   </NuxtLayout>
 </template>
 
 <script setup lang="ts">
-import { locales } from '@agent-zero/i18n';
-import type { LocaleCode } from '@agent-zero/i18n';
+import { locales } from '@code-zero/i18n';
+import type { LocaleCode } from '@code-zero/i18n';
 
 const { locale } = useI18n();
 
@@ -19,9 +19,9 @@ useHead(() => ({
 
 // Spelled out here rather than resolved from config: the dashboard has one shell, one title, and
 // one description, and `nuxt.config.ts` needs the same title as a literal before the app boots.
-const title = 'Agent Zero · Dashboard';
+const title = 'Code Zero · Dashboard';
 const description =
-  'Operational dashboard for Agent Zero, the open-source autonomous engineer that finds, fixes, and verifies problems in pull requests.';
+  'Operational dashboard for Code Zero, the open-source autonomous engineer that finds, fixes, and verifies problems in pull requests.';
 
 useSeoMeta({
   title,

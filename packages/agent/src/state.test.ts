@@ -1,4 +1,4 @@
-import type { TaskState } from '@agent-zero/shared';
+import type { TaskState } from '@code-zero/shared';
 import { describe, expect, it } from 'vitest';
 
 import { canTransition, isTerminal, LifecycleMachine, terminalStates } from './state.js';

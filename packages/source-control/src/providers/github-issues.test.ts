@@ -1,4 +1,4 @@
-import type { EvidenceBundle } from '@agent-zero/shared';
+import type { EvidenceBundle } from '@code-zero/shared';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -19,7 +19,7 @@ function payload(overrides: Record<string, unknown> = {}): Record<string, unknow
       title: 'Guard the null return in the loader',
       body: 'load() returns null and callers dereference it.',
       user: { login: 'dev', type: 'User' },
-      labels: [{ name: 'agent-zero' }, { name: 'bug' }],
+      labels: [{ name: 'code-zero' }, { name: 'bug' }],
       ...(isRecord(overrides.issue) ? overrides.issue : {}),
     },
     repository: { name: 'app', owner: { login: 'acme' } },
@@ -31,7 +31,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-const requireLabel = { requireLabel: 'agent-zero' };
+const requireLabel = { requireLabel: 'code-zero' };
 
 describe('parseIssueTask', () => {
   it('produces a task for an open, labeled issue', () => {
@@ -41,7 +41,7 @@ describe('parseIssueTask', () => {
       title: 'Guard the null return in the loader',
       body: 'load() returns null and callers dereference it.',
       author: 'dev',
-      labels: ['agent-zero', 'bug'],
+      labels: ['code-zero', 'bug'],
     });
   });
 
@@ -55,7 +55,7 @@ describe('parseIssueTask', () => {
     expect(
       parseIssueTask(
         'issues',
-        payload({ issue: { labels: [{ name: 'Agent-Zero' }] } }),
+        payload({ issue: { labels: [{ name: 'Code-Zero' }] } }),
         requireLabel,
       ),
     ).not.toBeNull();
@@ -137,19 +137,19 @@ describe('issueBranchName', () => {
   const issue = { owner: 'acme', repo: 'app', number: 12 };
 
   it('derives a deterministic branch from policy, issue number, and task id', () => {
-    expect(issueBranchName('agent-zero/', issue, 'az_ABC-123')).toBe(
-      'agent-zero/issue-12-az-abc-123',
+    expect(issueBranchName('code-zero/', issue, 'cz_ABC-123')).toBe(
+      'code-zero/issue-12-cz-abc-123',
     );
   });
 
   it('refuses a prefix that would produce an invalid ref', () => {
-    expect(() => issueBranchName('bad prefix ', issue, 'az_1')).toThrow('unsafe branch name');
-    expect(() => issueBranchName('../heads/', issue, 'az_1')).toThrow('unsafe branch name');
+    expect(() => issueBranchName('bad prefix ', issue, 'cz_1')).toThrow('unsafe branch name');
+    expect(() => issueBranchName('../heads/', issue, 'cz_1')).toThrow('unsafe branch name');
   });
 });
 
 const bundle: EvidenceBundle = {
-  taskId: 'az_test',
+  taskId: 'cz_test',
   state: 'completed',
   verdict: 'accepted',
   verified: true,
@@ -159,7 +159,7 @@ const bundle: EvidenceBundle = {
   issue: { owner: 'acme', repo: 'app', number: 12 },
   runner: { kind: 'container', isolated: true, writable: true, network: 'none' },
   finding: {
-    id: 'az_test_finding',
+    id: 'cz_test_finding',
     changeRisk: 'behavioral',
     title: 'Guard the null return in the loader',
     explanation: 'load() returns null but callers dereference it.',

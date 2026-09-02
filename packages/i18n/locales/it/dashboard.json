@@ -2,7 +2,7 @@
   "$schema": "../../schemas/dashboard.schema.json",
   "dashboard": {
     "header": {
-      "eyebrow": "Agent Zero / Operazioni",
+      "eyebrow": "Code Zero / Operazioni",
       "title": "Piano di controllo",
       "mode": "Interfaccia locale"
     },
@@ -68,7 +68,7 @@
     },
     "audit": {
       "header": {
-        "eyebrow": "Agent Zero / Governance",
+        "eyebrow": "Code Zero / Governance",
         "title": "Registro di audit"
       },
       "table": {

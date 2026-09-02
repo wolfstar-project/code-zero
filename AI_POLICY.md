@@ -1,6 +1,6 @@
 # AI contributions policy
 
-Agent Zero is an autonomous engineering agent, and it is built with plenty of AI assistance. We are not going to pretend otherwise, and we are not going to ask you to.
+Code Zero is an autonomous engineering agent, and it is built with plenty of AI assistance. We are not going to pretend otherwise, and we are not going to ask you to.
 
 This policy exists because of a growing volume of low-quality, AI-generated contributions that waste maintainer time. It applies to every pull request, issue, and review in this repository, whether a human, an agent, or both wrote it.
 

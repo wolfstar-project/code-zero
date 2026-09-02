@@ -14,8 +14,8 @@ proactive:
 # committed to.
 issues:
   enabled: false
-  requireLabel: agent-zero
-  branchPrefix: agent-zero/
+  requireLabel: code-zero
+  branchPrefix: code-zero/
   # Report the validation verdict back on the issue as a comment: confirmed with evidence, not
   # confirmed with the rejection reasons, or inconclusive for a human. Report-only.
   validationComment: true
@@ -27,7 +27,7 @@ checks: []
 
 autofix:
   enabled: false
-  # Confidence required before Agent Zero may change files.
+  # Confidence required before Code Zero may change files.
   minConfidence: 0.85
   # mechanical is the conservative default. behavioral may be added explicitly; high-impact
   # changes always require human approval and cannot be enabled here.
@@ -65,7 +65,7 @@ runner:
   # cpus: '2'
   # memory: 4g
   # Pre-provisioned network used when permissions.network is restricted.
-  # network: agent-zero
+  # network: code-zero
   maxOutputBytes: 200000
 
 model:
@@ -75,7 +75,7 @@ model:
   #
   # claude-code and codex-cli spend a Claude Pro/Max or ChatGPT Plus/Pro subscription through the
   # vendor CLI installed on the host. They take no credential and stay off until the operator sets
-  # AGENT_ZERO_ENABLE_CLAUDE_CODE_PROVIDER or AGENT_ZERO_ENABLE_CODEX_CLI_PROVIDER to true, because
+  # CODE_ZERO_ENABLE_CLAUDE_CODE_PROVIDER or CODE_ZERO_ENABLE_CODEX_CLI_PROVIDER to true, because
   # the session is bound to one host and one personal account.
   provider: openai-compatible
   name: gpt-5

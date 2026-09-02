@@ -29,7 +29,7 @@ test.describe('Dashboard', () => {
   }) => {
     await page.addInitScript({
       content:
-        "if (!localStorage.getItem('agent-zero-color-mode')) localStorage.setItem('agent-zero-color-mode', 'dark')",
+        "if (!localStorage.getItem('code-zero-color-mode')) localStorage.setItem('code-zero-color-mode', 'dark')",
     });
     await goto('/', { waitUntil: 'networkidle' });
 

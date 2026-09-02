@@ -17,7 +17,7 @@ if (targetLocales.length === 0) {
 
 export default defineConfig({
   repository: {
-    name: 'wolfstar-project/agent-zero',
+    name: 'wolfstar-project/code-zero',
     rootDir: 'packages/i18n',
   },
   sourceLocale,

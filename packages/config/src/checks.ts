@@ -7,7 +7,7 @@ import { resolveCommand } from 'package-manager-detector/commands';
 export const checkKinds = ['lint', 'typecheck', 'test', 'build'] as const;
 export type CheckKind = (typeof checkKinds)[number];
 
-/** Package managers Agent Zero can invoke a repository script through. */
+/** Package managers Code Zero can invoke a repository script through. */
 export type PackageManager = AgentName;
 
 /** What the runtime observed about a checkout, used to derive its native check commands. */
@@ -43,7 +43,7 @@ const lockfileManagers: readonly (readonly [string, PackageManager])[] = [
 /** Lockfiles worth probing for in a checkout, in the order they take precedence. */
 export const knownLockfiles: readonly string[] = lockfileManagers.map(([lockfile]) => lockfile);
 
-/** Script names Agent Zero is willing to invoke. Anything else is untrusted repository content. */
+/** Script names Code Zero is willing to invoke. Anything else is untrusted repository content. */
 const SAFE_SCRIPT_NAME = createRegExp(
   anyOf(letter, digit)
     .at.lineStart()
@@ -93,7 +93,7 @@ export function discoverChecks(probe: RepositoryProbe): string[] {
  * Choose the commands a run will verify with.
  *
  * Explicit configuration always wins. An empty list means "use whatever this repository defines",
- * which keeps Agent Zero usable across checkouts without inventing commands.
+ * which keeps Code Zero usable across checkouts without inventing commands.
  */
 export function resolveChecks(configured: readonly string[], probe: RepositoryProbe): string[] {
   return configured.length > 0 ? [...configured] : discoverChecks(probe);

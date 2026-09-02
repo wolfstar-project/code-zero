@@ -6,13 +6,13 @@ import {
   truncateTail,
   type ModelProviderCredentialKind,
   type ModelProviderKind,
-} from '@agent-zero/shared';
+} from '@code-zero/shared';
 import { APICallError, type LanguageModel } from 'ai';
 
 /**
  * Model transports that spawn a locally authenticated vendor CLI instead of calling a metered API.
  *
- * These carry no credential Agent Zero can read, rotate, or redact: the session lives in the CLI's
+ * These carry no credential Code Zero can read, rotate, or redact: the session lives in the CLI's
  * own on-disk state, established interactively by the operator. That makes them single-tenant by
  * construction, which is why they stay behind an explicit operator flag.
  */
@@ -33,15 +33,15 @@ export interface SubscriptionProviderDescriptor {
 
 const descriptors = {
   'claude-code': {
-    enableEnvironmentVariable: 'AGENT_ZERO_ENABLE_CLAUDE_CODE_PROVIDER',
-    executableEnvironmentVariable: 'AGENT_ZERO_CLAUDE_CODE_PATH',
+    enableEnvironmentVariable: 'CODE_ZERO_ENABLE_CLAUDE_CODE_PROVIDER',
+    executableEnvironmentVariable: 'CODE_ZERO_CLAUDE_CODE_PATH',
     executable: 'claude',
     loginCommand: 'claude login',
     probeArgument: '--version',
   },
   'codex-cli': {
-    enableEnvironmentVariable: 'AGENT_ZERO_ENABLE_CODEX_CLI_PROVIDER',
-    executableEnvironmentVariable: 'AGENT_ZERO_CODEX_PATH',
+    enableEnvironmentVariable: 'CODE_ZERO_ENABLE_CODEX_CLI_PROVIDER',
+    executableEnvironmentVariable: 'CODE_ZERO_CODEX_PATH',
     executable: 'codex',
     loginCommand: 'codex login',
     probeArgument: '--version',
@@ -119,8 +119,8 @@ export function createSubscriptionSession(): SubscriptionSession {
  * against the vendor's re-exported type names (`ai-sdk-provider-claude-code` does not publicly
  * export `SpawnOptions`/`SpawnedProcess`, and `ChildProcess` already satisfies the vendor's shape
  * per its own documentation). A composition root supplies an implementation backed by
- * `@agent-zero/runner`'s `spawnManagedProcess`, so the CLI this transport drives is spawned through
- * the same boundary as every other command Agent Zero runs, not through the vendor SDK's own
+ * `@code-zero/runner`'s `spawnManagedProcess`, so the CLI this transport drives is spawned through
+ * the same boundary as every other command Code Zero runs, not through the vendor SDK's own
  * default `child_process.spawn` call.
  */
 export type ClaudeCodeProcessSpawner = (options: {
@@ -335,7 +335,7 @@ async function claudeCodeLanguageModel(
   const { createClaudeCode } = await import('ai-sdk-provider-claude-code');
   return createClaudeCode({
     defaultSettings: {
-      // Agent Zero owns every repository read and write through the runner boundary, so the CLI is
+      // Code Zero owns every repository read and write through the runner boundary, so the CLI is
       // reduced to a text generator: no built-in tools, no MCP servers, and the provider already
       // pins `settingSources: []` so nothing on disk can add either back.
       tools: [],

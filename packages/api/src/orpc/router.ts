@@ -1,4 +1,4 @@
-import { redactSecrets } from '@agent-zero/shared';
+import { redactSecrets } from '@code-zero/shared';
 // `openapi(meta)` builds the same metadata plugin `.route()` sugars over (see
 // `@orpc/openapi/extensions/route`), but as a real import a bundler can't tree-shake away. The
 // prototype-patching `.route()` extension depends on a bare side-effect import surviving whatever

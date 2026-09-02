@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { locales } from '@agent-zero/i18n';
+import { locales } from '@code-zero/i18n';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -15,12 +15,12 @@ import {
 
 /**
  * The landing page's structure lives in `config/content.ts` while its words live in
- * `@agent-zero/i18n`. Nothing at build time connects the two — a card whose id has no matching
+ * `@code-zero/i18n`. Nothing at build time connects the two — a card whose id has no matching
  * dictionary entry renders its raw key path as visible text — so the contract is asserted here,
  * against the real dictionaries, for every locale the site ships.
  */
 const i18nLocalesDirectory = join(
-  dirname(fileURLToPath(import.meta.resolve('@agent-zero/i18n/package.json'))),
+  dirname(fileURLToPath(import.meta.resolve('@code-zero/i18n/package.json'))),
   'locales',
 );
 

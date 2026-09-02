@@ -51,7 +51,7 @@ import Header from '../components/Header.vue';
  * API: `preheader` — the inbox preview line. Default slot is the message body; the `footer` slot
  * appends a note below the standard footer copy.
  */
-const { preheader = 'A message from Agent Zero.' } = defineProps<{ preheader?: string }>();
+const { preheader = 'A message from Code Zero.' } = defineProps<{ preheader?: string }>();
 
 usePlaintext();
 usePreheader(preheader);

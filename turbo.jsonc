@@ -17,7 +17,7 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".output/**", "*.tsbuildinfo"],
     },
-    "@agent-zero/dashboard#build": {
+    "@code-zero/dashboard#build": {
       "dependsOn": ["^build"],
       // NITRO_PRESET and VITEHUB_HOSTING select the deployment target (config/env.ts), which
       // fixes both the Nitro preset the build emits and the KV driver it resolves. Strict env mode
@@ -60,7 +60,7 @@
         // than a branch; packages/build-env prefers this one when both are present.
         "GITHUB_HEAD_REF",
         "GITHUB_SHA",
-        "AGENT_ZERO_BUILD_*",
+        "CODE_ZERO_BUILD_*",
       ],
       // `.git/HEAD` and the ref it points at, so a build with no platform variables in scope —
       // where packages/build-env falls back to reading the checkout directly — still busts the
@@ -76,7 +76,7 @@
       // listed so a cache hit restores whichever bundle the resolved target produced.
       "outputs": [".output/**", ".vercel/output/**"],
     },
-    "@agent-zero/marketing#build": {
+    "@code-zero/marketing#build": {
       "dependsOn": ["^build"],
       // Declared because Turborepo's strict env mode would otherwise hide these from `nuxt build`,
       // leaving @nuxtjs/seo with no site origin and the dashboard link pointing at localhost.
@@ -115,7 +115,7 @@
         // than a branch; packages/build-env prefers this one when both are present.
         "GITHUB_HEAD_REF",
         "GITHUB_SHA",
-        "AGENT_ZERO_BUILD_*",
+        "CODE_ZERO_BUILD_*",
       ],
       // `.git/HEAD` and the ref it points at, so a build with no platform variables in scope —
       // where packages/build-env falls back to reading the checkout directly — still busts the
@@ -129,7 +129,7 @@
       ],
       "outputs": [".output/**", ".vercel/output/**"],
     },
-    "@agent-zero/docs#build": {
+    "@code-zero/docs#build": {
       "dependsOn": ["^build"],
       // The canonical architecture and provider references are pulled in from the
       // repository-root docs/ directory by the @include hook in nuxt.config.ts.

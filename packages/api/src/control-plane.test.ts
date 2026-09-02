@@ -114,27 +114,27 @@ describe('task persistence', () => {
   it('round-trips structured history through a provider-neutral store', async () => {
     const storage = new RecordingStorage();
     const store = new PersistentTaskStore(storage);
-    await store.save(record('az_1'));
-    await expect(store.get('az_1')).resolves.toMatchObject({ id: 'az_1', status: 'queued' });
+    await store.save(record('cz_1'));
+    await expect(store.get('cz_1')).resolves.toMatchObject({ id: 'cz_1', status: 'queued' });
     await expect(store.list()).resolves.toHaveLength(1);
   });
 
   it('redacts credentials before persistence', async () => {
     const storage = new RecordingStorage();
     const store = new PersistentTaskStore(storage, ['provider-secret-value']);
-    await store.save(record('az_1', 'token=provider-secret-value'));
-    expect(JSON.stringify(storage.values.get('tasks:az_1'))).not.toContain('provider-secret-value');
-    await expect(store.get('az_1')).resolves.toMatchObject({
+    await store.save(record('cz_1', 'token=provider-secret-value'));
+    expect(JSON.stringify(storage.values.get('tasks:cz_1'))).not.toContain('provider-secret-value');
+    await expect(store.get('cz_1')).resolves.toMatchObject({
       approval: { comment: 'token=[redacted]' },
     });
   });
 
   it('keeps in-memory records isolated from caller mutation', async () => {
     const store = new MemoryTaskStore();
-    const task = record('az_1');
+    const task = record('cz_1');
     await store.save(task);
     task.status = 'failed';
-    await expect(store.get('az_1')).resolves.toMatchObject({ status: 'queued' });
+    await expect(store.get('cz_1')).resolves.toMatchObject({ status: 'queued' });
   });
 });
 

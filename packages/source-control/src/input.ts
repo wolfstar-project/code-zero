@@ -3,7 +3,7 @@ import {
   type FeedbackItem,
   type ReviewInput,
   type RunMode,
-} from '@agent-zero/shared';
+} from '@code-zero/shared';
 
 import { toPullRequestRef, type ChangeRequestRef, type ReviewEvent } from './contracts.js';
 

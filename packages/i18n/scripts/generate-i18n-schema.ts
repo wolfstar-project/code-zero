@@ -48,7 +48,7 @@ function generateSchema(obj: NestedObject, featureFile: string): JsonSchema {
   const baseSchema = generateSubSchema(obj);
   return {
     $schema: 'http://json-schema.org/draft-07/schema#',
-    title: `Agent Zero i18n locale file (${featureFile})`,
+    title: `Code Zero i18n locale file (${featureFile})`,
     description: `Schema for ${featureFile}. Generated from ${REFERENCE_LOCALE}/${featureFile} — do not edit manually.`,
     ...baseSchema,
     properties: {

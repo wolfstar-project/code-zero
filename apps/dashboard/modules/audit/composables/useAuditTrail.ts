@@ -1,6 +1,6 @@
 // Imported explicitly rather than relying on Nuxt auto-imports, so the dependency stays visible at
 // the call site; `nuxt typecheck` resolves either form.
-import type { AuditEvent } from '@agent-zero/api';
+import type { AuditEvent } from '@code-zero/api';
 import { computed } from 'vue';
 
 import type { AuditRow } from '../types/audit.js';

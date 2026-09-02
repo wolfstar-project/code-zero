@@ -1,4 +1,4 @@
-# Agent Zero repository instructions
+# Code Zero repository instructions
 
 Read `/AGENTS.md` before editing and load the relevant skill from `/.agents/skills/`.
 

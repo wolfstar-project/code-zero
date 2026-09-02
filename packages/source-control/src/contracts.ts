@@ -3,9 +3,9 @@ import type {
   FeedbackItem,
   PullRequestRef,
   ReviewTrigger,
-} from '@agent-zero/shared';
+} from '@code-zero/shared';
 
-/** Source-control platforms Agent Zero can integrate with. */
+/** Source-control platforms Code Zero can integrate with. */
 export const providerKinds = [
   'github',
   'gitlab',
@@ -93,7 +93,7 @@ export interface ReviewEvent {
 
 export interface ParseOptions {
   /**
-   * Logins whose feedback is ignored, normally including the account Agent Zero posts as.
+   * Logins whose feedback is ignored, normally including the account Code Zero posts as.
    *
    * Without this a run reacts to its own comments and loops.
    */
@@ -138,7 +138,7 @@ export interface StatusPublisherOptions {
   token: string;
   /** API base URL. Required for self-hosted providers; cloud providers have a default. */
   baseUrl?: string;
-  /** Status or check name, so several Agent Zero configurations can report side by side. */
+  /** Status or check name, so several Code Zero configurations can report side by side. */
   name?: string;
   fetch?: typeof globalThis.fetch;
 }

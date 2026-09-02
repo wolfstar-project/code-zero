@@ -49,4 +49,4 @@ export {
 } from './types.js';
 
 export const now = (): string => new Date().toISOString();
-export const taskId = (): string => `az_${randomUUID()}`;
+export const taskId = (): string => `cz_${randomUUID()}`;

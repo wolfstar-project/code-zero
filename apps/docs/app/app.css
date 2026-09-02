@@ -1,4 +1,4 @@
-/* Agent Zero brand theme, mapped from the `--az-*` custom properties the dashboard and
+/* Code Zero brand theme, mapped from the `--cz-*` custom properties the dashboard and
    marketing apps define in their `app/assets/css/main.css`. Those apps stay the source of
    truth for the palette; this file restates the same oklch values on Nuxt UI's semantic
    tokens because Docus themes through Tailwind/Nuxt UI rather than raw custom properties. */
@@ -40,7 +40,7 @@
   /* Square corners: the brand renders no radius on panels or controls. */
   --ui-radius: 0;
 
-  /* Light mode = the exact light `--az-*` values. */
+  /* Light mode = the exact light `--cz-*` values. */
   --ui-bg: oklch(0.985 0.004 145); /* canvas */
   --ui-bg-muted: oklch(0.965 0.006 145); /* panel */
   --ui-bg-elevated: oklch(0.93 0.01 145); /* raised */
@@ -62,9 +62,9 @@
   --ui-info: oklch(0.48 0.17 250);
 
   /* The theme-aware brand SVGs in public/ read these two. */
-  --az-accent: var(--ui-primary);
-  --az-ink: var(--ui-text-highlighted);
-  --az-grid: color-mix(in oklch, var(--ui-primary) 5%, transparent);
+  --cz-accent: var(--ui-primary);
+  --cz-ink: var(--ui-text-highlighted);
+  --cz-grid: color-mix(in oklch, var(--ui-primary) 5%, transparent);
 }
 
 .dark {
@@ -88,17 +88,17 @@
   --ui-error: oklch(0.68 0.2 25);
   --ui-info: oklch(0.73 0.15 250);
 
-  --az-accent: var(--ui-primary);
-  --az-ink: var(--ui-text-highlighted);
-  --az-grid: color-mix(in oklch, var(--ui-primary) 3%, transparent);
+  --cz-accent: var(--ui-primary);
+  --cz-ink: var(--ui-text-highlighted);
+  --cz-grid: color-mix(in oklch, var(--ui-primary) 3%, transparent);
 }
 
 /* Signature canvas: the same 32px accent-tinted graph-paper grid the dashboard and
    marketing sites draw on their body. */
 body {
   background:
-    linear-gradient(var(--az-grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--az-grid) 1px, transparent 1px), var(--ui-bg);
+    linear-gradient(var(--cz-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--cz-grid) 1px, transparent 1px), var(--ui-bg);
   background-size:
     32px 32px,
     32px 32px,

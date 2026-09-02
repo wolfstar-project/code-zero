@@ -10,16 +10,16 @@ import {
   mayAutofixChange,
   mayModifyRepository,
   validateConfig,
-  type AgentZeroConfig,
+  type CodeZeroConfig,
 } from './index.js';
 
-async function withConfig(contents: string): Promise<AgentZeroConfig> {
-  const directory = await mkdtemp(join(tmpdir(), 'agent-zero-config-'));
-  await writeFile(join(directory, '.agent-zero.yml'), contents, 'utf8');
+async function withConfig(contents: string): Promise<CodeZeroConfig> {
+  const directory = await mkdtemp(join(tmpdir(), 'code-zero-config-'));
+  await writeFile(join(directory, '.code-zero.yml'), contents, 'utf8');
   return loadConfig(directory);
 }
 
-function config(overrides: Partial<AgentZeroConfig> = {}): AgentZeroConfig {
+function config(overrides: Partial<CodeZeroConfig> = {}): CodeZeroConfig {
   return { ...structuredClone(defaultConfig), ...overrides };
 }
 
@@ -27,13 +27,13 @@ function config(overrides: Partial<AgentZeroConfig> = {}): AgentZeroConfig {
  * Build a configuration with a field the type system forbids, to prove the runtime still rejects it.
  * Configuration arrives from YAML, so the compiler cannot be the only gate.
  */
-function invalidConfig(overrides: Record<string, unknown>): AgentZeroConfig {
+function invalidConfig(overrides: Record<string, unknown>): CodeZeroConfig {
   return Object.assign(structuredClone(defaultConfig), overrides);
 }
 
 describe('loadConfig', () => {
   it('falls back to the safe defaults when no configuration exists', async () => {
-    const directory = await mkdtemp(join(tmpdir(), 'agent-zero-empty-'));
+    const directory = await mkdtemp(join(tmpdir(), 'code-zero-empty-'));
     const loaded = await loadConfig(directory);
     expect(loaded.mode).toBe('observe');
     expect(loaded.autofix.enabled).toBe(false);
@@ -41,8 +41,8 @@ describe('loadConfig', () => {
     expect(loaded.checks).toEqual([]);
     expect(loaded.issues).toEqual({
       enabled: false,
-      requireLabel: 'agent-zero',
-      branchPrefix: 'agent-zero/',
+      requireLabel: 'code-zero',
+      branchPrefix: 'code-zero/',
       validationComment: true,
     });
   });
@@ -161,7 +161,7 @@ describe('validateConfig', () => {
       expect(() =>
         validateConfig(config({ issues: { ...defaultConfig.issues, branchPrefix } })),
       ).toThrow('issues.branchPrefix must be a valid git branch prefix');
-    for (const branchPrefix of ['agent-zero/', 'bots/agent-zero/', 'agent-zero-'])
+    for (const branchPrefix of ['code-zero/', 'bots/code-zero/', 'code-zero-'])
       expect(
         validateConfig(config({ issues: { ...defaultConfig.issues, branchPrefix } })).issues
           .branchPrefix,
@@ -178,7 +178,7 @@ describe('validateConfig', () => {
           },
         }),
       ),
-    ).toThrow('AGENT_ZERO_MODEL_BASE_URL');
+    ).toThrow('CODE_ZERO_MODEL_BASE_URL');
   });
 });
 

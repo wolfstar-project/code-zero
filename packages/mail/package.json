@@ -1,5 +1,5 @@
 {
-  "name": "@agent-zero/mail",
+  "name": "@code-zero/mail",
   "version": "0.3.0",
   "files": [
     "dist",

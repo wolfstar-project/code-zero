@@ -12,8 +12,8 @@
 </template>
 
 <script lang="ts">
-import { locales } from '@agent-zero/i18n';
-import type { LocaleCode } from '@agent-zero/i18n';
+import { locales } from '@code-zero/i18n';
+import type { LocaleCode } from '@code-zero/i18n';
 
 // Module scope, not per-instance: `Header.vue` mounts this component twice (desktop nav and
 // mobile menu), and the locale list never changes at runtime, so there is nothing to gain from

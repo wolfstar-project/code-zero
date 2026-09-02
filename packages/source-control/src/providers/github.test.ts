@@ -1,4 +1,4 @@
-import type { CheckResult, EvidenceBundle } from '@agent-zero/shared';
+import type { CheckResult, EvidenceBundle } from '@code-zero/shared';
 import { describe, expect, it } from 'vitest';
 
 import { reviewInputFromEvent } from '../input.js';
@@ -176,8 +176,8 @@ describe('parseReviewEvent input validation', () => {
 
   it('ignores its own account so a run cannot answer itself', () => {
     expect(
-      parseReviewEvent('pull_request_review', review({ user: { login: 'agent-zero[bot]' } }), {
-        ignoreAuthors: ['Agent-Zero[bot]'],
+      parseReviewEvent('pull_request_review', review({ user: { login: 'code-zero[bot]' } }), {
+        ignoreAuthors: ['Code-Zero[bot]'],
       }),
     ).toBeNull();
   });
@@ -257,7 +257,7 @@ const failing: CheckResult = { ...passing, exitCode: 1, stderr: 'assertion faile
 
 function bundle(overrides: Partial<EvidenceBundle> = {}): EvidenceBundle {
   return {
-    taskId: 'az_test',
+    taskId: 'cz_test',
     state: 'completed',
     verdict: 'accepted',
     verified: true,
@@ -383,7 +383,7 @@ describe('GitHubChecks', () => {
     expect(calls[0]?.body).toMatchObject({
       head_sha: target.headSha,
       status: 'in_progress',
-      name: 'Agent Zero',
+      name: 'Code Zero',
     });
   });
 

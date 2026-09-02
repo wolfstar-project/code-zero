@@ -36,8 +36,8 @@ describe('runtimeBuildInfo', () => {
   it('completes a container image from the environment its host starts it with', () => {
     expect(
       runtimeBuildInfo(unresolvedBuild, {
-        AGENT_ZERO_BUILD_COMMIT: 'fedcba0987654321',
-        AGENT_ZERO_BUILD_BRANCH: 'main',
+        CODE_ZERO_BUILD_COMMIT: 'fedcba0987654321',
+        CODE_ZERO_BUILD_BRANCH: 'main',
       }),
     ).toMatchObject({ commit: 'fedcba0987654321', branch: 'main' });
   });
@@ -45,8 +45,8 @@ describe('runtimeBuildInfo', () => {
   it('never rewrites a field the build resolved, since the commit is a property of the bundle', () => {
     expect(
       runtimeBuildInfo(resolvedBuild, {
-        AGENT_ZERO_BUILD_COMMIT: 'fedcba0987654321',
-        AGENT_ZERO_BUILD_BRANCH: 'somewhere-else',
+        CODE_ZERO_BUILD_COMMIT: 'fedcba0987654321',
+        CODE_ZERO_BUILD_BRANCH: 'somewhere-else',
       }),
     ).toMatchObject({ commit: '1234567890abcdef', branch: 'main' });
   });
@@ -68,7 +68,7 @@ describe('runtimeBuildInfo', () => {
         {
           VERCEL_ENV: 'preview',
           VERCEL_GIT_COMMIT_REF: 'feat/env',
-          VERCEL_URL: 'agent-zero-abc123.vercel.app',
+          VERCEL_URL: 'code-zero-abc123.vercel.app',
         },
       ).env,
     ).toBe('preview');
@@ -94,9 +94,7 @@ describe('runtimeBuildInfo', () => {
   });
 
   it('honours an operator that states outright what the deployment is', () => {
-    expect(runtimeBuildInfo(resolvedBuild, { AGENT_ZERO_BUILD_ENV: 'preview' }).env).toBe(
-      'preview',
-    );
+    expect(runtimeBuildInfo(resolvedBuild, { CODE_ZERO_BUILD_ENV: 'preview' }).env).toBe('preview');
   });
 
   it('fills the deploy URLs a build off the host could not know', () => {
@@ -104,9 +102,9 @@ describe('runtimeBuildInfo', () => {
       runtimeBuildInfo(resolvedBuild, {
         VERCEL_ENV: 'preview',
         VERCEL_GIT_COMMIT_REF: 'feat/env',
-        VERCEL_URL: 'agent-zero-abc123.vercel.app',
+        VERCEL_URL: 'code-zero-abc123.vercel.app',
       }),
-    ).toMatchObject({ previewUrl: 'https://agent-zero-abc123.vercel.app', productionUrl: null });
+    ).toMatchObject({ previewUrl: 'https://code-zero-abc123.vercel.app', productionUrl: null });
   });
 
   it('clears a build-time pull-request number once the host reports this process as production', () => {
@@ -138,11 +136,11 @@ describe('runtimeBuildInfo', () => {
           productionUrl: '',
         },
         {
-          AGENT_ZERO_BUILD_COMMIT: 'fedcba0987654321',
-          AGENT_ZERO_BUILD_BRANCH: 'feat/env',
-          AGENT_ZERO_BUILD_PR_NUMBER: '7',
-          AGENT_ZERO_BUILD_ENV: 'preview',
-          AGENT_ZERO_BUILD_URL: 'preview.example.com',
+          CODE_ZERO_BUILD_COMMIT: 'fedcba0987654321',
+          CODE_ZERO_BUILD_BRANCH: 'feat/env',
+          CODE_ZERO_BUILD_PR_NUMBER: '7',
+          CODE_ZERO_BUILD_ENV: 'preview',
+          CODE_ZERO_BUILD_URL: 'preview.example.com',
         },
       ),
     ).toMatchObject({
@@ -157,7 +155,7 @@ describe('runtimeBuildInfo', () => {
     expect(
       runtimeBuildInfo(
         { ...resolvedBuild, env: 'preview', previewUrl: 'https://old-preview.example.com' },
-        { AGENT_ZERO_BUILD_ENV: 'release' },
+        { CODE_ZERO_BUILD_ENV: 'release' },
       ),
     ).toMatchObject({ env: 'release', previewUrl: null });
   });
@@ -168,9 +166,9 @@ describe('runtimeBuildInfo', () => {
         {
           ...resolvedBuild,
           env: 'release',
-          productionUrl: 'https://agent-zero.example.com',
+          productionUrl: 'https://code-zero.example.com',
         },
-        { AGENT_ZERO_BUILD_ENV: 'preview' },
+        { CODE_ZERO_BUILD_ENV: 'preview' },
       ),
     ).toMatchObject({ env: 'preview', productionUrl: null });
   });

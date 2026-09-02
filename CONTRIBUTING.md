@@ -1,6 +1,6 @@
-# Contributing to Agent Zero
+# Contributing to Code Zero
 
-Thanks for helping build Agent Zero. Bug reports, design discussions, documentation improvements, tests, and focused code changes are all welcome.
+Thanks for helping build Code Zero. Bug reports, design discussions, documentation improvements, tests, and focused code changes are all welcome.
 
 For questions and early design discussion, use the WolfStar community at [join.wolfstar.rocks](https://join.wolfstar.rocks). Read [SUPPORT.md](SUPPORT.md) to choose the right channel. Use GitHub issues for reproducible bugs and concrete proposals. Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
 
@@ -17,8 +17,8 @@ Requirements:
 `mise.toml` pins both Node.js and aube, so [mise](https://mise.jdx.dev) installs the whole toolchain in one step:
 
 ```bash
-git clone https://github.com/wolfstar-project/agent-zero.git
-cd agent-zero
+git clone https://github.com/wolfstar-project/code-zero.git
+cd code-zero
 mise install            # or: npm install -g --ignore-scripts=false @endevco/aube
 aube ci
 cp .env.example .env
@@ -51,7 +51,7 @@ Read [AGENTS.md](AGENTS.md) and the matching files in `.agents/skills/` before m
 
 If an AI agent helps you write a change, read [AI_POLICY.md](AI_POLICY.md) first: you still own the diff, you still run the checks, and you disclose the agent in the pull request.
 
-Documentation lives in `apps/docs`, a [Docus](https://docus.dev) site (`aube run dev --filter=@agent-zero/docs` to preview it). The canonical architecture and provider references stay in `docs/*.md` and are included by the site — edit those files rather than duplicating their content into site pages.
+Documentation lives in `apps/docs`, a [Docus](https://docus.dev) site (`aube run dev --filter=@code-zero/docs` to preview it). The canonical architecture and provider references stay in `docs/*.md` and are included by the site — edit those files rather than duplicating their content into site pages.
 
 ## Development workflow
 

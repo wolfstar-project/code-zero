@@ -69,7 +69,7 @@ describe('discoverChecks', () => {
     expect(discoverChecks({ packageJson: denoPackage, lockfiles: [] })).toEqual(['deno task test']);
   });
 
-  it('recognizes the workspace package manager declared by Agent Zero', () => {
+  it('recognizes the workspace package manager declared by Code Zero', () => {
     const aubePackage = JSON.stringify({
       packageManager: 'aube@1.41.0',
       scripts: { lint: 'aube run format:check && aube run lint' },

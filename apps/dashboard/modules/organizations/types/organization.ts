@@ -1,7 +1,7 @@
 /**
  * The organization shapes the dashboard renders.
  *
- * Declared here rather than imported from `@agent-zero/auth`: that package pulls Better Auth and
+ * Declared here rather than imported from `@code-zero/auth`: that package pulls Better Auth and
  * its database adapter, which must not reach a browser bundle. These mirror the fields the client
  * plugin returns, narrowed to what the UI actually reads.
  */
@@ -12,7 +12,7 @@ export const ORGANIZATION_ROLES = ['member', 'admin', 'owner'] as const;
 /**
  * The error code the auth server refuses an organization invitation with when the deployment has
  * no way to deliver it. Mirrors `ORGANIZATION_INVITATION_DELIVERY_UNAVAILABLE` in
- * `@agent-zero/auth`, for the same reason the shapes above are mirrored rather than imported.
+ * `@code-zero/auth`, for the same reason the shapes above are mirrored rather than imported.
  */
 export const INVITATION_DELIVERY_UNAVAILABLE = 'INVITATION_DELIVERY_UNAVAILABLE';
 

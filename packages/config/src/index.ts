@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { ChangeRisk, ModelProviderKind, NetworkPolicy, RunMode } from '@agent-zero/shared';
+import type { ChangeRisk, ModelProviderKind, NetworkPolicy, RunMode } from '@code-zero/shared';
 import { parse } from 'yaml';
 
 import { assertExecutableCommand } from './checks.js';
@@ -74,7 +74,7 @@ export interface IssuePolicy {
   validationComment: boolean;
 }
 
-export interface AgentZeroConfig {
+export interface CodeZeroConfig {
   version: 1;
   mode: RunMode;
   /** Explicit check commands. When empty the checkout's own scripts are discovered. */
@@ -101,15 +101,15 @@ export interface AgentZeroConfig {
   };
 }
 
-export const defaultConfig: AgentZeroConfig = {
+export const defaultConfig: CodeZeroConfig = {
   version: 1,
   mode: 'observe',
   checks: [],
   proactive: { enabled: false },
   issues: {
     enabled: false,
-    requireLabel: 'agent-zero',
-    branchPrefix: 'agent-zero/',
+    requireLabel: 'code-zero',
+    branchPrefix: 'code-zero/',
     validationComment: true,
   },
   autofix: {
@@ -132,7 +132,7 @@ export const defaultConfig: AgentZeroConfig = {
     workdir: '/workspace',
     maxOutputBytes: 200_000,
   },
-  model: { provider: 'openai-compatible', name: process.env.AGENT_ZERO_MODEL ?? 'gpt-5' },
+  model: { provider: 'openai-compatible', name: process.env.CODE_ZERO_MODEL ?? 'gpt-5' },
 };
 
 const runModes = new Set<string>(['observe', 'suggest', 'fix', 'autonomous']);
@@ -147,15 +147,15 @@ const modelProviders = new Set<string>([
   'openai-compatible',
 ]);
 
-function assertConfig(value: unknown): asserts value is Partial<AgentZeroConfig> {
+function assertConfig(value: unknown): asserts value is Partial<CodeZeroConfig> {
   if (!value || typeof value !== 'object' || Array.isArray(value))
     throw new Error('Configuration must be a YAML object');
 }
 
-export async function loadConfig(cwd: string): Promise<AgentZeroConfig> {
+export async function loadConfig(cwd: string): Promise<CodeZeroConfig> {
   let raw: string;
   try {
-    raw = await readFile(join(cwd, '.agent-zero.yml'), 'utf8');
+    raw = await readFile(join(cwd, '.code-zero.yml'), 'utf8');
   } catch (error) {
     if (isRecord(error) && error.code === 'ENOENT') return structuredClone(defaultConfig);
     throw error;
@@ -182,7 +182,7 @@ export async function loadConfig(cwd: string): Promise<AgentZeroConfig> {
  * Every failure here is preferable to a run that silently widens permissions, skips verification,
  * or promises isolation the runner cannot deliver.
  */
-export function validateConfig(config: AgentZeroConfig): AgentZeroConfig {
+export function validateConfig(config: CodeZeroConfig): CodeZeroConfig {
   if (config.version !== 1)
     throw new Error(`Unsupported configuration version: ${String(config.version)}`);
   if (!runModes.has(config.mode)) throw new Error(`Invalid mode: ${config.mode}`);
@@ -194,7 +194,7 @@ export function validateConfig(config: AgentZeroConfig): AgentZeroConfig {
     throw new Error('model.name must be a non-empty string');
   if (Object.hasOwn(config.model, 'baseUrl'))
     throw new Error(
-      'model.baseUrl is not allowed in repository policy; use AGENT_ZERO_MODEL_BASE_URL',
+      'model.baseUrl is not allowed in repository policy; use CODE_ZERO_MODEL_BASE_URL',
     );
 
   if (!Array.isArray(config.checks)) throw new Error('checks must be a list of commands');
@@ -257,12 +257,12 @@ export function validateConfig(config: AgentZeroConfig): AgentZeroConfig {
  * Writing requires an explicit write mode and repository permission. `observe` and `suggest` can
  * never write, regardless of configuration.
  */
-export function mayModifyRepository(config: AgentZeroConfig, mode: RunMode): boolean {
+export function mayModifyRepository(config: CodeZeroConfig, mode: RunMode): boolean {
   return (mode === 'fix' || mode === 'autonomous') && config.autofix.enabled;
 }
 
 /** Whether repository policy permits this class of change to pass the autofix gate. */
-export function mayAutofixChange(config: AgentZeroConfig, risk: ChangeRisk): boolean {
+export function mayAutofixChange(config: CodeZeroConfig, risk: ChangeRisk): boolean {
   return risk !== 'high-impact' && config.autofix.allowedChangeRisks.includes(risk);
 }
 

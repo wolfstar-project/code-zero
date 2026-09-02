@@ -1,5 +1,5 @@
 export {
-  AgentZero,
+  CodeZero,
   classifyChangeRisk,
   sanitizeAcceptanceCriteria,
   scopeChanges,

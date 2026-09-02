@@ -43,7 +43,7 @@ const testBuildInfo: BuildInfo = {
  * package's shape is modelled on both use `appConfig` for the same data, but only because every
  * build of theirs runs on a host (Vercel, Netlify) that already has full git metadata *at build
  * time* — appConfig is a pure build-time constant, identical in the client and server bundles,
- * with no channel to change after the fact. Agent Zero also ships a self-hosted bundle and can run
+ * with no channel to change after the fact. Code Zero also ships a self-hosted bundle and can run
  * behind hosts that only expose that metadata once the *server* starts, so this needs a value that
  * can still be completed after the build without the client and server ending up with two
  * different answers — which is what `runtimeConfig.public` plus the `useState`-backed composable
@@ -52,7 +52,7 @@ const testBuildInfo: BuildInfo = {
  */
 export default defineNuxtModule<BuildEnvModuleOptions>({
   meta: {
-    name: 'agent-zero:build-env',
+    name: 'code-zero:build-env',
     configKey: 'buildEnv',
   },
   defaults: {
@@ -76,7 +76,7 @@ export default defineNuxtModule<BuildEnvModuleOptions>({
     nuxt.options.runtimeConfig.public.buildInfo = buildInfo;
 
     const composable = addTemplate({
-      filename: 'agent-zero-build-env.mjs',
+      filename: 'code-zero-build-env.mjs',
       write: true,
       getContents: () => buildInfoComposable(options),
     });
@@ -98,7 +98,7 @@ function buildInfoComposable(options: BuildEnvModuleOptions): string {
 
   return `import process from 'node:process';
 
-import { normalizeBuildInfo, runtimeBuildInfo } from '@agent-zero/build-env';
+import { normalizeBuildInfo, runtimeBuildInfo } from '@code-zero/build-env';
 import { useRuntimeConfig, useState } from '#imports';
 
 const runtimeFallback = ${JSON.stringify(Boolean(options.runtimeFallback))};
@@ -112,7 +112,7 @@ let serverResolved;
 export function useBuildInfo() {
   // Keyed state rather than a plain call: the server-completed value is serialised into the SSR
   // payload, so the client hydrates the same answer instead of falling back to the build's own.
-  return useState('agent-zero:build-info', () => {
+  return useState('code-zero:build-info', () => {
     const buildInfo = useRuntimeConfig().public.buildInfo;
     if (!import.meta.server || !runtimeFallback) {
       // Nuxt still serialises this build's own \`null\` fields as \`''\` even when nothing here

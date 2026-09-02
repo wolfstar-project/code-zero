@@ -1,6 +1,6 @@
 # Support
 
-Agent Zero is an open-source project maintained by the WolfStar Project.
+Code Zero is an open-source project maintained by the WolfStar Project.
 
 ## Where to ask for help
 
@@ -12,7 +12,7 @@ Use GitHub issues for reproducible bugs, scoped feature proposals, and work that
 
 A useful bug report should include:
 
-- the Agent Zero version or commit SHA;
+- the Code Zero version or commit SHA;
 - operating system and Node.js/aube versions;
 - the runner mode and relevant configuration with secrets removed;
 - deterministic reproduction steps;
@@ -29,6 +29,6 @@ Follow [SECURITY.md](SECURITY.md) and use GitHub private vulnerability reporting
 
 ## Support boundaries
 
-Maintainers can help with Agent Zero itself, its documented development workflow, and supported integrations. They cannot provide support for unrelated repository code, third-party provider outages, private infrastructure, or credentials.
+Maintainers can help with Code Zero itself, its documented development workflow, and supported integrations. They cannot provide support for unrelated repository code, third-party provider outages, private infrastructure, or credentials.
 
 Please keep support requests respectful and consistent with the [Code of Conduct](CODE_OF_CONDUCT.md).

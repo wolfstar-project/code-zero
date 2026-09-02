@@ -113,7 +113,7 @@ function recordingProcess(outcomes: Partial<Record<string, ProcessOutcome>> = {}
 let root: string;
 
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), 'agent-zero-runner-'));
+  root = await mkdtemp(join(tmpdir(), 'code-zero-runner-'));
   await mkdir(join(root, 'src'), { recursive: true });
   await writeFile(join(root, 'src', 'user.ts'), 'export const user = null;\n', 'utf8');
 });
@@ -162,7 +162,7 @@ describe('path boundary', () => {
   });
 
   it('refuses a write through a symlink that leaves the checkout', async () => {
-    const outside = await mkdtemp(join(tmpdir(), 'agent-zero-outside-'));
+    const outside = await mkdtemp(join(tmpdir(), 'code-zero-outside-'));
     await writeFile(join(outside, 'target.txt'), 'original', 'utf8');
     await symlink(outside, join(root, 'linked'));
     const runner = new LocalRunner(root, { writable: true });
@@ -173,7 +173,7 @@ describe('path boundary', () => {
   });
 
   it('refuses a read when a validated directory is swapped for a symlink before the open', async () => {
-    const outside = await mkdtemp(join(tmpdir(), 'agent-zero-outside-'));
+    const outside = await mkdtemp(join(tmpdir(), 'code-zero-outside-'));
     await writeFile(join(outside, 'secret.txt'), 'outside-secret', 'utf8');
     await mkdir(join(root, 'staging'));
     await writeFile(join(root, 'staging', 'secret.txt'), 'inside', 'utf8');
@@ -182,7 +182,7 @@ describe('path boundary', () => {
   });
 
   it('refuses a write when a validated directory is swapped for a symlink before the write lands', async () => {
-    const outside = await mkdtemp(join(tmpdir(), 'agent-zero-outside-'));
+    const outside = await mkdtemp(join(tmpdir(), 'code-zero-outside-'));
     await mkdir(join(root, 'staging'));
     const runner = new SwappingRunner(root, outside, { writable: true });
     await expect(runner.write('staging/escape.txt', 'payload')).rejects.toThrow(
@@ -202,7 +202,7 @@ describe('path boundary', () => {
   });
 
   it('keeps a write contained when the validated target inode is renamed outside before it lands', async () => {
-    const outside = await mkdtemp(join(tmpdir(), 'agent-zero-outside-'));
+    const outside = await mkdtemp(join(tmpdir(), 'code-zero-outside-'));
     const victim = join(outside, 'victim.txt');
     await writeFile(victim, 'external content', 'utf8');
     const runner = new TargetRenamingRunner(root, victim, { writable: true });
@@ -658,7 +658,7 @@ describe('ContainerRunner', () => {
       'bridge',
     );
     expect(networkArgument(new ContainerRunner(root, { ...options, network: 'restricted' }))).toBe(
-      'agent-zero',
+      'code-zero',
     );
     expect(
       networkArgument(

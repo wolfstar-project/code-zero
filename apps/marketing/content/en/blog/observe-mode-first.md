@@ -1,6 +1,6 @@
 ---
 title: 'Observe mode first, always'
-description: 'Why every Agent Zero run starts read-only, and why promoting to fix mode is a decision you make in policy, not in a prompt.'
+description: 'Why every Code Zero run starts read-only, and why promoting to fix mode is a decision you make in policy, not in a prompt.'
 date: '2026-08-06'
 author: 'Amelia Ortiz'
 authorInitials: 'AO'
@@ -11,7 +11,7 @@ The most common question we get about autonomous fixing is also the best one: _w
 breaking my repository?_ The honest answer is that nothing should have to stop it, because it
 should never have started with write access.
 
-Every Agent Zero run begins in observe mode. It can read the checkout, reproduce the problem, and
+Every Code Zero run begins in observe mode. It can read the checkout, reproduce the problem, and
 run the repository's own checks — and it reports what it found and what it would change. Nothing
 touches a file until fix mode is enabled in repository policy, reviewed and merged like any other
 change to your codebase.

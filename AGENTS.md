@@ -1,10 +1,10 @@
-# Agent Zero development guide
+# Code Zero development guide
 
 These instructions apply to humans and coding agents working in this repository.
 
 ## Overview
 
-Agent Zero is an open-source autonomous engineer that finds, fixes, and verifies problems in pull requests. This is an [aube](https://aube.jdx.dev) workspace containing the runtime packages, their adapters, and a single deployable Nuxt app. Turborepo orchestrates builds and checks.
+Code Zero is an open-source autonomous engineer that finds, fixes, and verifies problems in pull requests. This is an [aube](https://aube.jdx.dev) workspace containing the runtime packages, their adapters, and a single deployable Nuxt app. Turborepo orchestrates builds and checks.
 
 **Key information:**
 
@@ -23,7 +23,7 @@ Agent Zero is an open-source autonomous engineer that finds, fixes, and verifies
 
 ## Folder structure
 
-- `./packages` — runtime packages and their adapters, published under `@agent-zero/*`
+- `./packages` — runtime packages and their adapters, published under `@code-zero/*`
 - `./apps` — the deployable dashboard plus the docs, marketing, and mail-preview sites
 - `./docs` — canonical architecture and provider references, included verbatim by `apps/docs`
 - `./tooling` — shared Oxlint and Oxfmt configuration
@@ -33,25 +33,25 @@ Agent Zero is an open-source autonomous engineer that finds, fixes, and verifies
 
 ## Workspace packages
 
-| Path                      | Name                         | Description                                                      |
-| ------------------------- | ---------------------------- | ---------------------------------------------------------------- |
-| `packages/agent`          | `@agent-zero/agent`          | Orchestration and state transitions only                         |
-| `packages/runner`         | `@agent-zero/runner`         | The only boundary allowed to run commands or mutate a checkout   |
-| `packages/models`         | `@agent-zero/models`         | Model-provider abstractions                                      |
-| `packages/source-control` | `@agent-zero/source-control` | Provider-neutral contracts plus GitHub, GitLab, Bitbucket, Gitea |
-| `packages/config`         | `@agent-zero/config`         | Configuration parsing and policy                                 |
-| `packages/shared`         | `@agent-zero/shared`         | Stable cross-package contracts                                   |
-| `packages/build-env`      | `@agent-zero/build-env`      | Build metadata resolution and the Nuxt module that publishes it  |
-| `packages/cli`            | `@agent-zero/cli`            | Argument parsing and terminal presentation                       |
-| `packages/database`       | `@agent-zero/database`       | Schema, Drizzle client, and checked-in migrations                |
-| `packages/auth`           | `@agent-zero/auth`           | Authentication policy and the Better Auth options factory        |
-| `packages/api`            | `@agent-zero/api`            | The oRPC router and control-plane operations                     |
-| `packages/i18n`           | `@agent-zero/i18n`           | Locale messages and i18n tooling                                 |
-| `packages/mail`           | `@agent-zero/mail`           | Transactional mail templates                                     |
-| `apps/dashboard`          | `@agent-zero/dashboard`      | The single deployable app and composition root                   |
-| `apps/docs`               | `@agent-zero/docs`           | Docus documentation site (not deployed with the dashboard)       |
-| `apps/marketing`          | `@agent-zero/marketing`      | Frontend-only public marketing site                              |
-| `apps/mail-preview`       | `@agent-zero/mail-preview`   | Dev-only Maizzle preview server for `packages/mail`              |
+| Path                      | Name                        | Description                                                      |
+| ------------------------- | --------------------------- | ---------------------------------------------------------------- |
+| `packages/agent`          | `@code-zero/agent`          | Orchestration and state transitions only                         |
+| `packages/runner`         | `@code-zero/runner`         | The only boundary allowed to run commands or mutate a checkout   |
+| `packages/models`         | `@code-zero/models`         | Model-provider abstractions                                      |
+| `packages/source-control` | `@code-zero/source-control` | Provider-neutral contracts plus GitHub, GitLab, Bitbucket, Gitea |
+| `packages/config`         | `@code-zero/config`         | Configuration parsing and policy                                 |
+| `packages/shared`         | `@code-zero/shared`         | Stable cross-package contracts                                   |
+| `packages/build-env`      | `@code-zero/build-env`      | Build metadata resolution and the Nuxt module that publishes it  |
+| `packages/cli`            | `@code-zero/cli`            | Argument parsing and terminal presentation                       |
+| `packages/database`       | `@code-zero/database`       | Schema, Drizzle client, and checked-in migrations                |
+| `packages/auth`           | `@code-zero/auth`           | Authentication policy and the Better Auth options factory        |
+| `packages/api`            | `@code-zero/api`            | The oRPC router and control-plane operations                     |
+| `packages/i18n`           | `@code-zero/i18n`           | Locale messages and i18n tooling                                 |
+| `packages/mail`           | `@code-zero/mail`           | Transactional mail templates                                     |
+| `apps/dashboard`          | `@code-zero/dashboard`      | The single deployable app and composition root                   |
+| `apps/docs`               | `@code-zero/docs`           | Docus documentation site (not deployed with the dashboard)       |
+| `apps/marketing`          | `@code-zero/marketing`      | Frontend-only public marketing site                              |
+| `apps/mail-preview`       | `@code-zero/mail-preview`   | Dev-only Maizzle preview server for `packages/mail`              |
 
 ## Toolchain
 
@@ -112,13 +112,13 @@ Every runtime package exposes `build`, `clean`, `lint`, `lint:fix`, `test`, and 
 
 ```bash
 # Test one package
-aube run test --filter=@agent-zero/runner
+aube run test --filter=@code-zero/runner
 
 # Build a package and its dependencies
-aube run build --filter=@agent-zero/dashboard
+aube run build --filter=@code-zero/dashboard
 
 # Type-check one package
-aube run typecheck --filter=@agent-zero/api
+aube run typecheck --filter=@code-zero/api
 ```
 
 Use the smallest relevant check while iterating, then run the complete set before opening a pull request.
@@ -196,19 +196,19 @@ aube run build
 
 ## Important files for agents
 
-| File                                  | Purpose                                                               |
-| ------------------------------------- | --------------------------------------------------------------------- |
-| `package.json`                        | Root scripts, pinned package manager, dev dependencies                |
-| `pnpm-workspace.yaml`                 | Workspace members, catalogs, and the TypeScript override              |
-| `pnpm-lock.yaml`                      | The only lockfile; written in place by aube                           |
-| `turbo.jsonc`                         | Task graph, caching, and per-task environment inputs                  |
-| `mise.toml`                           | Pinned Node.js and aube versions                                      |
-| `tsconfig.base.json`, `tsconfig.json` | Shared and root TypeScript configuration                              |
-| `tooling/oxc`                         | Oxlint and Oxfmt configuration                                        |
-| `knip.jsonc`                          | Unused-code analysis configuration                                    |
-| `scripts/check-repository.mjs`        | Validates community files and Agent Skills                            |
-| `scripts/tsdown.config.ts`            | Shared build configuration for tsdown packages                        |
-| `.agents/skills/`                     | Agent Skills, including the Agent Zero architecture and safety skills |
+| File                                  | Purpose                                                              |
+| ------------------------------------- | -------------------------------------------------------------------- |
+| `package.json`                        | Root scripts, pinned package manager, dev dependencies               |
+| `pnpm-workspace.yaml`                 | Workspace members, catalogs, and the TypeScript override             |
+| `pnpm-lock.yaml`                      | The only lockfile; written in place by aube                          |
+| `turbo.jsonc`                         | Task graph, caching, and per-task environment inputs                 |
+| `mise.toml`                           | Pinned Node.js and aube versions                                     |
+| `tsconfig.base.json`, `tsconfig.json` | Shared and root TypeScript configuration                             |
+| `tooling/oxc`                         | Oxlint and Oxfmt configuration                                       |
+| `knip.jsonc`                          | Unused-code analysis configuration                                   |
+| `scripts/check-repository.mjs`        | Validates community files and Agent Skills                           |
+| `scripts/tsdown.config.ts`            | Shared build configuration for tsdown packages                       |
+| `.agents/skills/`                     | Agent Skills, including the Code Zero architecture and safety skills |
 
 ## Troubleshooting
 
@@ -236,7 +236,7 @@ aube run zero doctor
 - [Governance](GOVERNANCE.md)
 - [Security policy](SECURITY.md)
 - [Support channels](SUPPORT.md)
-- [Issue tracker](https://github.com/wolfstar-project/agent-zero/issues)
+- [Issue tracker](https://github.com/wolfstar-project/code-zero/issues)
 
 <!-- skilld -->
 

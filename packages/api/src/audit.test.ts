@@ -207,7 +207,7 @@ describe('audit recorder', () => {
     actor: { kind: 'principal', name: 'release-manager' },
     action: 'task.created',
     outcome: 'success',
-    subject: { type: 'task', id: 'az_1' },
+    subject: { type: 'task', id: 'cz_1' },
     metadata: { repository: 'acme/app', mode: 'observe' },
   };
 

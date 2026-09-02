@@ -2,13 +2,9 @@
 import { access, copyFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { AgentZero } from '@agent-zero/agent';
-import {
-  discoverChecks,
-  knownLockfiles,
-  loadConfig,
-  mayModifyRepository,
-} from '@agent-zero/config';
+import * as p from '@clack/prompts';
+import { CodeZero } from '@code-zero/agent';
+import { discoverChecks, knownLockfiles, loadConfig, mayModifyRepository } from '@code-zero/config';
 import {
   isModelConfigured,
   isSubscriptionModelProvider,
@@ -18,21 +14,15 @@ import {
   subscriptionProbeCommand,
   subscriptionProviderDescriptor,
   type SubscriptionModelProviderKind,
-} from '@agent-zero/models';
-import {
-  createRunner,
-  LocalRunner,
-  runnerOptionsFromPolicy,
-  type Runner,
-} from '@agent-zero/runner';
+} from '@code-zero/models';
+import { createRunner, LocalRunner, runnerOptionsFromPolicy, type Runner } from '@code-zero/runner';
 import {
   evidenceFromResult,
   renderEvidenceMarkdown,
   version,
   type RunMode,
   type TaskResult,
-} from '@agent-zero/shared';
-import * as p from '@clack/prompts';
+} from '@code-zero/shared';
 
 import { parseCliArguments } from './args.js';
 import {
@@ -108,7 +98,7 @@ async function main(): Promise<void> {
 }
 
 function showHelp(): void {
-  p.intro(`Agent Zero v${version}`);
+  p.intro(`Code Zero v${version}`);
   p.note(
     [
       'zero init',
@@ -129,13 +119,13 @@ function showHelp(): void {
 /**
  * Which deployment `login` and `logout` act on.
  *
- * `--url` wins, then `AGENT_ZERO_URL`, then the local development origin the README documents.
+ * `--url` wins, then `CODE_ZERO_URL`, then the local development origin the README documents.
  * There is deliberately no built-in hosted default: a wrong one would send an operator's device
  * code to a host nobody in this repository controls, so a cloud-managed deployment is named
  * explicitly exactly like a self-hosted one.
  */
 function resolveDeploymentOrigin(url: string | undefined): string {
-  return normalizeOrigin(url ?? process.env.AGENT_ZERO_URL?.trim() ?? 'http://localhost:3000');
+  return normalizeOrigin(url ?? process.env.CODE_ZERO_URL?.trim() ?? 'http://localhost:3000');
 }
 
 /**
@@ -148,7 +138,7 @@ function resolveDeploymentOrigin(url: string | undefined): string {
  */
 async function signIn(url: string | undefined): Promise<void> {
   const origin = resolveDeploymentOrigin(url);
-  p.intro(`Agent Zero · login`);
+  p.intro(`Code Zero · login`);
 
   const request = await requestDeviceCode(origin);
   p.note(
@@ -217,7 +207,7 @@ async function signIn(url: string | undefined): Promise<void> {
 
 /** Forget a stored session. Without `--url` this forgets every deployment, not just one. */
 async function signOut(url: string | undefined): Promise<void> {
-  p.intro('Agent Zero · logout');
+  p.intro('Code Zero · logout');
   const origin = url === undefined ? undefined : resolveDeploymentOrigin(url);
   const forgotten = await forgetCredential(origin);
 
@@ -233,14 +223,14 @@ function delay(milliseconds: number): Promise<void> {
 }
 
 async function initializeProject(): Promise<void> {
-  p.intro('Agent Zero · init');
-  const target = join(cwd, '.agent-zero.yml');
+  p.intro('Code Zero · init');
+  const target = join(cwd, '.code-zero.yml');
 
   if (await exists(target)) {
-    throw new Error('.agent-zero.yml already exists');
+    throw new Error('.code-zero.yml already exists');
   }
 
-  await copyFile(join(import.meta.dirname, '../../../.agent-zero.example.yml'), target);
+  await copyFile(join(import.meta.dirname, '../../../.code-zero.example.yml'), target);
   p.log.success(`Created ${target}`);
   p.outro('Configuration ready.');
 }
@@ -289,7 +279,7 @@ async function runDoctor(asJson: boolean): Promise<void> {
     return;
   }
 
-  p.intro('Agent Zero · doctor');
+  p.intro('Code Zero · doctor');
   p.log.info(`Node ${status.node}`);
   logCheck('Git repository', status.gitRepository);
   logCheck('Model configured', status.modelConfigured);
@@ -301,10 +291,10 @@ async function runDoctor(asJson: boolean): Promise<void> {
     if (
       config.model.provider === 'claude-code' &&
       config.runner.isolation === 'container' &&
-      !process.env.AGENT_ZERO_CLAUDE_CODE_CONTAINER_IMAGE
+      !process.env.CODE_ZERO_CLAUDE_CODE_CONTAINER_IMAGE
     )
       p.log.warn(
-        'Container isolation is required but no AGENT_ZERO_CLAUDE_CODE_CONTAINER_IMAGE is set, so claude-code is refused rather than run unisolated on the host.',
+        'Container isolation is required but no CODE_ZERO_CLAUDE_CODE_CONTAINER_IMAGE is set, so claude-code is refused rather than run unisolated on the host.',
       );
     else
       p.log.warn(
@@ -397,7 +387,7 @@ async function runAgent(
   const config = await loadConfig(cwd);
   const mode: RunMode = command === 'review' ? 'observe' : command === 'fix' ? 'fix' : config.mode;
 
-  if (!asJson && providedFeedback !== undefined) p.intro(`Agent Zero · ${command}`);
+  if (!asJson && providedFeedback !== undefined) p.intro(`Code Zero · ${command}`);
 
   // The boundary is created read-only unless both the mode and repository policy allow writing, so
   // a mistake in the runtime cannot turn a review into an edit.
@@ -409,7 +399,7 @@ async function runAgent(
   // Refuses claude-code under container isolation when no CLI container image is configured,
   // rather than silently spawning it unisolated on the host. Reported to modelFromEnvironment as a
   // refusal reason, not by disabling the enable flag: the flag would also skip fallback selection,
-  // turning a configured AGENT_ZERO_MODEL_FALLBACK_PROVIDER into a run that fails outright instead
+  // turning a configured CODE_ZERO_MODEL_FALLBACK_PROVIDER into a run that fails outright instead
   // of degrading to it.
   const refusalReason =
     config.model.provider === 'claude-code'
@@ -422,7 +412,7 @@ async function runAgent(
       ? claudeCodeProcessSpawner(config, process.env)
       : undefined;
 
-  const agent = new AgentZero({
+  const agent = new CodeZero({
     model: modelFromEnvironment(config.model, process.env, spawnClaudeCodeProcess, refusalReason),
     runner,
     config,
@@ -459,9 +449,9 @@ async function promptForFeedback(
     throw new Error('Missing --feedback <text> in a non-interactive environment');
   }
 
-  p.intro(`Agent Zero · ${command}`);
+  p.intro(`Code Zero · ${command}`);
   const feedback = await p.text({
-    message: 'What should Agent Zero work on?',
+    message: 'What should Code Zero work on?',
     placeholder: 'Describe the feedback or requested change',
     validate: (value) => ((value ?? '').trim().length === 0 ? 'Feedback is required.' : undefined),
   });

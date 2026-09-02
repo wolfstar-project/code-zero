@@ -1,4 +1,4 @@
-import type { CheckResult, RunnerDescription } from '@agent-zero/shared';
+import type { CheckResult, RunnerDescription } from '@code-zero/shared';
 
 import { RepositoryBoundary, type BoundaryOptions } from './boundary.js';
 import { commandArgv } from './process.js';

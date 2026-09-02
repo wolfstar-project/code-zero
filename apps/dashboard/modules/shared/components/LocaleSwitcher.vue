@@ -12,8 +12,8 @@
 </template>
 
 <script setup lang="ts">
-import { locales } from '@agent-zero/i18n';
-import type { LocaleCode } from '@agent-zero/i18n';
+import { locales } from '@code-zero/i18n';
+import type { LocaleCode } from '@code-zero/i18n';
 
 const { t, locale, setLocale } = useI18n();
 

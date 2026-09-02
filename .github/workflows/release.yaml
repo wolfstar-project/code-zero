@@ -35,5 +35,5 @@ jobs:
         run: |
           node --input-type=module --eval "Promise.all([import('./packages/shared/dist/index.mjs'), import('./packages/shared/package.json', { with: { type: 'json' } })]).then(([built, pkg]) => { if (built.version !== pkg.default.version) { console.error('Injected version', built.version, 'does not match package.json version', pkg.default.version); process.exit(1) } })"
 
-      # Publishing remains intentionally absent until the @agent-zero package
+      # Publishing remains intentionally absent until the @code-zero package
       # scope and npm trusted publishing policy are configured.

@@ -11,7 +11,7 @@ const RECORDED: AuditRow[] = [
     actorName: 'release-manager',
     actorKind: 'principal',
     action: 'task.created',
-    subject: 'task:az_1',
+    subject: 'task:cz_1',
     outcome: 'success',
     details: 'repository=acme/app · mode=observe',
   },
@@ -46,7 +46,7 @@ describe('AuditTable', () => {
     expect(wrapper.findAll('tbody tr')).toHaveLength(3);
     expect(wrapper.text()).toContain('release-manager');
     expect(wrapper.text()).toContain('task.created');
-    expect(wrapper.text()).toContain('task:az_1');
+    expect(wrapper.text()).toContain('task:cz_1');
     expect(wrapper.text()).toContain('denied');
   });
 

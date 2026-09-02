@@ -37,7 +37,7 @@ export function stripEmptyMessages(value: JsonValue): JsonValue | undefined {
 
 export function stripEmptyI18nMessagesPlugin(): Plugin {
   return {
-    name: 'agent-zero:i18n-empty-placeholders',
+    name: 'code-zero:i18n-empty-placeholders',
     // Must run before Vite's JSON plugin turns the file into an ES module.
     enforce: 'pre',
     transform(code, id) {

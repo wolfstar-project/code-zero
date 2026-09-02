@@ -1,9 +1,9 @@
 ---
 name: tsdown
-description: Build or change Agent Zero packages and apps with the repository's shared tsdown configuration, package validation, and version injection.
+description: Build or change Code Zero packages and apps with the repository's shared tsdown configuration, package validation, and version injection.
 ---
 
-# tsdown in Agent Zero
+# tsdown in Code Zero
 
 Use this skill when changing build entries, output formats, declarations, package exports, executable output, or version injection.
 

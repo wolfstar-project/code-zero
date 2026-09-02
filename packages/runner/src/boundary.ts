@@ -23,7 +23,7 @@ import {
   type CheckResult,
   type NetworkPolicy,
   type RunnerDescription,
-} from '@agent-zero/shared';
+} from '@code-zero/shared';
 
 import { execFileProcessRunner, type ProcessOutcome, type ProcessRunner } from './process.js';
 
@@ -406,7 +406,7 @@ export abstract class RepositoryBoundary implements Runner {
     original: string,
   ): Promise<void> {
     const anchor = await directoryAnchor(directory, original);
-    const temporaryName = `.agent-zero-${randomUUID()}.tmp`;
+    const temporaryName = `.code-zero-${randomUUID()}.tmp`;
     const temporary = join(anchor, temporaryName);
     const target = join(anchor, targetName);
     const handle = await open(

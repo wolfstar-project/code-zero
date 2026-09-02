@@ -51,7 +51,7 @@ export function credentialsPath(
   home: string = homedir(),
 ): string {
   const configHome = environment.XDG_CONFIG_HOME?.trim();
-  return join(configHome || join(home, '.config'), 'agent-zero', 'credentials.json');
+  return join(configHome || join(home, '.config'), 'code-zero', 'credentials.json');
 }
 
 /**

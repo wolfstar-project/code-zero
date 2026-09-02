@@ -1,6 +1,6 @@
 ---
 title: Privacy policy
-description: How the Agent Zero project handles the data you send to this website and to the hosted service.
+description: How the Code Zero project handles the data you send to this website and to the hosted service.
 lastUpdated: '2026-08-15'
 ---
 
@@ -10,7 +10,7 @@ lastUpdated: '2026-08-15'
 ## What this site collects
 
 The marketing site you are reading is fully prerendered and holds no session, no account, and no
-database — visiting it does not create a record anywhere in Agent Zero's infrastructure beyond
+database — visiting it does not create a record anywhere in Code Zero's infrastructure beyond
 whatever your hosting provider's own access logs capture.
 
 ## What the hosted service collects

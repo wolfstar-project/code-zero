@@ -7,7 +7,7 @@ const { inviterName, organizationName, shareUrl, maxUses, expiresAt } = useConfi
 </script>
 
 <template>
-  <Base preheader="Your public Agent Zero invitation is ready to share.">
+  <Base preheader="Your public Code Zero invitation is ready to share.">
     <Text
       class="m-0 text-[10px] font-bold tracking-[0.16em] text-[#48574D] uppercase dark:text-[#95A29B]"
     >
@@ -26,7 +26,7 @@ const { inviterName, organizationName, shareUrl, maxUses, expiresAt } = useConfi
       <template v-if="organizationName">
         to <strong>{{ organizationName }}</strong>
       </template>
-      on Agent Zero.
+      on Code Zero.
     </Text>
 
     <div class="pt-6">

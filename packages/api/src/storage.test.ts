@@ -11,20 +11,20 @@ const UNSAFE_KEY = /unsafe key/i;
 let directory: string;
 
 beforeEach(async () => {
-  directory = await mkdtemp(join(tmpdir(), 'agent-zero-storage-'));
+  directory = await mkdtemp(join(tmpdir(), 'code-zero-storage-'));
 });
 
 describe('FileKeyValueStorage', () => {
   it('round-trips a namespaced record', async () => {
     const storage = new FileKeyValueStorage(directory);
-    await storage.setItem('tasks:az_1', { id: 'az_1' });
-    await expect(storage.getItem('tasks:az_1')).resolves.toEqual({ id: 'az_1' });
-    await expect(storage.getKeys('tasks:')).resolves.toEqual(['tasks:az_1']);
+    await storage.setItem('tasks:cz_1', { id: 'cz_1' });
+    await expect(storage.getItem('tasks:cz_1')).resolves.toEqual({ id: 'cz_1' });
+    await expect(storage.getKeys('tasks:')).resolves.toEqual(['tasks:cz_1']);
   });
 
   it('reports a missing record as absent instead of throwing', async () => {
     await expect(
-      new FileKeyValueStorage(directory).getItem('tasks:az_missing'),
+      new FileKeyValueStorage(directory).getItem('tasks:cz_missing'),
     ).resolves.toBeNull();
   });
 
@@ -54,9 +54,9 @@ describe('FileKeyValueStorage', () => {
 
   it('removes a record without disturbing its siblings', async () => {
     const storage = new FileKeyValueStorage(directory);
-    await storage.setItem('tasks:az_1', { id: 'az_1' });
-    await storage.setItem('tasks:az_2', { id: 'az_2' });
-    await storage.removeItem('tasks:az_1');
-    await expect(storage.getKeys('tasks:')).resolves.toEqual(['tasks:az_2']);
+    await storage.setItem('tasks:cz_1', { id: 'cz_1' });
+    await storage.setItem('tasks:cz_2', { id: 'cz_2' });
+    await storage.removeItem('tasks:cz_1');
+    await expect(storage.getKeys('tasks:')).resolves.toEqual(['tasks:cz_2']);
   });
 });

@@ -96,7 +96,7 @@ export function renderEvidenceMarkdown(
   const clean = (text: string): string => redactSecrets(text, secrets);
 
   const lines: string[] = [
-    `## Agent Zero — ${triggerLabel(bundle.trigger)} ${bundle.verdict}`,
+    `## Code Zero — ${triggerLabel(bundle.trigger)} ${bundle.verdict}`,
     '',
     clean(bundle.summary),
     '',

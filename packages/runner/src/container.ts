@@ -1,4 +1,4 @@
-import type { CheckResult, RunnerDescription } from '@agent-zero/shared';
+import type { CheckResult, RunnerDescription } from '@code-zero/shared';
 
 import { RepositoryBoundary, type BoundaryOptions } from './boundary.js';
 import { commandArgv } from './process.js';
@@ -16,7 +16,7 @@ export interface ContainerOptions extends BoundaryOptions {
   user?: string;
 }
 
-export const DEFAULT_RESTRICTED_NETWORK = 'agent-zero';
+export const DEFAULT_RESTRICTED_NETWORK = 'code-zero';
 
 /**
  * Compatibility isolation adapter for self-hosted Docker/Podman deployments.

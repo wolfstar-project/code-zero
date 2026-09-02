@@ -16,11 +16,11 @@
     "hero": {
       "eyebrow": "Open source · Apache-2.0",
       "title": "L'ingegnere autonomo che non fa merge di un'ipotesi",
-      "subtitle": "Agent Zero legge le tue pull request, riproduce il problema, scrive la correzione e la dimostra con un'esecuzione che passa. La modalità osservazione è il default: finché non lo autorizzi, il repository non viene toccato.",
+      "subtitle": "Code Zero legge le tue pull request, riproduce il problema, scrive la correzione e la dimostra con un'esecuzione che passa. La modalità osservazione è il default: finché non lo autorizzi, il repository non viene toccato.",
       "primaryCta": "Inizia in modalità osservazione",
       "secondaryCta": "Leggi la documentazione",
       "note": "Nessuna carta di credito. Gira sulla tua infrastruttura.",
-      "terminalTitle": "agent-zero review",
+      "terminalTitle": "code-zero review",
       "terminalCaption": "Un'esecuzione in modalità osservazione: solo risultati, nessuna scrittura."
     },
     "logos": {
@@ -28,11 +28,11 @@
     },
     "features": {
       "title": "Tutto ciò che sta tra un commento di review e una correzione verificata",
-      "subtitle": "Agent Zero è un runtime, non una finestra di chat. Ogni fase è una transizione di stato esplicita che puoi ispezionare, rieseguire e sottoporre ad approvazione.",
+      "subtitle": "Code Zero è un runtime, non una finestra di chat. Ogni fase è una transizione di stato esplicita che puoi ispezionare, rieseguire e sottoporre ad approvazione.",
       "items": {
         "observe": {
           "title": "Osservazione come default",
-          "description": "Ogni esecuzione parte in sola lettura. Agent Zero riporta ciò che ha trovato e ciò che cambierebbe; passare alla modalità correzione è un passo deliberato e tracciabile."
+          "description": "Ogni esecuzione parte in sola lettura. Code Zero riporta ciò che ha trovato e ciò che cambierebbe; passare alla modalità correzione è un passo deliberato e tracciabile."
         },
         "runner": {
           "title": "Un solo confine di esecuzione",
@@ -58,7 +58,7 @@
     },
     "testimonials": {
       "title": "Cosa ci fanno i team",
-      "subtitle": "Agent Zero viene usato dove una modifica automatica sbagliata costa cara.",
+      "subtitle": "Code Zero viene usato dove una modifica automatica sbagliata costa cara.",
       "items": {
         "one": {
           "quote": "L'abbiamo puntato su un arretrato di commenti di review fermi da mesi, lasciandolo in modalità osservazione per una settimana. Ha fatto emergere due dereferenziazioni null reali che i nostri linter non avevano mai segnalato.",
@@ -131,7 +131,7 @@
       "subtitle": "Per tutto il resto, la risposta è quasi sempre nella documentazione.",
       "items": {
         "write": {
-          "question": "Agent Zero può modificare il mio repository senza chiedere?",
+          "question": "Code Zero può modificare il mio repository senza chiedere?",
           "answer": "No. La modalità osservazione è il default e non scrive mai su un repository di destinazione. La modalità correzione va selezionata esplicitamente nella policy del repository e ogni scrittura passa comunque dal confine runner."
         },
         "models": {
@@ -169,20 +169,20 @@
       "architecture": "Architettura",
       "privacy": "Informativa sulla privacy",
       "terms": "Termini di servizio",
-      "copyright": "Contributori di Agent Zero. Rilasciato con licenza Apache-2.0."
+      "copyright": "Contributori di Code Zero. Rilasciato con licenza Apache-2.0."
     },
     "pages": {
       "home": {
         "title": "Correzioni verificate, non ipotesi",
-        "description": "Agent Zero è l'ingegnere autonomo open source che trova, corregge e verifica i problemi nelle pull request. La modalità osservazione è il default: nulla cambia finché non lo permetti."
+        "description": "Code Zero è l'ingegnere autonomo open source che trova, corregge e verifica i problemi nelle pull request. La modalità osservazione è il default: nulla cambia finché non lo permetti."
       },
       "pricing": {
         "title": "Prezzi",
-        "description": "Il runtime di Agent Zero è Apache-2.0 e self-hostabile gratuitamente. Esecuzione gestita, conservazione dei dati e supporto sono disponibili nei piani Team ed Enterprise."
+        "description": "Il runtime di Code Zero è Apache-2.0 e self-hostabile gratuitamente. Esecuzione gestita, conservazione dei dati e supporto sono disponibili nei piani Team ed Enterprise."
       },
       "contact": {
         "title": "Contatti",
-        "description": "Parla con il team di Agent Zero di esecuzione gestita, deployment enterprise o di una questione di sicurezza.",
+        "description": "Parla con il team di Code Zero di esecuzione gestita, deployment enterprise o di una questione di sicurezza.",
         "heading": "Raccontaci cosa stai cercando di automatizzare",
         "body": "Scrivici qui sotto, oppure usa uno dei canali diretti più in basso — una issue su GitHub è la via più rapida per qualsiasi cosa tecnica, l'email è meglio per acquisti, revisione di sicurezza o deployment enterprise.",
         "form": {
@@ -216,7 +216,7 @@
       },
       "changelog": {
         "title": "Changelog",
-        "description": "Cosa è stato rilasciato in Agent Zero, versione dopo versione.",
+        "description": "Cosa è stato rilasciato in Code Zero, versione dopo versione.",
         "heading": "Changelog",
         "subtitle": "Ogni release, direttamente da GitHub",
         "empty": "Ancora nessuna release."

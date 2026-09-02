@@ -84,22 +84,22 @@ importers:
 
   apps/dashboard:
     dependencies:
-      '@agent-zero/api':
+      '@code-zero/api':
         specifier: workspace:*
         version: 0.3.0
-      '@agent-zero/auth':
+      '@code-zero/auth':
         specifier: workspace:*
         version: 0.4.0
-      '@agent-zero/build-env':
+      '@code-zero/build-env':
         specifier: workspace:*
         version: 0.4.0
-      '@agent-zero/i18n':
+      '@code-zero/i18n':
         specifier: workspace:*
         version: 0.3.0
-      '@agent-zero/mail':
+      '@code-zero/mail':
         specifier: workspace:*
         version: 0.3.0
-      '@agent-zero/shared':
+      '@code-zero/shared':
         specifier: workspace:*
         version: 0.4.0
       '@better-auth/core':
@@ -247,7 +247,7 @@ importers:
 
   apps/mail-preview:
     dependencies:
-      '@agent-zero/mail':
+      '@code-zero/mail':
         specifier: workspace:*
         version: 0.3.0
     devDependencies:
@@ -269,10 +269,10 @@ importers:
 
   apps/marketing:
     dependencies:
-      '@agent-zero/build-env':
+      '@code-zero/build-env':
         specifier: workspace:*
         version: 0.4.0
-      '@agent-zero/i18n':
+      '@code-zero/i18n':
         specifier: workspace:*
         version: 0.3.0
       nuxt:
@@ -360,16 +360,16 @@ importers:
 
   packages/agent:
     dependencies:
-      '@agent-zero/config':
+      '@code-zero/config':
         specifier: workspace:*
         version: 0.4.0
-      '@agent-zero/models':
+      '@code-zero/models':
         specifier: workspace:*
         version: 0.4.0
-      '@agent-zero/runner':
+      '@code-zero/runner':
         specifier: workspace:*
         version: 0.4.0
-      '@agent-zero/shared':
+      '@code-zero/shared':
         specifier: workspace:*
         version: 0.4.0
     devDependencies:
@@ -394,22 +394,22 @@ importers:
 
   packages/api:
     dependencies:
-      '@agent-zero/agent':
+      '@code-zero/agent':
         specifier: workspace:*
         version: 0.4.0
-      '@agent-zero/config':
+      '@code-zero/config':
         specifier: workspace:*
         version: 0.4.0
-      '@agent-zero/models':
+      '@code-zero/models':
         specifier: workspace:*
         version: 0.4.0
-      '@agent-zero/runner':
+      '@code-zero/runner':
         specifier: workspace:*
         version: 0.4.0
-      '@agent-zero/shared':
+      '@code-zero/shared':
         specifier: workspace:*
         version: 0.4.0
-      '@agent-zero/source-control':
+      '@code-zero/source-control':
         specifier: workspace:*
         version: 0.4.0
       '@orpc/evlog':
@@ -452,7 +452,7 @@ importers:
 
   packages/auth:
     dependencies:
-      '@agent-zero/database':
+      '@code-zero/database':
         specifier: workspace:*
         version: 0.4.0
       '@better-auth/core':
@@ -523,19 +523,19 @@ importers:
 
   packages/cli:
     dependencies:
-      '@agent-zero/agent':
+      '@code-zero/agent':
         specifier: workspace:*
         version: 0.4.0
-      '@agent-zero/config':
+      '@code-zero/config':
         specifier: workspace:*
         version: 0.4.0
-      '@agent-zero/models':
+      '@code-zero/models':
         specifier: workspace:*
         version: 0.4.0
-      '@agent-zero/runner':
+      '@code-zero/runner':
         specifier: workspace:*
         version: 0.4.0
-      '@agent-zero/shared':
+      '@code-zero/shared':
         specifier: workspace:*
         version: 0.4.0
       '@bomb.sh/args':
@@ -566,7 +566,7 @@ importers:
 
   packages/config:
     dependencies:
-      '@agent-zero/shared':
+      '@code-zero/shared':
         specifier: workspace:*
         version: 0.4.0
       destr:
@@ -713,7 +713,7 @@ importers:
 
   packages/models:
     dependencies:
-      '@agent-zero/shared':
+      '@code-zero/shared':
         specifier: workspace:*
         version: 0.4.0
       '@ai-sdk/anthropic':
@@ -762,7 +762,7 @@ importers:
 
   packages/runner:
     dependencies:
-      '@agent-zero/shared':
+      '@code-zero/shared':
         specifier: workspace:*
         version: 0.4.0
       '@vite-hub/shell':
@@ -814,7 +814,7 @@ importers:
 
   packages/source-control:
     dependencies:
-      '@agent-zero/shared':
+      '@code-zero/shared':
         specifier: workspace:*
         version: 0.4.0
     devDependencies:

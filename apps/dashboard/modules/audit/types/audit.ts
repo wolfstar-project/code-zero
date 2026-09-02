@@ -1,4 +1,4 @@
-import type { AuditOutcome } from '@agent-zero/api';
+import type { AuditOutcome } from '@code-zero/api';
 
 /**
  * Where a row came from.

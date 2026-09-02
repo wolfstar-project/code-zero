@@ -1,12 +1,12 @@
-import { authBetterAuthOptions, authDatabaseOptionsFromEnvironment } from '@agent-zero/auth';
-import { createMailer, mailProviderNameFromEnvironment } from '@agent-zero/mail';
+import { authBetterAuthOptions, authDatabaseOptionsFromEnvironment } from '@code-zero/auth';
+import { createMailer, mailProviderNameFromEnvironment } from '@code-zero/mail';
 import { defineServerAuth } from '@onmax/nuxt-better-auth/config';
 import { memoryAdapter } from 'better-auth/adapters/memory';
 import { testUtils } from 'better-auth/plugins';
 
 // This module is the composition root for authentication, so it is where the mail transport is
 // bound and injected. `packages/auth` declares the delivery contract structurally and never
-// imports `@agent-zero/mail`, which keeps one capability package from depending on another.
+// imports `@code-zero/mail`, which keeps one capability package from depending on another.
 //
 // The transport is injected when it actually delivers, or in development where the console
 // provider is useful for exercising invitation flows locally. Production still withholds the

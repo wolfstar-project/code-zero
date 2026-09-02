@@ -53,7 +53,7 @@ function readFirst(environment: EnvironmentRecord, ...names: readonly string[]):
  * `URL`, so every reader normalises through here rather than each one remembering which is which.
  *
  * An existing scheme is kept exactly as given — including a deliberate `http://` on
- * `AGENT_ZERO_BUILD_URL` for an internal, TLS-less self-hosted deploy — and only a value with none
+ * `CODE_ZERO_BUILD_URL` for an internal, TLS-less self-hosted deploy — and only a value with none
  * gets `https://` added, via `ufo`'s `withHttps` rather than a scheme regex of our own (it is
  * already in the tree: Nuxt, h3, and vue-router all depend on it).
  */
@@ -82,7 +82,7 @@ interface DeploymentProvider {
  * The providers this project resolves build metadata from, in precedence order.
  *
  * `self-hosted` comes first on purpose. It is the escape hatch — a deployment that sets
- * `AGENT_ZERO_BUILD_*` has said what it is, and nothing auto-detected should be able to contradict
+ * `CODE_ZERO_BUILD_*` has said what it is, and nothing auto-detected should be able to contradict
  * it. Everything after it is auto-detection, most specific first: a Vercel build also has
  * `GITHUB_*` variables when it was triggered from a GitHub Actions run, and only the Vercel ones
  * describe the deploy.
@@ -96,19 +96,19 @@ const deploymentProviders: readonly DeploymentProvider[] = [
       Boolean(
         readFirst(
           environment,
-          'AGENT_ZERO_BUILD_COMMIT',
-          'AGENT_ZERO_BUILD_BRANCH',
-          'AGENT_ZERO_BUILD_URL',
-          'AGENT_ZERO_BUILD_PR_NUMBER',
-          'AGENT_ZERO_BUILD_PRODUCTION_URL',
+          'CODE_ZERO_BUILD_COMMIT',
+          'CODE_ZERO_BUILD_BRANCH',
+          'CODE_ZERO_BUILD_URL',
+          'CODE_ZERO_BUILD_PR_NUMBER',
+          'CODE_ZERO_BUILD_PRODUCTION_URL',
         ),
       ),
     read: (environment) => ({
-      branch: read(environment, 'AGENT_ZERO_BUILD_BRANCH'),
-      commit: read(environment, 'AGENT_ZERO_BUILD_COMMIT'),
-      prNumber: read(environment, 'AGENT_ZERO_BUILD_PR_NUMBER'),
-      deployUrl: toUrl(read(environment, 'AGENT_ZERO_BUILD_URL')),
-      productionUrl: toUrl(read(environment, 'AGENT_ZERO_BUILD_PRODUCTION_URL')),
+      branch: read(environment, 'CODE_ZERO_BUILD_BRANCH'),
+      commit: read(environment, 'CODE_ZERO_BUILD_COMMIT'),
+      prNumber: read(environment, 'CODE_ZERO_BUILD_PR_NUMBER'),
+      deployUrl: toUrl(read(environment, 'CODE_ZERO_BUILD_URL')),
+      productionUrl: toUrl(read(environment, 'CODE_ZERO_BUILD_PRODUCTION_URL')),
       context: null,
     }),
   },
@@ -230,7 +230,7 @@ export function envTypeFromMetadata(
   if (metadata.prNumber !== null) return 'preview';
 
   // No provider recognised the deploy, so there is no preview channel to be on: a self-hosted
-  // bundle is whatever it was built to be, and `AGENT_ZERO_BUILD_ENV` is how it says otherwise.
+  // bundle is whatever it was built to be, and `CODE_ZERO_BUILD_ENV` is how it says otherwise.
   if (metadata.context === null) return 'release';
   if (metadata.context === 'production') return 'release';
 
@@ -245,7 +245,7 @@ export function envTypeFromMetadata(
  * detection can work that out from a plain `node .output/server/index.mjs`.
  */
 export function envTypeOverrideFromEnvironment(environment: EnvironmentRecord): EnvType | null {
-  const value = read(environment, 'AGENT_ZERO_BUILD_ENV');
+  const value = read(environment, 'CODE_ZERO_BUILD_ENV');
   if (!value) return null;
   return value === 'dev' || value === 'preview' || value === 'canary' || value === 'release'
     ? value

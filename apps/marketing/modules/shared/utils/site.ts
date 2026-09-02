@@ -11,15 +11,15 @@
  * two site URLs there.
  */
 export const site = {
-  name: 'Agent Zero',
+  name: 'Code Zero',
 } as const;
 
 /** Off-site destinations rendered in the header, footer, and calls to action. */
 export const links = {
-  repository: 'https://github.com/wolfstar-project/agent-zero',
-  issues: 'https://github.com/wolfstar-project/agent-zero/issues',
-  security: 'https://github.com/wolfstar-project/agent-zero/blob/main/SECURITY.md',
-  architecture: 'https://github.com/wolfstar-project/agent-zero/blob/main/docs/architecture.md',
-  docs: 'https://github.com/wolfstar-project/agent-zero#readme',
-  contactEmail: 'hello@agent-zero.dev',
+  repository: 'https://github.com/wolfstar-project/code-zero',
+  issues: 'https://github.com/wolfstar-project/code-zero/issues',
+  security: 'https://github.com/wolfstar-project/code-zero/blob/main/SECURITY.md',
+  architecture: 'https://github.com/wolfstar-project/code-zero/blob/main/docs/architecture.md',
+  docs: 'https://github.com/wolfstar-project/code-zero#readme',
+  contactEmail: 'hello@code-zero.dev',
 } as const;

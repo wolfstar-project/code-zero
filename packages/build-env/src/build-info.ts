@@ -42,7 +42,7 @@ export function normalizeBuildInfo(buildInfo: BuildInfo): BuildInfo {
  * with `VERCEL_GIT_COMMIT_SHA` and the rest in scope, so the values are already resolved and this
  * pass is a no-op that resolves to the same answers. A container image built in CI and started
  * somewhere else has none of them at build time: the fields arrive at boot instead, from whatever
- * the host exposes, or from the `AGENT_ZERO_BUILD_*` variables an operator sets on the process.
+ * the host exposes, or from the `CODE_ZERO_BUILD_*` variables an operator sets on the process.
  *
  * A field the build resolved is never overwritten. The commit a bundle was compiled from is a
  * property of the bundle, not of the machine it happens to be running on, and letting a run-time

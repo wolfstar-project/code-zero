@@ -1,5 +1,5 @@
-import type { ValidationPolicy } from '@agent-zero/config';
-import { isRepositoryRelativePath, type ModelFinding, type Verdict } from '@agent-zero/shared';
+import type { ValidationPolicy } from '@code-zero/config';
+import { isRepositoryRelativePath, type ModelFinding, type Verdict } from '@code-zero/shared';
 
 /** The repository lookups validation needs. Satisfied by the runner boundary. */
 export interface ValidationProbe {

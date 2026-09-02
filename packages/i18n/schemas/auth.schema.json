@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Agent Zero i18n locale file (auth.json)",
+  "title": "Code Zero i18n locale file (auth.json)",
   "description": "Schema for auth.json. Generated from en/auth.json — do not edit manually.",
   "type": "object",
   "properties": {

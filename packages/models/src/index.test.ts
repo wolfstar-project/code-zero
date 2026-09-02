@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 
-import type { AgentDecision, ReviewInput } from '@agent-zero/shared';
+import type { AgentDecision, ReviewInput } from '@code-zero/shared';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -41,7 +41,7 @@ const REDACTED_MARKER = /\[redacted]/;
 const NON_DURATION_WAIT = /must be a non-negative number of milliseconds/;
 const INCOMPLETE_FALLBACK = /must be set together/;
 const SUBSCRIPTION_FALLBACK = /must be an API-key provider/;
-const UNKNOWN_FALLBACK = /Invalid AGENT_ZERO_MODEL_FALLBACK_PROVIDER/;
+const UNKNOWN_FALLBACK = /Invalid CODE_ZERO_MODEL_FALLBACK_PROVIDER/;
 const CLI_EXITED = /exited/iu;
 
 const input: ReviewInput = {
@@ -296,14 +296,14 @@ describe('subscription transports', () => {
 
   it('selects the transport once the flag is exactly true', () => {
     const configured = modelFromEnvironment(claudeCode, {
-      AGENT_ZERO_ENABLE_CLAUDE_CODE_PROVIDER: 'true',
+      CODE_ZERO_ENABLE_CLAUDE_CODE_PROVIDER: 'true',
     });
     // Every subscription transport is wrapped so a spent usage window can be waited out; the
     // wrapped transport is the one the selection named.
     expect(configured).toBeInstanceOf(ResumingSubscriptionProvider);
     expect(configured).toMatchObject({ inner: { provider: 'claude-code', model: 'opus' } });
     expect(
-      isModelConfigured('claude-code', { AGENT_ZERO_ENABLE_CLAUDE_CODE_PROVIDER: 'true' }),
+      isModelConfigured('claude-code', { CODE_ZERO_ENABLE_CLAUDE_CODE_PROVIDER: 'true' }),
     ).toBe(true);
   });
 
@@ -319,8 +319,8 @@ describe('subscription transports', () => {
     const configured = modelFromEnvironment(
       claudeCode,
       {
-        AGENT_ZERO_ENABLE_CLAUDE_CODE_PROVIDER: 'true',
-        AGENT_ZERO_CLAUDE_CODE_PATH: process.execPath,
+        CODE_ZERO_ENABLE_CLAUDE_CODE_PROVIDER: 'true',
+        CODE_ZERO_CLAUDE_CODE_PATH: process.execPath,
       },
       spawnClaudeCodeProcess,
     );
@@ -333,9 +333,9 @@ describe('subscription transports', () => {
   it('wraps the transport when an operator configured a credentialed fallback', () => {
     expect(
       modelFromEnvironment(claudeCode, {
-        AGENT_ZERO_ENABLE_CLAUDE_CODE_PROVIDER: 'true',
-        AGENT_ZERO_MODEL_FALLBACK_PROVIDER: 'anthropic',
-        AGENT_ZERO_MODEL_FALLBACK_MODEL: 'claude-sonnet-4-5',
+        CODE_ZERO_ENABLE_CLAUDE_CODE_PROVIDER: 'true',
+        CODE_ZERO_MODEL_FALLBACK_PROVIDER: 'anthropic',
+        CODE_ZERO_MODEL_FALLBACK_MODEL: 'claude-sonnet-4-5',
         ANTHROPIC_API_KEY: 'test-key-value',
       }),
     ).toBeInstanceOf(FallbackModelProvider);
@@ -344,9 +344,9 @@ describe('subscription transports', () => {
   it('keeps the actionable CLI error when the fallback has no credential of its own', () => {
     expect(
       modelFromEnvironment(claudeCode, {
-        AGENT_ZERO_ENABLE_CLAUDE_CODE_PROVIDER: 'true',
-        AGENT_ZERO_MODEL_FALLBACK_PROVIDER: 'anthropic',
-        AGENT_ZERO_MODEL_FALLBACK_MODEL: 'claude-sonnet-4-5',
+        CODE_ZERO_ENABLE_CLAUDE_CODE_PROVIDER: 'true',
+        CODE_ZERO_MODEL_FALLBACK_PROVIDER: 'anthropic',
+        CODE_ZERO_MODEL_FALLBACK_MODEL: 'claude-sonnet-4-5',
       }),
     ).toBeInstanceOf(ResumingSubscriptionProvider);
   });
@@ -355,14 +355,14 @@ describe('subscription transports', () => {
     // Reproduces the finding this closes: a composition root that has decided this run cannot use
     // claude-code (a RunnerPool lease its CLI process cannot be routed through, for one) must not
     // report the transport as never configured — that would skip fallback selection entirely and
-    // turn a configured AGENT_ZERO_MODEL_FALLBACK_PROVIDER into a run that fails outright instead
+    // turn a configured CODE_ZERO_MODEL_FALLBACK_PROVIDER into a run that fails outright instead
     // of degrading to it. The enable flag stays on; only the refusal reason changes.
     const configured = modelFromEnvironment(
       claudeCode,
       {
-        AGENT_ZERO_ENABLE_CLAUDE_CODE_PROVIDER: 'true',
-        AGENT_ZERO_MODEL_FALLBACK_PROVIDER: 'anthropic',
-        AGENT_ZERO_MODEL_FALLBACK_MODEL: 'claude-sonnet-4-5',
+        CODE_ZERO_ENABLE_CLAUDE_CODE_PROVIDER: 'true',
+        CODE_ZERO_MODEL_FALLBACK_PROVIDER: 'anthropic',
+        CODE_ZERO_MODEL_FALLBACK_MODEL: 'claude-sonnet-4-5',
         ANTHROPIC_API_KEY: 'test-key-value',
       },
       undefined,
@@ -374,7 +374,7 @@ describe('subscription transports', () => {
   it('refuses the transport with the supplied reason when no fallback is configured', async () => {
     const configured = modelFromEnvironment(
       claudeCode,
-      { AGENT_ZERO_ENABLE_CLAUDE_CODE_PROVIDER: 'true' },
+      { CODE_ZERO_ENABLE_CLAUDE_CODE_PROVIDER: 'true' },
       undefined,
       'A RunnerPool lease is active for this task.',
     );
@@ -388,28 +388,28 @@ describe('subscription transports', () => {
     for (const value of ['soon', '-1'])
       expect(() =>
         modelFromEnvironment(claudeCode, {
-          AGENT_ZERO_ENABLE_CLAUDE_CODE_PROVIDER: 'true',
-          AGENT_ZERO_SUBSCRIPTION_LIMIT_WAIT_MS: value,
+          CODE_ZERO_ENABLE_CLAUDE_CODE_PROVIDER: 'true',
+          CODE_ZERO_SUBSCRIPTION_LIMIT_WAIT_MS: value,
         }),
       ).toThrow(NON_DURATION_WAIT);
   });
 
   it('rejects a fallback that cannot degrade anything', () => {
     const base = {
-      AGENT_ZERO_ENABLE_CLAUDE_CODE_PROVIDER: 'true',
-      AGENT_ZERO_MODEL_FALLBACK_MODEL: 'gpt-5',
+      CODE_ZERO_ENABLE_CLAUDE_CODE_PROVIDER: 'true',
+      CODE_ZERO_MODEL_FALLBACK_MODEL: 'gpt-5',
     };
     expect(() => modelFromEnvironment(claudeCode, base)).toThrow(INCOMPLETE_FALLBACK);
     expect(() =>
       modelFromEnvironment(claudeCode, {
         ...base,
-        AGENT_ZERO_MODEL_FALLBACK_PROVIDER: 'codex-cli',
+        CODE_ZERO_MODEL_FALLBACK_PROVIDER: 'codex-cli',
       }),
     ).toThrow(SUBSCRIPTION_FALLBACK);
     expect(() =>
       modelFromEnvironment(claudeCode, {
         ...base,
-        AGENT_ZERO_MODEL_FALLBACK_PROVIDER: 'not-a-provider',
+        CODE_ZERO_MODEL_FALLBACK_PROVIDER: 'not-a-provider',
       }),
     ).toThrow(UNKNOWN_FALLBACK);
   });

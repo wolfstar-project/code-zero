@@ -55,7 +55,7 @@ export type LocaleCode = keyof typeof localeMetadata;
 export const defaultLocale = 'en' satisfies LocaleCode;
 
 /** Cookie `@nuxtjs/i18n` persists the visitor's locale choice in. */
-export const localeCookieName = 'agent-zero-locale';
+export const localeCookieName = 'code-zero-locale';
 
 /** Locales registered with Nuxt i18n, sorted by code. */
 export const currentLocales: LocaleObjectData[] = Object.entries(localeMetadata)
