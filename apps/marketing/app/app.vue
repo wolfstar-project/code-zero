@@ -1,6 +1,6 @@
 <template>
   <NuxtRouteAnnouncer />
-  <NuxtLoadingIndicator color="var(--az-accent)" />
+  <NuxtLoadingIndicator color="var(--cz-accent)" />
   <NuxtLayout>
     <NuxtPage />
   </NuxtLayout>

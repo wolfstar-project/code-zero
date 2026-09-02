@@ -11,7 +11,7 @@
         <span class="font-mono text-xs text-accent font-750">AZ</span>
       </div>
       <div v-if="!collapsed" class="ms-3 min-w-0">
-        <p class="m-0 truncate text-sm font-750 tracking-tight">Agent Zero</p>
+        <p class="m-0 truncate text-sm font-750 tracking-tight">Code Zero</p>
         <p class="m-0 text-4xs text-muted font-650 tracking-[0.18em] uppercase">
           {{ $t('common.brand.subtitle') }}
         </p>
@@ -58,7 +58,7 @@
       <template v-if="!collapsed">
         <p class="m-0 label-upper">{{ $t('common.system.label') }}</p>
         <p class="m-0 mt-1.5 flex items-center gap-1.5 text-xs text-accent font-650">
-          <span class="h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_8px_var(--az-accent-glow)]" />
+          <span class="h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_8px_var(--cz-accent-glow)]" />
           {{ $t('common.system.healthy') }}
         </p>
         <p class="m-0 mt-3 label-upper">{{ $t('common.build.label') }}</p>
@@ -73,7 +73,7 @@
         role="img"
         :aria-label="`${$t('common.system.label')}: ${$t('common.system.healthy')}`"
       >
-        <span class="h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_8px_var(--az-accent-glow)]" />
+        <span class="h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_8px_var(--cz-accent-glow)]" />
       </div>
     </div>
 

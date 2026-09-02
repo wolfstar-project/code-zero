@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { databaseUrlFromEnvironment, optionalDatabaseUrlFromEnvironment } from './client.js';
 import { schema } from './schema/index.js';
 
-const CONNECTION_STRING = 'postgres://postgres:postgres@localhost:5432/agent_zero';
+const CONNECTION_STRING = 'postgres://postgres:postgres@localhost:5432/code_zero';
 const MISSING_URL_MESSAGE = /DATABASE_URL/;
 
 describe('databaseUrlFromEnvironment', () => {

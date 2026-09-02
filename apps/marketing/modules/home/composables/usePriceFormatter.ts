@@ -1,4 +1,4 @@
-import { locales } from '@agent-zero/i18n';
+import { locales } from '@code-zero/i18n';
 // Imported explicitly rather than relying on Nuxt auto-imports: the package's plain `tsc` pass
 // checks `app/**/*.ts` without the generated auto-import declarations that `vue-tsc` sees.
 import { computed } from 'vue';

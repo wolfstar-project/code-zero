@@ -50,7 +50,7 @@ function adapter(
 
 describe('isSafeBranchName', () => {
   it('accepts plain namespaced branches and refuses ref syntax', () => {
-    expect(isSafeBranchName('agent-zero/issue-12-az-1')).toBe(true);
+    expect(isSafeBranchName('code-zero/issue-12-cz-1')).toBe(true);
     for (const name of [
       '',
       '-lead',
@@ -97,7 +97,7 @@ describe('publishBranch', () => {
     '/repos/acme/app/git/blobs': { sha: 'f'.repeat(40) },
     '/repos/acme/app/git/trees': { sha: 'e'.repeat(40) },
     '/repos/acme/app/git/commits': { sha: 'c'.repeat(40) },
-    '/repos/acme/app/git/refs': { ref: 'refs/heads/agent-zero/issue-12' },
+    '/repos/acme/app/git/refs': { ref: 'refs/heads/code-zero/issue-12' },
   };
 
   it('builds the branch from base commit, byte-safe blobs, tree, commit, and a fresh ref', async () => {
@@ -105,7 +105,7 @@ describe('publishBranch', () => {
     // Invalid UTF-8 bytes: only a base64 blob can carry them to GitHub without corruption.
     const binary = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0xff, 0x80]).toString('base64');
     const outcome = await pulls.publishBranch(target, {
-      branch: 'agent-zero/issue-12',
+      branch: 'code-zero/issue-12',
       baseSha,
       message: 'Guard the null return',
       files: [
@@ -127,7 +127,7 @@ describe('publishBranch', () => {
       ],
     });
     const ref = requests.find((request) => request.path === '/repos/acme/app/git/refs');
-    expect(ref?.body).toEqual({ ref: 'refs/heads/agent-zero/issue-12', sha: 'c'.repeat(40) });
+    expect(ref?.body).toEqual({ ref: 'refs/heads/code-zero/issue-12', sha: 'c'.repeat(40) });
     for (const request of requests) expect(request.authorization).toBe('Bearer secret-token-value');
   });
 
@@ -139,7 +139,7 @@ describe('publishBranch', () => {
     });
     await expect(
       pulls.publishBranch(target, {
-        branch: 'agent-zero/issue-12',
+        branch: 'code-zero/issue-12',
         baseSha,
         message: 'retry',
         files: [{ path: 'src/user.ts', contentBase64: 'eA==' }],
@@ -159,7 +159,7 @@ describe('publishBranch', () => {
     ).rejects.toThrow('unsafe branch name');
     await expect(
       pulls.publishBranch(target, {
-        branch: 'agent-zero/issue-12',
+        branch: 'code-zero/issue-12',
         baseSha,
         message: 'm',
         files: [{ path: '../escape', contentBase64: '' }],
@@ -167,7 +167,7 @@ describe('publishBranch', () => {
     ).rejects.toThrow('not inside the repository');
     await expect(
       pulls.publishBranch(target, {
-        branch: 'agent-zero/issue-12',
+        branch: 'code-zero/issue-12',
         baseSha,
         message: 'm',
         files: [{ path: 'src/user.ts', contentBase64: 'not base64!' }],
@@ -175,7 +175,7 @@ describe('publishBranch', () => {
     ).rejects.toThrow('not base64');
     await expect(
       pulls.publishBranch(target, {
-        branch: 'agent-zero/issue-12',
+        branch: 'code-zero/issue-12',
         baseSha,
         message: 'm',
         files: [],
@@ -192,7 +192,7 @@ describe('publishBranch', () => {
     });
     await expect(
       pulls.publishBranch(target, {
-        branch: 'agent-zero/issue-12',
+        branch: 'code-zero/issue-12',
         baseSha,
         message: 'm',
         files: [{ path: 'src/user.ts', contentBase64: 'eA==' }],
@@ -212,12 +212,12 @@ describe('openPullRequest', () => {
     const opened = await pulls.openPullRequest(target, {
       title: 'Guard the null return',
       body: 'Closes #12.',
-      head: 'agent-zero/issue-12',
+      head: 'code-zero/issue-12',
       base: 'main',
     });
     expect(opened).toEqual({ number: 41, url: 'https://github.com/acme/app/pull/41' });
     expect(requests[0]?.body).toMatchObject({
-      head: 'agent-zero/issue-12',
+      head: 'code-zero/issue-12',
       base: 'main',
       maintainer_can_modify: true,
     });

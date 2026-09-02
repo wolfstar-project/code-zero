@@ -5,8 +5,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 
-import { RunnerPool, type Runner, type SandboxProvider } from '@agent-zero/runner';
-import type { EvidenceBundle } from '@agent-zero/shared';
+import { RunnerPool, type Runner, type SandboxProvider } from '@code-zero/runner';
+import type { EvidenceBundle } from '@code-zero/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
@@ -98,13 +98,13 @@ function sandboxProvider(): SandboxProvider {
 
 beforeEach(async () => {
   tasks.clear();
-  checkout = await mkdtemp(join(tmpdir(), 'agent-zero-server-'));
+  checkout = await mkdtemp(join(tmpdir(), 'code-zero-server-'));
   await writeFile(join(checkout, 'package.json'), JSON.stringify({ scripts: {} }), 'utf8');
 });
 
 describe('server task API', () => {
   it('exposes health metadata for Nitro handlers', () => {
-    expect(health()).toMatchObject({ status: 'ok', service: 'agent-zero' });
+    expect(health()).toMatchObject({ status: 'ok', service: 'code-zero' });
   });
 
   it('starts with an empty task collection', async () => {
@@ -125,8 +125,8 @@ describe('server task API', () => {
 
   it('records a human approval only for a task awaiting review', async () => {
     const timestamp = new Date(0).toISOString();
-    tasks.set('az_approval', {
-      id: 'az_approval',
+    tasks.set('cz_approval', {
+      id: 'cz_approval',
       repository: 'acme/app',
       status: 'needs-human',
       createdAt: timestamp,
@@ -135,7 +135,7 @@ describe('server task API', () => {
     });
 
     await expect(
-      decideApproval('az_approval', 'approved', 'release-manager', 'Reviewed evidence'),
+      decideApproval('cz_approval', 'approved', 'release-manager', 'Reviewed evidence'),
     ).resolves.toMatchObject({
       status: 'needs-human',
       approval: {
@@ -144,7 +144,7 @@ describe('server task API', () => {
         comment: 'Reviewed evidence',
       },
     });
-    await expect(getStoredTask('az_approval')).resolves.toMatchObject({
+    await expect(getStoredTask('cz_approval')).resolves.toMatchObject({
       approval: { decision: 'approved' },
     });
   });
@@ -158,7 +158,7 @@ describe('runTask', () => {
       mode: 'observe',
     });
     await expect(getTask(result.id)).resolves.toEqual(result);
-    await expect(getTaskEvidence(result.id)).resolves.toContain('## Agent Zero');
+    await expect(getTaskEvidence(result.id)).resolves.toContain('## Code Zero');
     await expect(listTasks()).resolves.toMatchObject({ tasks: [expect.any(Object)] });
   });
 
@@ -197,12 +197,12 @@ describe('runTask', () => {
     // same hosted boundary the lease gives repository commands, so a lease refuses the transport
     // outright rather than silently falling back to a host spawn that bypasses it.
     await writeFile(
-      join(checkout, '.agent-zero.yml'),
+      join(checkout, '.code-zero.yml'),
       'version: 1\nmode: observe\nmodel:\n  provider: claude-code\n  name: sonnet\n',
       'utf8',
     );
-    const original = process.env.AGENT_ZERO_ENABLE_CLAUDE_CODE_PROVIDER;
-    process.env.AGENT_ZERO_ENABLE_CLAUDE_CODE_PROVIDER = 'true';
+    const original = process.env.CODE_ZERO_ENABLE_CLAUDE_CODE_PROVIDER;
+    process.env.CODE_ZERO_ENABLE_CLAUDE_CODE_PROVIDER = 'true';
     try {
       const pool = new RunnerPool(sandboxProvider(), {
         maxActive: 1,
@@ -214,7 +214,7 @@ describe('runTask', () => {
         { repository: checkout, feedback: 'load() is wrong', mode: 'observe' },
         { runnerPool: pool },
       );
-      // No AGENT_ZERO_MODEL_FALLBACK_PROVIDER is configured in this test, so the refusal has
+      // No CODE_ZERO_MODEL_FALLBACK_PROVIDER is configured in this test, so the refusal has
       // nothing to degrade to and the run fails outright rather than spawning the CLI unisolated
       // on the host. `modelFromEnvironment` proves the companion guarantee — that a configured
       // fallback IS honored here instead of being skipped — at the unit level in
@@ -225,8 +225,8 @@ describe('runTask', () => {
       expect(result.finding).toBeNull();
       expect(result.verified).toBe(false);
     } finally {
-      if (original === undefined) delete process.env.AGENT_ZERO_ENABLE_CLAUDE_CODE_PROVIDER;
-      else process.env.AGENT_ZERO_ENABLE_CLAUDE_CODE_PROVIDER = original;
+      if (original === undefined) delete process.env.CODE_ZERO_ENABLE_CLAUDE_CODE_PROVIDER;
+      else process.env.CODE_ZERO_ENABLE_CLAUDE_CODE_PROVIDER = original;
     }
   });
 });
@@ -275,8 +275,8 @@ describe('ingestWebhook', () => {
 
   it('ignores its own account so a run cannot answer itself', async () => {
     const outcome = await ingestWebhook(
-      githubDelivery('pull_request_review', reviewPayload({ user: { login: 'agent-zero[bot]' } })),
-      { ...options(), ignoreAuthors: ['agent-zero[bot]'] },
+      githubDelivery('pull_request_review', reviewPayload({ user: { login: 'code-zero[bot]' } })),
+      { ...options(), ignoreAuthors: ['code-zero[bot]'] },
     );
     expect(outcome.status).toBe('ignored');
   });
@@ -343,7 +343,7 @@ describe('ingestWebhook', () => {
 
   it('runs an enabled proactive pull-request review in repository mode', async () => {
     await writeFile(
-      join(checkout, '.agent-zero.yml'),
+      join(checkout, '.code-zero.yml'),
       'version: 1\nproactive:\n  enabled: true\nmode: observe\n',
       'utf8',
     );
@@ -374,7 +374,7 @@ function issuePayload(overrides: Record<string, unknown> = {}): string {
       title: 'Guard the null return in the loader',
       body: 'load() returns null and callers dereference it.',
       user: { login: 'dev', type: 'User' },
-      labels: [{ name: 'agent-zero' }],
+      labels: [{ name: 'code-zero' }],
       ...overrides,
     },
   });
@@ -410,7 +410,7 @@ describe('ingestWebhook issue tasks', () => {
 
   it('ignores an enabled repository issue without the required label', async () => {
     await writeFile(
-      join(checkout, '.agent-zero.yml'),
+      join(checkout, '.code-zero.yml'),
       'version: 1\nissues:\n  enabled: true\n',
       'utf8',
     );
@@ -424,7 +424,7 @@ describe('ingestWebhook issue tasks', () => {
 
   it('runs a labeled issue task in repository mode and withholds the pull request', async () => {
     await writeFile(
-      join(checkout, '.agent-zero.yml'),
+      join(checkout, '.code-zero.yml'),
       'version: 1\nissues:\n  enabled: true\n',
       'utf8',
     );
@@ -449,7 +449,7 @@ describe('ingestWebhook issue tasks', () => {
 
   it('keeps the validation comment off when repository policy disables it', async () => {
     await writeFile(
-      join(checkout, '.agent-zero.yml'),
+      join(checkout, '.code-zero.yml'),
       'version: 1\nissues:\n  enabled: true\n  validationComment: false\n',
       'utf8',
     );
@@ -469,7 +469,7 @@ describe('ingestWebhook issue tasks', () => {
 
   it('rejects an issue event whose checkout tracks a different repository', async () => {
     await writeFile(
-      join(checkout, '.agent-zero.yml'),
+      join(checkout, '.code-zero.yml'),
       'version: 1\nissues:\n  enabled: true\n',
       'utf8',
     );
@@ -485,7 +485,7 @@ describe('ingestWebhook issue tasks', () => {
 
   it('rejects an issue event when the checkout declares no trusted identity', async () => {
     await writeFile(
-      join(checkout, '.agent-zero.yml'),
+      join(checkout, '.code-zero.yml'),
       'version: 1\nissues:\n  enabled: true\n',
       'utf8',
     );
@@ -500,7 +500,7 @@ describe('ingestWebhook issue tasks', () => {
 
   it('returns the recorded outcome for a redelivered issue event instead of a second run', async () => {
     await writeFile(
-      join(checkout, '.agent-zero.yml'),
+      join(checkout, '.code-zero.yml'),
       'version: 1\nissues:\n  enabled: true\n',
       'utf8',
     );
@@ -517,7 +517,7 @@ describe('ingestWebhook issue tasks', () => {
 
   it('deduplicates a redelivery by payload when no delivery identifier is supplied', async () => {
     await writeFile(
-      join(checkout, '.agent-zero.yml'),
+      join(checkout, '.code-zero.yml'),
       'version: 1\nissues:\n  enabled: true\n',
       'utf8',
     );
@@ -532,7 +532,7 @@ describe('ingestWebhook issue tasks', () => {
 
   it('replays the durably recorded outcome after a restart discards in-process claims', async () => {
     await writeFile(
-      join(checkout, '.agent-zero.yml'),
+      join(checkout, '.code-zero.yml'),
       'version: 1\nissues:\n  enabled: true\n',
       'utf8',
     );
@@ -550,7 +550,7 @@ describe('ingestWebhook issue tasks', () => {
 
   it('declines a redelivery while another instance holds the durable claim', async () => {
     await writeFile(
-      join(checkout, '.agent-zero.yml'),
+      join(checkout, '.code-zero.yml'),
       'version: 1\nissues:\n  enabled: true\n',
       'utf8',
     );
@@ -597,7 +597,7 @@ const issueBaseSha = 'b'.repeat(40);
 
 function issueEvidence(overrides: Partial<EvidenceBundle> = {}): EvidenceBundle {
   return {
-    taskId: 'az_fixture',
+    taskId: 'cz_fixture',
     state: 'completed',
     verdict: 'accepted',
     verified: true,
@@ -607,7 +607,7 @@ function issueEvidence(overrides: Partial<EvidenceBundle> = {}): EvidenceBundle 
     issue: { owner: 'acme', repo: 'app', number: 12 },
     runner: { kind: 'container', isolated: true, writable: true, network: 'none' },
     finding: {
-      id: 'az_fixture_finding',
+      id: 'cz_fixture_finding',
       changeRisk: 'behavioral',
       title: 'Guard the null return in the loader',
       explanation: 'load() returns null but callers dereference it.',
@@ -689,7 +689,7 @@ describe('openIssuePullRequest', () => {
     await bindCheckout();
 
     const github = fakeGitHubApi();
-    const outcome = await openIssuePullRequest('az_fixture', {
+    const outcome = await openIssuePullRequest('cz_fixture', {
       token: 'ghs_token_value',
       checkoutPath: checkout,
       fetch: github.fetch,
@@ -710,10 +710,10 @@ describe('openIssuePullRequest', () => {
       tree: [{ path: 'src/user.ts', sha: 'f'.repeat(40) }],
     });
     const ref = github.requests.find((request) => request.path === '/repos/acme/app/git/refs');
-    expect(ref?.body).toMatchObject({ ref: 'refs/heads/agent-zero/issue-12-az-fixture' });
+    expect(ref?.body).toMatchObject({ ref: 'refs/heads/code-zero/issue-12-cz-fixture' });
     const pull = github.requests.find((request) => request.path === '/repos/acme/app/pulls');
     expect(pull?.body).toMatchObject({
-      head: 'agent-zero/issue-12-az-fixture',
+      head: 'code-zero/issue-12-cz-fixture',
       base: 'main',
       body: expect.stringContaining('Closes #12.') as unknown,
     });
@@ -726,11 +726,11 @@ describe('openIssuePullRequest', () => {
   });
 
   it('refuses to publish into a repository the checkout does not track', async () => {
-    storeIssueTask(issueEvidence({ taskId: 'az_confused' }));
+    storeIssueTask(issueEvidence({ taskId: 'cz_confused' }));
     await bindCheckout('https://github.com/donor/library.git');
     const github = fakeGitHubApi();
     await expect(
-      openIssuePullRequest('az_confused', {
+      openIssuePullRequest('cz_confused', {
         token: 'ghs_token_value',
         checkoutPath: checkout,
         fetch: github.fetch,
@@ -743,10 +743,10 @@ describe('openIssuePullRequest', () => {
   });
 
   it('refuses to publish when the checkout has no trusted identity', async () => {
-    storeIssueTask(issueEvidence({ taskId: 'az_unbound' }));
+    storeIssueTask(issueEvidence({ taskId: 'cz_unbound' }));
     const github = fakeGitHubApi();
     await expect(
-      openIssuePullRequest('az_unbound', {
+      openIssuePullRequest('cz_unbound', {
         token: 'ghs_token_value',
         checkoutPath: checkout,
         fetch: github.fetch,
@@ -759,11 +759,11 @@ describe('openIssuePullRequest', () => {
   });
 
   it('refuses to publish a run that stored no immutable snapshot', async () => {
-    storeIssueTask(issueEvidence({ taskId: 'az_snapshotless' }), null);
+    storeIssueTask(issueEvidence({ taskId: 'cz_snapshotless' }), null);
     await bindCheckout();
     const github = fakeGitHubApi();
     await expect(
-      openIssuePullRequest('az_snapshotless', {
+      openIssuePullRequest('cz_snapshotless', {
         token: 'ghs_token_value',
         checkoutPath: checkout,
         fetch: github.fetch,
@@ -776,10 +776,10 @@ describe('openIssuePullRequest', () => {
   });
 
   it('refuses to publish an unverified run and sends nothing to GitHub', async () => {
-    storeIssueTask(issueEvidence({ taskId: 'az_unverified', verified: false }));
+    storeIssueTask(issueEvidence({ taskId: 'cz_unverified', verified: false }));
     const github = fakeGitHubApi();
     await expect(
-      openIssuePullRequest('az_unverified', {
+      openIssuePullRequest('cz_unverified', {
         token: 'ghs_token_value',
         checkoutPath: checkout,
         fetch: github.fetch,
@@ -789,10 +789,10 @@ describe('openIssuePullRequest', () => {
   });
 
   it('reports a missing token instead of publishing anonymously', async () => {
-    storeIssueTask(issueEvidence({ taskId: 'az_tokenless' }));
+    storeIssueTask(issueEvidence({ taskId: 'cz_tokenless' }));
     const github = fakeGitHubApi();
     await expect(
-      openIssuePullRequest('az_tokenless', {
+      openIssuePullRequest('cz_tokenless', {
         token: undefined,
         checkoutPath: checkout,
         fetch: github.fetch,
@@ -804,7 +804,7 @@ describe('openIssuePullRequest', () => {
   it('reports an unknown task instead of inventing evidence', async () => {
     const github = fakeGitHubApi();
     await expect(
-      openIssuePullRequest('az_ghost', {
+      openIssuePullRequest('cz_ghost', {
         token: 'ghs_token_value',
         checkoutPath: checkout,
         fetch: github.fetch,
@@ -836,7 +836,7 @@ describe('publishIssueValidation', () => {
   it('posts the verdict back on the issue, for rejection as much as confirmation', async () => {
     storeIssueTask(
       issueEvidence({
-        taskId: 'az_rejected',
+        taskId: 'cz_rejected',
         verdict: 'rejected',
         verified: false,
         changedFiles: [],
@@ -845,7 +845,7 @@ describe('publishIssueValidation', () => {
     );
     const github = commentRecorder();
     await expect(
-      publishIssueValidation('az_rejected', { token: 'ghs_token_value', fetch: github.fetch }),
+      publishIssueValidation('cz_rejected', { token: 'ghs_token_value', fetch: github.fetch }),
     ).resolves.toEqual({ posted: true, commentId: 7001 });
     expect(github.requests[0]?.path).toBe('/repos/acme/app/issues/12/comments');
     expect(github.requests[0]?.body).toMatchObject({
@@ -854,19 +854,19 @@ describe('publishIssueValidation', () => {
   });
 
   it('stays silent for a run that failed before reaching a verdict', async () => {
-    storeIssueTask(issueEvidence({ taskId: 'az_broken', state: 'failed' }));
+    storeIssueTask(issueEvidence({ taskId: 'cz_broken', state: 'failed' }));
     const github = commentRecorder();
     await expect(
-      publishIssueValidation('az_broken', { token: 'ghs_token_value', fetch: github.fetch }),
+      publishIssueValidation('cz_broken', { token: 'ghs_token_value', fetch: github.fetch }),
     ).resolves.toMatchObject({ posted: false });
     expect(github.requests).toEqual([]);
   });
 
   it('reports a missing token instead of posting anonymously', async () => {
-    storeIssueTask(issueEvidence({ taskId: 'az_comment_tokenless' }));
+    storeIssueTask(issueEvidence({ taskId: 'cz_comment_tokenless' }));
     const github = commentRecorder();
     await expect(
-      publishIssueValidation('az_comment_tokenless', { token: undefined, fetch: github.fetch }),
+      publishIssueValidation('cz_comment_tokenless', { token: undefined, fetch: github.fetch }),
     ).resolves.toEqual({ posted: false, reason: 'GITHUB_TOKEN is not configured' });
     expect(github.requests).toEqual([]);
   });
@@ -921,7 +921,7 @@ describe('publishEvidence', () => {
   it('reports an unknown task instead of publishing an empty report', async () => {
     const { fetch, bodies } = recordingFetch();
     await expect(
-      publishEvidence(target, 'az_missing', { token: 'ghs_token_value', fetch }),
+      publishEvidence(target, 'cz_missing', { token: 'ghs_token_value', fetch }),
     ).resolves.toMatchObject({ published: false });
     expect(bodies).toEqual([]);
   });

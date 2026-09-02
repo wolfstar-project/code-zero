@@ -16,16 +16,16 @@ describe('deploymentMetadataFromEnvironment', () => {
         VERCEL_ENV: 'production',
         VERCEL_GIT_COMMIT_REF: 'main',
         VERCEL_GIT_COMMIT_SHA: '1234567890abcdef',
-        VERCEL_PROJECT_PRODUCTION_URL: 'agent-zero.dev',
-        VERCEL_URL: 'agent-zero-abc123.vercel.app',
+        VERCEL_PROJECT_PRODUCTION_URL: 'code-zero.dev',
+        VERCEL_URL: 'code-zero-abc123.vercel.app',
       }),
     ).toStrictEqual({
       provider: 'vercel',
       branch: 'main',
       commit: '1234567890abcdef',
       prNumber: null,
-      deployUrl: 'https://agent-zero-abc123.vercel.app',
-      productionUrl: 'https://agent-zero.dev',
+      deployUrl: 'https://code-zero-abc123.vercel.app',
+      productionUrl: 'https://code-zero.dev',
       context: 'production',
     });
   });
@@ -38,14 +38,14 @@ describe('deploymentMetadataFromEnvironment', () => {
         BRANCH: 'feat/env',
         COMMIT_REF: 'abcdef1234567890',
         REVIEW_ID: '42',
-        DEPLOY_PRIME_URL: 'https://deploy-preview-42--agent-zero.netlify.app',
-        URL: 'https://agent-zero.netlify.app',
+        DEPLOY_PRIME_URL: 'https://deploy-preview-42--code-zero.netlify.app',
+        URL: 'https://code-zero.netlify.app',
       }),
     ).toMatchObject({
       provider: 'netlify',
       branch: 'feat/env',
       prNumber: '42',
-      deployUrl: 'https://deploy-preview-42--agent-zero.netlify.app',
+      deployUrl: 'https://deploy-preview-42--code-zero.netlify.app',
       context: 'preview',
     });
   });
@@ -56,7 +56,7 @@ describe('deploymentMetadataFromEnvironment', () => {
         CF_PAGES: '1',
         CF_PAGES_BRANCH: 'feat/env',
         CF_PAGES_COMMIT_SHA: 'fedcba0987654321',
-        CF_PAGES_URL: 'https://abc123.agent-zero.pages.dev',
+        CF_PAGES_URL: 'https://abc123.code-zero.pages.dev',
       }),
     ).toMatchObject({
       provider: 'cloudflare-pages',
@@ -123,7 +123,7 @@ describe('deploymentMetadataFromEnvironment', () => {
       deploymentMetadataFromEnvironment({
         VERCEL: '1',
         VERCEL_GIT_COMMIT_SHA: 'from-vercel',
-        AGENT_ZERO_BUILD_COMMIT: 'from-operator',
+        CODE_ZERO_BUILD_COMMIT: 'from-operator',
       }),
     ).toMatchObject({ provider: 'self-hosted', commit: 'from-operator' });
   });
@@ -131,19 +131,19 @@ describe('deploymentMetadataFromEnvironment', () => {
   it('detects the self-hosted provider from the production URL alone, so it is not silently discarded', () => {
     expect(
       deploymentMetadataFromEnvironment({
-        AGENT_ZERO_BUILD_PRODUCTION_URL: 'agent-zero.example.com',
+        CODE_ZERO_BUILD_PRODUCTION_URL: 'code-zero.example.com',
       }),
-    ).toMatchObject({ provider: 'self-hosted', productionUrl: 'https://agent-zero.example.com' });
+    ).toMatchObject({ provider: 'self-hosted', productionUrl: 'https://code-zero.example.com' });
   });
 
   it('preserves an explicit http scheme rather than upgrading a deliberately TLS-less deploy', () => {
     expect(
-      deploymentMetadataFromEnvironment({ AGENT_ZERO_BUILD_URL: 'http://internal.example.com' }),
+      deploymentMetadataFromEnvironment({ CODE_ZERO_BUILD_URL: 'http://internal.example.com' }),
     ).toMatchObject({ deployUrl: 'http://internal.example.com' });
   });
 
   it('treats a variable that is set but blank as absent, so it never wins precedence', () => {
-    expect(deploymentMetadataFromEnvironment({ AGENT_ZERO_BUILD_COMMIT: '   ' })).toMatchObject({
+    expect(deploymentMetadataFromEnvironment({ CODE_ZERO_BUILD_COMMIT: '   ' })).toMatchObject({
       provider: 'none',
     });
   });
@@ -225,11 +225,11 @@ describe('envTypeFromMetadata', () => {
 
 describe('envTypeOverrideFromEnvironment', () => {
   it('accepts the four names a deployment may declare itself as', () => {
-    expect(envTypeOverrideFromEnvironment({ AGENT_ZERO_BUILD_ENV: 'preview' })).toBe('preview');
+    expect(envTypeOverrideFromEnvironment({ CODE_ZERO_BUILD_ENV: 'preview' })).toBe('preview');
   });
 
   it('ignores an unrecognised value rather than publishing it', () => {
-    expect(envTypeOverrideFromEnvironment({ AGENT_ZERO_BUILD_ENV: 'staging' })).toBeNull();
+    expect(envTypeOverrideFromEnvironment({ CODE_ZERO_BUILD_ENV: 'staging' })).toBeNull();
     expect(envTypeOverrideFromEnvironment({})).toBeNull();
   });
 });
@@ -237,21 +237,21 @@ describe('envTypeOverrideFromEnvironment', () => {
 describe('previewUrlFromMetadata and productionUrlFromMetadata', () => {
   const preview = deploymentMetadataFromEnvironment({
     VERCEL_ENV: 'preview',
-    VERCEL_URL: 'agent-zero-abc123.vercel.app',
+    VERCEL_URL: 'code-zero-abc123.vercel.app',
   });
   const production = deploymentMetadataFromEnvironment({
     VERCEL_ENV: 'production',
-    VERCEL_URL: 'agent-zero-abc123.vercel.app',
-    VERCEL_PROJECT_PRODUCTION_URL: 'agent-zero.dev',
+    VERCEL_URL: 'code-zero-abc123.vercel.app',
+    VERCEL_PROJECT_PRODUCTION_URL: 'code-zero.dev',
   });
 
   it('reports the deploy URL as a preview URL only outside a release', () => {
-    expect(previewUrlFromMetadata(preview, 'preview')).toBe('https://agent-zero-abc123.vercel.app');
+    expect(previewUrlFromMetadata(preview, 'preview')).toBe('https://code-zero-abc123.vercel.app');
     expect(previewUrlFromMetadata(production, 'release')).toBeNull();
   });
 
   it('reports the production domain only for the deploy that serves it', () => {
-    expect(productionUrlFromMetadata(production, 'release')).toBe('https://agent-zero.dev');
+    expect(productionUrlFromMetadata(production, 'release')).toBe('https://code-zero.dev');
     expect(productionUrlFromMetadata(preview, 'preview')).toBeNull();
   });
 });

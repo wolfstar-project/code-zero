@@ -1,4 +1,4 @@
-import { redactSecrets, secretValuesFromEnvironment, type IssueRef } from '@agent-zero/shared';
+import { redactSecrets, secretValuesFromEnvironment, type IssueRef } from '@code-zero/shared';
 
 export interface GitHubIssueCommentsOptions {
   token: string;

@@ -5,7 +5,7 @@ import {
   redactSecrets,
   secretValuesFromEnvironment,
   type EvidenceBundle,
-} from '@agent-zero/shared';
+} from '@code-zero/shared';
 
 import type { DashboardTask } from './types.js';
 

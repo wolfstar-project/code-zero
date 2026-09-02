@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { now, redactSecrets, secretValuesFromEnvironment } from '@agent-zero/shared';
+import { now, redactSecrets, secretValuesFromEnvironment } from '@code-zero/shared';
 
 import type { KeyValueStorage } from './control-plane.js';
 import { requestLoggerStorage } from './orpc/logging.js';
@@ -27,7 +27,7 @@ export type AuditOutcome = 'success' | 'denied' | 'failure';
  * One audited action, appended once and never rewritten.
  *
  * The actor is denormalized onto the record rather than referenced, following the same reasoning
- * as `invite_use` in `@agent-zero/database`: an audit record states who did what at a moment that
+ * as `invite_use` in `@code-zero/database`: an audit record states who did what at a moment that
  * has already passed, and it has to keep saying so after the token is revoked or the account it
  * names is deleted. There is no `updatedAt` for the same reason — a mutable timestamp would
  * suggest the record can be corrected, and a correctable audit trail is not one.

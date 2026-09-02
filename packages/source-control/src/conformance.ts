@@ -1,4 +1,4 @@
-import type { EvidenceBundle } from '@agent-zero/shared';
+import type { EvidenceBundle } from '@code-zero/shared';
 
 import type {
   SourceControlProvider,
@@ -49,7 +49,7 @@ function parsed(provider: SourceControlProvider, delivery: WebhookDelivery) {
 
 function evidence(overrides: Partial<EvidenceBundle>): EvidenceBundle {
   return {
-    taskId: 'az_conformance',
+    taskId: 'cz_conformance',
     state: 'completed',
     verdict: 'accepted',
     verified: true,

@@ -1,4 +1,4 @@
-# @agent-zero/marketing
+# @code-zero/marketing
 
 The public marketing site: the landing page, pricing, contact routes, and the legal documents.
 
@@ -55,7 +55,7 @@ config/
 content.config.ts              @nuxt/content collection definitions
 ```
 
-Copy for the app's _interface_ (nav labels, buttons, section headings) lives in `@agent-zero/i18n`
+Copy for the app's _interface_ (nav labels, buttons, section headings) lives in `@code-zero/i18n`
 under `locales/<locale>/marketing.json`, so translators work from one place and Lunaria can report
 staleness. `config/content.ts` holds only what is not language — ordering, icons, prices, and link
 targets — and `test/unit/content.test.ts` asserts that the two agree for every shipped locale.
@@ -87,11 +87,11 @@ changing them.
 ## Commands
 
 ```bash
-aube --filter @agent-zero/marketing run dev        # http://localhost:3001
-aube --filter @agent-zero/marketing run build      # prerenders every route into .output/public
-aube --filter @agent-zero/marketing run test
-aube --filter @agent-zero/marketing run typecheck
-aube --filter @agent-zero/marketing run lint
+aube --filter @code-zero/marketing run dev        # http://localhost:3001
+aube --filter @code-zero/marketing run build      # prerenders every route into .output/public
+aube --filter @code-zero/marketing run test
+aube --filter @code-zero/marketing run typecheck
+aube --filter @code-zero/marketing run lint
 ```
 
 ## SEO
@@ -121,7 +121,7 @@ Two deliberate exclusions:
 2. Add the strings to `locales/en/marketing.json` **and** `locales/it/marketing.json` in
    `packages/i18n`, then run `aube run i18n:schema`.
 3. Add the component under `modules/home/components/` and render it from a page.
-4. Run `aube --filter @agent-zero/marketing run test`; the content contract test fails loudly if a
+4. Run `aube --filter @code-zero/marketing run test`; the content contract test fails loudly if a
    locale is missing a key.
 
 Icons reached through a `:name` binding cannot be found by the icon scanner. When a new icon comes
@@ -136,7 +136,7 @@ from `config/content.ts`, add its list to `icon.clientBundle.icons` in `nuxt.con
    visitor the document is different, and `SiteLegalPage.vue` renders it verbatim.
 3. Link a new document from a page: query the `legal` collection (see `app/pages/legal/privacy.vue`
    for the pattern) and wrap the result in `<SiteLegalPage>` + `<ContentRenderer>`.
-4. `aube --filter @agent-zero/marketing run test` checks the frontmatter is valid and every
+4. `aube --filter @code-zero/marketing run test` checks the frontmatter is valid and every
    document carries the not-legal-advice notice.
 
 ## Adding a blog post

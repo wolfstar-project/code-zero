@@ -1,9 +1,9 @@
 ---
-name: agent-zero-cli
-description: Use when adding or changing Agent Zero CLI commands, flags, prompts, output, exit codes, or version display.
+name: code-zero-cli
+description: Use when adding or changing Code Zero CLI commands, flags, prompts, output, exit codes, or version display.
 ---
 
-# Agent Zero CLI
+# Code Zero CLI
 
 The CLI uses `@bomb.sh/args` for typed parsing and `@clack/prompts` for human-friendly interaction.
 
@@ -18,7 +18,7 @@ The CLI uses `@bomb.sh/args` for typed parsing and `@clack/prompts` for human-fr
 - Obtain the displayed version through the injected shared version marker.
 - CLI commands request runtime behavior through typed APIs; they do not execute repository commands directly.
 - A session obtained by `zero login` is stored per deployment origin in
-  `$XDG_CONFIG_HOME/agent-zero/credentials.json`, owner-readable only (`packages/cli/src/credentials.ts`).
+  `$XDG_CONFIG_HOME/code-zero/credentials.json`, owner-readable only (`packages/cli/src/credentials.ts`).
   Never write a token beside the checkout, never log one, and never key the store by anything but
   the normalized origin — one workstation is expected to hold a cloud-managed and a self-hosted
   session at once.
@@ -33,4 +33,4 @@ The CLI uses `@bomb.sh/args` for typed parsing and `@clack/prompts` for human-fr
 3. Add Clack presentation only after parsing succeeds.
 4. Document the command in `README.md` and `CONTRIBUTING.md` when contributor-facing.
 5. Verify interactive and non-interactive behavior.
-6. Run `aube run test --filter @agent-zero/cli` and the root checks.
+6. Run `aube run test --filter @code-zero/cli` and the root checks.

@@ -5,7 +5,7 @@ import {
   secretValuesFromEnvironment,
   type EvidenceBundle,
   type FeedbackItem,
-} from '@agent-zero/shared';
+} from '@code-zero/shared';
 
 import {
   ProviderConfigurationError,
@@ -72,7 +72,7 @@ export function checkConclusion(bundle: EvidenceBundle): CheckConclusion {
 export interface GitHubChecksOptions {
   token: string;
   baseUrl?: string;
-  /** Check run name, so several Agent Zero configurations can report side by side. */
+  /** Check run name, so several Code Zero configurations can report side by side. */
   name?: string;
   fetch?: typeof globalThis.fetch;
 }
@@ -90,7 +90,7 @@ export class GitHubChecks {
 
   constructor(private readonly options: GitHubChecksOptions) {
     this.baseUrl = options.baseUrl ?? 'https://api.github.com';
-    this.name = options.name ?? 'Agent Zero';
+    this.name = options.name ?? 'Code Zero';
     this.request = options.fetch ?? globalThis.fetch;
   }
 

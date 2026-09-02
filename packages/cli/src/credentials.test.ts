@@ -24,7 +24,7 @@ let directory: string;
 let path: string;
 
 beforeEach(async () => {
-  directory = await mkdtemp(join(tmpdir(), 'agent-zero-credentials-'));
+  directory = await mkdtemp(join(tmpdir(), 'code-zero-credentials-'));
   path = join(directory, 'credentials.json');
 });
 
@@ -35,14 +35,14 @@ afterEach(async () => {
 describe('credentialsPath', () => {
   it('follows XDG_CONFIG_HOME when the operator set one', () => {
     expect(credentialsPath({ XDG_CONFIG_HOME: '/xdg' }, '/home/op')).toBe(
-      '/xdg/agent-zero/credentials.json',
+      '/xdg/code-zero/credentials.json',
     );
   });
 
   it('falls back to ~/.config, never to the working directory', () => {
-    expect(credentialsPath({}, '/home/op')).toBe('/home/op/.config/agent-zero/credentials.json');
+    expect(credentialsPath({}, '/home/op')).toBe('/home/op/.config/code-zero/credentials.json');
     expect(credentialsPath({ XDG_CONFIG_HOME: '  ' }, '/home/op')).toBe(
-      '/home/op/.config/agent-zero/credentials.json',
+      '/home/op/.config/code-zero/credentials.json',
     );
   });
 });

@@ -31,5 +31,5 @@ export function githubWebhookSecretFromEnvironment(
 export function checkoutPathFromEnvironment(
   environment: Readonly<Record<string, string | undefined>>,
 ): string | undefined {
-  return environment.AGENT_ZERO_CHECKOUT_PATH?.trim() || undefined;
+  return environment.CODE_ZERO_CHECKOUT_PATH?.trim() || undefined;
 }

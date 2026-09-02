@@ -1,4 +1,4 @@
-import { redactSecrets, secretValuesFromEnvironment } from '@agent-zero/shared';
+import { redactSecrets, secretValuesFromEnvironment } from '@code-zero/shared';
 
 import type { ProviderKind } from './contracts.js';
 

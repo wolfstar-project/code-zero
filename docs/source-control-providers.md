@@ -1,6 +1,6 @@
 # Source-control providers
 
-Agent Zero integrates with source-control platforms through `packages/source-control`: a
+Code Zero integrates with source-control platforms through `packages/source-control`: a
 provider-neutral boundary with one adapter per platform. The agent runtime consumes only shared
 contracts (`ReviewInput`, `FeedbackItem`, `PullRequestRef`); provider payload shapes, URLs, IDs,
 event names, and credentials never cross the boundary. One deployment may connect repositories

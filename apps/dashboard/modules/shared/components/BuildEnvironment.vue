@@ -42,7 +42,7 @@
 </template>
 
 <script setup lang="ts">
-import { type BuildInfo, shortenCommit } from '@agent-zero/build-env';
+import { type BuildInfo, shortenCommit } from '@code-zero/build-env';
 
 /**
  * The build to render. Defaults to the one this bundle is, and is only ever passed to render a
@@ -68,5 +68,5 @@ const buildTime = computed(() => new Date(buildInfo.value.time));
 // nothing — hides the link rather than pointing it at `/commit/null`.
 const shortCommit = computed(() => shortenCommit(buildInfo.value.commit));
 
-const repositoryUrl = 'https://github.com/wolfstar-project/agent-zero';
+const repositoryUrl = 'https://github.com/wolfstar-project/code-zero';
 </script>

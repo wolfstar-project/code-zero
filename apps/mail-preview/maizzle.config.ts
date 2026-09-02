@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig } from '@maizzle/framework';
 
 /**
- * Preview settings for the templates owned by `@agent-zero/mail`.
+ * Preview settings for the templates owned by `@code-zero/mail`.
  *
  * `emails/` here is a symlink into that package, so the dev server watches and hot-reloads the
  * real template files while keeping clean `emails/<Template>` preview routes — the Maizzle dev

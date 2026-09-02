@@ -1,5 +1,5 @@
-import type { ValidationPolicy } from '@agent-zero/config';
-import type { ModelFinding } from '@agent-zero/shared';
+import type { ValidationPolicy } from '@code-zero/config';
+import type { ModelFinding } from '@code-zero/shared';
 import { describe, expect, it } from 'vitest';
 
 import { quotedSpans, validateFinding, type ValidationProbe } from './validation.js';

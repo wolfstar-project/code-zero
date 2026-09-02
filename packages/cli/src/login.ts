@@ -4,12 +4,12 @@
  * Spoken over plain `fetch` against the deployment's own `/api/auth/**` rather than through Better
  * Auth's client: the flow is four request shapes, and pulling an authentication library into the
  * CLI to express them would put a server-side dependency in a terminal adapter for no gain. The
- * two endpoints are the ones `@agent-zero/auth`'s `deviceAuthorization()` plugin registers, so a
+ * two endpoints are the ones `@code-zero/auth`'s `deviceAuthorization()` plugin registers, so a
  * cloud-managed deployment and a self-hosted one are reached identically — only the origin differs.
  */
 
 /** The identifier the deployment sees for this client. Not a secret; the device flow is public. */
-export const DEVICE_CLIENT_ID = 'agent-zero-cli';
+export const DEVICE_CLIENT_ID = 'code-zero-cli';
 
 /** Where the auth server is mounted within a deployment, fixed by `apps/dashboard`. */
 const AUTH_BASE_PATH = '/api/auth';

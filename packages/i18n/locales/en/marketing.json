@@ -16,11 +16,11 @@
     "hero": {
       "eyebrow": "Open source · Apache-2.0",
       "title": "The autonomous engineer that never merges a guess",
-      "subtitle": "Agent Zero reads your pull requests, reproduces the problem, writes the fix, and proves it with a passing run. Observe mode is the default, so nothing touches your repository until you say so.",
+      "subtitle": "Code Zero reads your pull requests, reproduces the problem, writes the fix, and proves it with a passing run. Observe mode is the default, so nothing touches your repository until you say so.",
       "primaryCta": "Start with observe mode",
       "secondaryCta": "Read the docs",
       "note": "No credit card. Runs on your own infrastructure.",
-      "terminalTitle": "agent-zero review",
+      "terminalTitle": "code-zero review",
       "terminalCaption": "A review run in observe mode: findings only, no writes."
     },
     "logos": {
@@ -28,11 +28,11 @@
     },
     "features": {
       "title": "Everything between a review comment and a verified fix",
-      "subtitle": "Agent Zero is a runtime, not a chat window. Each stage is an explicit state transition you can inspect, replay, and gate.",
+      "subtitle": "Code Zero is a runtime, not a chat window. Each stage is an explicit state transition you can inspect, replay, and gate.",
       "items": {
         "observe": {
           "title": "Observe by default",
-          "description": "Every run starts read-only. Agent Zero reports what it found and what it would change; promoting to fix mode is a deliberate, auditable step."
+          "description": "Every run starts read-only. Code Zero reports what it found and what it would change; promoting to fix mode is a deliberate, auditable step."
         },
         "runner": {
           "title": "One execution boundary",
@@ -58,7 +58,7 @@
     },
     "testimonials": {
       "title": "What teams do with it",
-      "subtitle": "Agent Zero is used where a wrong automated change is expensive.",
+      "subtitle": "Code Zero is used where a wrong automated change is expensive.",
       "items": {
         "one": {
           "quote": "We pointed it at a backlog of stale review comments and let it run in observe mode for a week. It surfaced two real null-dereference paths our linters never flagged.",
@@ -131,7 +131,7 @@
       "subtitle": "Anything else, and the answer is usually in the docs.",
       "items": {
         "write": {
-          "question": "Can Agent Zero change my repository without asking?",
+          "question": "Can Code Zero change my repository without asking?",
           "answer": "No. Observe mode is the default and never writes to a target repository. Fix mode has to be selected explicitly in repository policy, and every write still goes through the runner boundary."
         },
         "models": {
@@ -169,20 +169,20 @@
       "architecture": "Architecture",
       "privacy": "Privacy policy",
       "terms": "Terms of service",
-      "copyright": "Agent Zero contributors. Apache-2.0 licensed."
+      "copyright": "Code Zero contributors. Apache-2.0 licensed."
     },
     "pages": {
       "home": {
         "title": "Ship fixes, not guesses",
-        "description": "Agent Zero is the open-source autonomous engineer that finds, fixes, and verifies problems in pull requests. Observe mode is the default, so nothing changes until you allow it."
+        "description": "Code Zero is the open-source autonomous engineer that finds, fixes, and verifies problems in pull requests. Observe mode is the default, so nothing changes until you allow it."
       },
       "pricing": {
         "title": "Pricing",
-        "description": "The Agent Zero runtime is Apache-2.0 and free to self-host. Hosted sandbox execution, retention, and support are available on the Team and Enterprise tiers."
+        "description": "The Code Zero runtime is Apache-2.0 and free to self-host. Hosted sandbox execution, retention, and support are available on the Team and Enterprise tiers."
       },
       "contact": {
         "title": "Contact",
-        "description": "Talk to the Agent Zero team about hosted execution, enterprise deployment, or a security question.",
+        "description": "Talk to the Code Zero team about hosted execution, enterprise deployment, or a security question.",
         "heading": "Tell us what you are trying to automate",
         "body": "Send a message below, or use one of the direct routes underneath it — a GitHub issue is fastest for anything technical, and email is better for procurement, security review, or enterprise deployment.",
         "form": {
@@ -216,7 +216,7 @@
       },
       "changelog": {
         "title": "Changelog",
-        "description": "What shipped in Agent Zero, release by release.",
+        "description": "What shipped in Code Zero, release by release.",
         "heading": "Changelog",
         "subtitle": "Every release, straight from GitHub",
         "empty": "No releases yet."

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import type { NetworkPolicy, RunMode } from '@agent-zero/shared';
+import type { NetworkPolicy, RunMode } from '@code-zero/shared';
 
 import type { Runner } from './boundary.js';
 

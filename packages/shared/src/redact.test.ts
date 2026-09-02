@@ -7,7 +7,7 @@ describe('secretValuesFromEnvironment', () => {
     const values = secretValuesFromEnvironment({
       GITHUB_TOKEN: 'ghs-token-value-1234',
       OPENAI_API_KEY: 'private-api-key-value',
-      AGENT_ZERO_MODEL: 'gpt-5',
+      CODE_ZERO_MODEL: 'gpt-5',
       SHORT_TOKEN: 'abc',
       EMPTY_SECRET: '',
     });

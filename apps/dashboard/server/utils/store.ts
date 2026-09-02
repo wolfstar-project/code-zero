@@ -8,7 +8,7 @@ import {
   type DeliveryClaimStore,
   type KeyValueStorage,
   type TaskStore,
-} from '@agent-zero/api';
+} from '@code-zero/api';
 import { kv } from 'vite-hub/kv';
 
 /** Adapts the ViteHub KV Runtime Helper to the transport-neutral {@link KeyValueStorage} contract. */

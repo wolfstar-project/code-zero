@@ -1,4 +1,4 @@
-import { rpcRouter } from '@agent-zero/api';
+import { rpcRouter } from '@code-zero/api';
 import { OpenAPIGenerator } from '@orpc/openapi';
 import { ZodToJsonSchemaConverter } from '@orpc/zod';
 import { describe, expect, it } from 'vitest';
@@ -19,7 +19,7 @@ describe('githubWebhookPathItem', () => {
     const generator = new OpenAPIGenerator({ converters: [new ZodToJsonSchemaConverter()] });
     const spec = await generator.generate(rpcRouter, {
       base: {
-        info: { title: 'Agent Zero control plane', version: '0.3.0' },
+        info: { title: 'Code Zero control plane', version: '0.3.0' },
         webhooks: { github: githubWebhookPathItem },
       },
     });

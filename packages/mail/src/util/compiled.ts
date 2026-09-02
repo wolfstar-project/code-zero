@@ -37,10 +37,10 @@ export type CompiledMailTemplates = {
  * other side unchanged in text, in attributes, and inside `href` URLs alike.
  */
 export function mailTemplatePlaceholder(field: string): string {
-  return `__AZ_MAIL_${field}__`;
+  return `__CZ_MAIL_${field}__`;
 }
 
-const PLACEHOLDER_PATTERN = /__AZ_MAIL_([A-Za-z0-9]+)__/g;
+const PLACEHOLDER_PATTERN = /__CZ_MAIL_([A-Za-z0-9]+)__/g;
 const HTML_ESCAPE_PATTERN = /["'&<>]/g;
 
 const HTML_ESCAPES: ReadonlyMap<string, string> = new Map([

@@ -1,11 +1,11 @@
 ---
-title: 'A public home for Agent Zero'
+title: 'A public home for Code Zero'
 description: 'The marketing site launches: pricing, a blog, and a contact page — separate from the dashboard, with no persistence and no credentials.'
 version: 'v0.4.0'
 date: '2026-08-15'
 ---
 
-Agent Zero now has a public site that is not the dashboard. It exists to explain the runtime,
+Code Zero now has a public site that is not the dashboard. It exists to explain the runtime,
 publish pricing, and take questions from people who have not signed in yet — so it carries no
 session, no database connection, and no runtime-package imports of its own.
 

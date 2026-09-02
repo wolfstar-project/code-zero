@@ -11,9 +11,9 @@ authentication or organization copy, and the reverse holds too.
 
 ## What shipped
 
-- `@agent-zero/i18n` centralizes locale metadata, date and number formats, and the scoping
+- `@code-zero/i18n` centralizes locale metadata, date and number formats, and the scoping
   function every app calls with its own narrow list of feature files.
-- The marketing site's header and footer now render the real Agent Zero mark instead of a text
+- The marketing site's header and footer now render the real Code Zero mark instead of a text
   placeholder, as an inline component so its light and dark theming survives the build untouched.
 - Installable app icons are generated ahead of time and committed as static files, so nothing
   regenerates them at dev-server or build time.

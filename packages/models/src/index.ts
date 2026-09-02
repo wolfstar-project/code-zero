@@ -1,3 +1,7 @@
+import { createAnthropic } from '@ai-sdk/anthropic';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createOpenAI } from '@ai-sdk/openai';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import {
   redactSecrets,
   secretValuesFromEnvironment,
@@ -5,11 +9,7 @@ import {
   type AgentDecision,
   type ModelProviderKind,
   type ReviewInput,
-} from '@agent-zero/shared';
-import { createAnthropic } from '@ai-sdk/anthropic';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { createOpenAI } from '@ai-sdk/openai';
-import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+} from '@code-zero/shared';
 import {
   APICallError,
   createGateway,
@@ -158,7 +158,7 @@ export class AISdkModelProvider implements ModelProvider {
         prompt: renderPrompt(context),
         output: Output.object({
           schema: agentDecisionSchema,
-          name: 'agent_zero_decision',
+          name: 'code_zero_decision',
           description:
             'Evidence-backed decision for the highest-priority code-review finding and its narrow fix.',
         }),
@@ -222,13 +222,13 @@ export class AISdkModelProvider implements ModelProvider {
 /**
  * Provider-agnostic model adapter built on the AI SDK OpenAI-compatible provider.
  *
- * AI SDK owns transport and structured-output decoding; Agent Zero still owns the runtime
+ * AI SDK owns transport and structured-output decoding; Code Zero still owns the runtime
  * validation that decides whether a model finding is actually supported by repository evidence.
  */
 export class OpenAICompatibleProvider extends AISdkModelProvider {
   constructor(options: OpenAICompatibleOptions) {
     const provider = createOpenAICompatible({
-      name: 'agent-zero',
+      name: 'code-zero',
       apiKey: options.apiKey,
       baseURL: options.baseUrl ?? 'https://api.openai.com/v1',
       supportsStructuredOutputs: true,
@@ -370,14 +370,14 @@ export function modelFromEnvironment(
    * SDK's own default `child_process.spawn`. Ignored by every other provider, including `codex-cli`
    * — its vendor SDK exposes no equivalent hook, so that transport's process cannot be routed
    * through the runner regardless of what is supplied here. A composition root typically passes
-   * `@agent-zero/runner`'s `spawnManagedProcess` wrapped to this shape.
+   * `@code-zero/runner`'s `spawnManagedProcess` wrapped to this shape.
    */
   spawnClaudeCodeProcess?: ClaudeCodeProcessSpawner,
   /**
    * Refuses the `claude-code`/`codex-cli` transport with this reason on every call, rather than
    * building it at all — for a composition root that has already decided this run cannot use the
    * subscription transport (a `RunnerPool` lease its CLI process cannot be routed through, for one)
-   * but still wants a configured `AGENT_ZERO_MODEL_FALLBACK_PROVIDER` to get its turn. Distinct from
+   * but still wants a configured `CODE_ZERO_MODEL_FALLBACK_PROVIDER` to get its turn. Distinct from
    * an unset enable flag: that reports the transport as never configured at all and skips fallback
    * selection entirely, which is wrong here — the transport *is* configured, this run just cannot
    * use it. Ignored for every non-subscription provider.
@@ -395,7 +395,7 @@ export function modelFromEnvironment(
     );
 
   const apiKey = providerApiKey(provider, environment);
-  const baseUrl = environment.AGENT_ZERO_MODEL_BASE_URL;
+  const baseUrl = environment.CODE_ZERO_MODEL_BASE_URL;
   if (!apiKey && !(provider === 'ai-gateway' && environment.VERCEL_OIDC_TOKEN))
     return new UnconfiguredModelProvider();
 
@@ -480,7 +480,7 @@ function subscriptionModelFromEnvironment(
   const transport = new AISdkModelProvider({
     provider,
     model: selection.name,
-    // The session lives in the CLI's own state; Agent Zero never holds a credential to redact.
+    // The session lives in the CLI's own state; Code Zero never holds a credential to redact.
     credentialSecrets: [],
     languageModel: subscriptionLanguageModel(
       provider,
@@ -527,12 +527,12 @@ const DEFAULT_LIMIT_WAIT_MS = 3_600_000;
  * which is the right setting for a deployment that would rather fail fast onto its fallback.
  */
 function limitWaitMs(environment: NodeJS.ProcessEnv): number {
-  const raw = environment.AGENT_ZERO_SUBSCRIPTION_LIMIT_WAIT_MS;
+  const raw = environment.CODE_ZERO_SUBSCRIPTION_LIMIT_WAIT_MS;
   if (raw === undefined || raw.trim() === '') return DEFAULT_LIMIT_WAIT_MS;
   const parsed = Number(raw);
   if (!Number.isFinite(parsed) || parsed < 0)
     throw new Error(
-      `AGENT_ZERO_SUBSCRIPTION_LIMIT_WAIT_MS must be a non-negative number of milliseconds: ${raw}`,
+      `CODE_ZERO_SUBSCRIPTION_LIMIT_WAIT_MS must be a non-negative number of milliseconds: ${raw}`,
     );
   return parsed;
 }
@@ -546,18 +546,18 @@ function limitWaitMs(environment: NodeJS.ProcessEnv): number {
 function fallbackSelection(
   environment: NodeJS.ProcessEnv,
 ): Pick<ModelSelection, 'provider' | 'name'> | undefined {
-  const provider = environment.AGENT_ZERO_MODEL_FALLBACK_PROVIDER;
-  const name = environment.AGENT_ZERO_MODEL_FALLBACK_MODEL;
+  const provider = environment.CODE_ZERO_MODEL_FALLBACK_PROVIDER;
+  const name = environment.CODE_ZERO_MODEL_FALLBACK_MODEL;
   if (!provider && !name) return undefined;
   if (!provider || !name)
     throw new Error(
-      'AGENT_ZERO_MODEL_FALLBACK_PROVIDER and AGENT_ZERO_MODEL_FALLBACK_MODEL must be set together',
+      'CODE_ZERO_MODEL_FALLBACK_PROVIDER and CODE_ZERO_MODEL_FALLBACK_MODEL must be set together',
     );
   if (!isModelProviderKind(provider))
-    throw new Error(`Invalid AGENT_ZERO_MODEL_FALLBACK_PROVIDER: ${provider}`);
+    throw new Error(`Invalid CODE_ZERO_MODEL_FALLBACK_PROVIDER: ${provider}`);
   if (isSubscriptionModelProvider(provider))
     throw new Error(
-      `AGENT_ZERO_MODEL_FALLBACK_PROVIDER must be an API-key provider, not ${provider}`,
+      `CODE_ZERO_MODEL_FALLBACK_PROVIDER must be an API-key provider, not ${provider}`,
     );
   return { provider, name };
 }

@@ -1,6 +1,6 @@
 // Imported explicitly rather than relying on Nuxt auto-imports, so the dependency stays visible at
 // the call site; `nuxt typecheck` resolves either form.
-import type { AuditEvent, AuditLogPage } from '@agent-zero/api';
+import type { AuditEvent, AuditLogPage } from '@code-zero/api';
 import { ref } from 'vue';
 
 /** What the page needs to tell an unauthorized reader apart from a broken one. */

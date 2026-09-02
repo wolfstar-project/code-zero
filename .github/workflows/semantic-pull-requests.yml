@@ -19,7 +19,7 @@ jobs:
       contents: read
       pull-requests: read # analyze pull requests
       statuses: write # publish validation status
-    if: github.repository == 'wolfstar-project/agent-zero'
+    if: github.repository == 'wolfstar-project/code-zero'
     runs-on: ubuntu-latest
     name: 🏷️ Validate PR title
     steps:

@@ -5,7 +5,7 @@ import {
   type ControlPlaneAccess,
   type RpcContext,
   type TaskStore,
-} from '@agent-zero/api';
+} from '@code-zero/api';
 
 /**
  * Builds the oRPC context shared by the `/rpc/**` and `/api/v1/**` transports.

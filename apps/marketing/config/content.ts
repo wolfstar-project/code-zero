@@ -2,7 +2,7 @@
  * Structure of the landing page: which cards exist, in which order, and which translation key and
  * icon each one carries.
  *
- * Copy itself lives in `@agent-zero/i18n` (`locales/<locale>/marketing.json`) so translators work
+ * Copy itself lives in `@code-zero/i18n` (`locales/<locale>/marketing.json`) so translators work
  * from one place and Lunaria can report staleness. This file only holds what is not language —
  * ordering, icons, prices, and link targets — which is also what the unit tests assert against the
  * dictionaries.

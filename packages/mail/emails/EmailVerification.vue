@@ -6,7 +6,7 @@ const { name, verifyUrl } = useConfig();
 </script>
 
 <template>
-  <Base preheader="Confirm your email address to finish setting up your Agent Zero account.">
+  <Base preheader="Confirm your email address to finish setting up your Code Zero account.">
     <Text
       class="m-0 text-[10px] font-bold tracking-[0.16em] text-[#48574D] uppercase dark:text-[#95A29B]"
     >
@@ -25,7 +25,7 @@ const { name, verifyUrl } = useConfig();
     </Text>
 
     <Text class="mt-3 text-[15px] leading-[24px] text-[#0B140E] dark:text-[#EFF3EE]">
-      Confirm this address to finish setting up your Agent Zero account.
+      Confirm this address to finish setting up your Code Zero account.
     </Text>
 
     <div class="pt-7">

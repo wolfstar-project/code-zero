@@ -4,7 +4,7 @@ import {
   defaultLocale,
   numberFormats,
   pluralRules,
-} from '@agent-zero/i18n';
+} from '@code-zero/i18n';
 
 export default defineI18nConfig(() => {
   return {

@@ -1,9 +1,9 @@
 ---
-name: agent-zero-architecture
-description: Use when adding features, moving code, or changing dependencies across Agent Zero packages and adapters.
+name: code-zero-architecture
+description: Use when adding features, moving code, or changing dependencies across Code Zero packages and adapters.
 ---
 
-# Agent Zero architecture
+# Code Zero architecture
 
 Keep dependency direction explicit while changing the monorepo.
 
@@ -36,12 +36,12 @@ Keep dependency direction explicit while changing the monorepo.
 - `agent`: orchestration, the lifecycle machine, and the validation policy.
 - `cli`: argument parsing and terminal presentation. Composition-root glue that decides *how* to
   isolate the `claude-code` CLI process lives here (`subscription-isolation.ts`, duplicated
-  identically in `api` rather than shared — it needs both `AgentZeroConfig` and an operator
+  identically in `api` rather than shared — it needs both `CodeZeroConfig` and an operator
   environment variable, which neither `models` nor `runner` should own). Refuses the transport
   outright when `runner.isolation: container` is declared but no CLI container image is configured,
   rather than falling back to an unisolated host spawn — reported to `modelFromEnvironment` as a
   refusal reason, not by disabling the enable flag, so a configured
-  `AGENT_ZERO_MODEL_FALLBACK_PROVIDER` still gets a turn. `api` applies the same refusal-reason
+  `CODE_ZERO_MODEL_FALLBACK_PROVIDER` still gets a turn. `api` applies the same refusal-reason
   mechanism for a `RunnerPool` lease, which cannot route the CLI's duplex spawn through a
   `SandboxProvider`'s bounded `Runner` contract.
 - `database`: Postgres schema, the Drizzle client factory, and checked-in migrations. No policy, and the only package that names a table or opens a connection.

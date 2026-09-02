@@ -20,7 +20,7 @@ describe('BuildEnvironment', () => {
 
     expect(commit.text()).toBe('0000000');
     expect(commit.attributes('href')).toBe(
-      'https://github.com/wolfstar-project/agent-zero/commit/0000000000000000000000000000000000000000',
+      'https://github.com/wolfstar-project/code-zero/commit/0000000000000000000000000000000000000000',
     );
   });
 
@@ -44,7 +44,7 @@ describe('BuildEnvironment on a release', () => {
     time: 0,
     prNumber: null,
     previewUrl: null,
-    productionUrl: 'https://agent-zero.dev',
+    productionUrl: 'https://code-zero.dev',
   } as const;
 
   it('names the version and links its tag, which is the one channel that has one', async () => {
@@ -53,7 +53,7 @@ describe('BuildEnvironment on a release', () => {
 
     expect(version.text()).toBe('v1.2.3');
     expect(version.attributes('href')).toBe(
-      'https://github.com/wolfstar-project/agent-zero/releases/tag/v1.2.3',
+      'https://github.com/wolfstar-project/code-zero/releases/tag/v1.2.3',
     );
   });
 

@@ -3,11 +3,11 @@ import {
   mayAutofixChange,
   mayModifyRepository,
   resolveChecks,
-  type AgentZeroConfig,
+  type CodeZeroConfig,
   type RepositoryProbe,
-} from '@agent-zero/config';
-import type { ModelProvider } from '@agent-zero/models';
-import type { Runner } from '@agent-zero/runner';
+} from '@code-zero/config';
+import type { ModelProvider } from '@code-zero/models';
+import type { Runner } from '@code-zero/runner';
 import {
   allChecksPassed,
   emptyTaskUsage,
@@ -28,7 +28,7 @@ import {
   type TaskState,
   type TaskUsage,
   type TerminalState,
-} from '@agent-zero/shared';
+} from '@code-zero/shared';
 
 import { LifecycleMachine } from './state.js';
 import { validateFinding } from './validation.js';
@@ -36,7 +36,7 @@ import { validateFinding } from './validation.js';
 export interface AgentDependencies {
   model: ModelProvider;
   runner: Runner;
-  config: AgentZeroConfig;
+  config: CodeZeroConfig;
   onEvent?: (event: TaskEvent) => void;
   /** Control-plane supplied identifier used to correlate queued and running records. */
   taskIdentifier?: string;
@@ -54,7 +54,7 @@ const MAX_FAILURE_CONTEXT = 8_000;
  * rejected with its reasons kept as evidence. Changes are applied only through the runner boundary,
  * only inside the validated scope, and only when both the run mode and repository policy allow it.
  */
-export class AgentZero {
+export class CodeZero {
   constructor(private readonly dependencies: AgentDependencies) {}
 
   async run(input: ReviewInput): Promise<TaskResult> {
@@ -232,7 +232,7 @@ export class AgentZero {
       return {
         state: 'needs-human',
         summary:
-          'No repository-native checks were found, so a change could not be verified. Configure `checks` in .agent-zero.yml.',
+          'No repository-native checks were found, so a change could not be verified. Configure `checks` in .code-zero.yml.',
       };
     return undefined;
   }
@@ -389,7 +389,7 @@ export function scopeChanges(
 }
 
 const HIGH_IMPACT_PATHS = [
-  /(^|\/)\.agent-zero\.ya?ml$/u,
+  /(^|\/)\.code-zero\.ya?ml$/u,
   /(^|\/)\.github\//u,
   /(^|\/)(?:migrations?|schema)\//u,
   /(^|\/)(?:package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml)$/u,

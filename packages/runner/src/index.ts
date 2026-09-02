@@ -1,4 +1,4 @@
-import type { NetworkPolicy } from '@agent-zero/shared';
+import type { NetworkPolicy } from '@code-zero/shared';
 
 import type { BoundaryOptions, Runner } from './boundary.js';
 import { ContainerRunner, type ContainerEngine, type ContainerOptions } from './container.js';

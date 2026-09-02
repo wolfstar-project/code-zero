@@ -1,6 +1,6 @@
 ---
 title: Terms of service
-description: The terms that apply to the Agent Zero website and to the hosted Team and Enterprise tiers.
+description: The terms that apply to the Code Zero website and to the hosted Team and Enterprise tiers.
 lastUpdated: '2026-08-15'
 ---
 
@@ -9,7 +9,7 @@ lastUpdated: '2026-08-15'
 
 ## The runtime
 
-The Agent Zero runtime is licensed under Apache-2.0. Self-hosted use is governed entirely by that
+The Code Zero runtime is licensed under Apache-2.0. Self-hosted use is governed entirely by that
 license; nothing on this page adds a further restriction to it.
 
 ## Hosted tiers
@@ -21,7 +21,7 @@ and that agreement disagree, the signed agreement controls.
 ## Acceptable use
 
 The hosted service may only run against repositories you are authorized to grant it access to.
-Automated fixes it proposes are suggestions until a human reviewer merges them — Agent Zero never
+Automated fixes it proposes are suggestions until a human reviewer merges them — Code Zero never
 merges on your behalf.
 
 ## Changes

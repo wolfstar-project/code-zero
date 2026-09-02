@@ -4,7 +4,7 @@ import {
   secretValuesFromEnvironment,
   type EvidenceBundle,
   type FeedbackItem,
-} from '@agent-zero/shared';
+} from '@code-zero/shared';
 
 import {
   ProviderConfigurationError,
@@ -151,7 +151,7 @@ class BitbucketDataCenterStatusPublisher implements StatusPublisher {
   async publish(target: ChangeRequestRef, bundle: EvidenceBundle): Promise<StatusPublication> {
     const outcome = runOutcome(bundle);
     const state = stateByOutcome[outcome];
-    const name = this.options.name ?? 'Agent Zero';
+    const name = this.options.name ?? 'Code Zero';
     const secrets = secretValuesFromEnvironment();
     await sendProviderRequest({
       provider: 'bitbucket-data-center',

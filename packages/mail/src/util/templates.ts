@@ -80,7 +80,7 @@ export const mailTemplates: {
 } = {
   privateInvitation: {
     file: 'PrivateInvitation.vue',
-    subject: 'You have been invited to Agent Zero',
+    subject: 'You have been invited to Code Zero',
     fields: {
       // The inviter is not always asked for the invitee's name, and an invitation can grant an
       // app-wide role rather than a membership: the template renders each half away when empty.
@@ -92,7 +92,7 @@ export const mailTemplates: {
   },
   publicInvitation: {
     file: 'PublicInvitation.vue',
-    subject: 'Your public Agent Zero invitation is ready',
+    subject: 'Your public Code Zero invitation is ready',
     fields: {
       organizationName: 'conditional',
       inviterName: 'interpolated',

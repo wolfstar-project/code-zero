@@ -3,7 +3,7 @@ import {
   controlPlaneOriginsFromEnvironment,
   requestLoggerStorage,
   rpcRouter,
-} from '@agent-zero/api';
+} from '@code-zero/api';
 import { EvlogHandlerPlugin } from '@orpc/evlog';
 import { OpenAPIGenerator } from '@orpc/openapi';
 import { OpenAPIHandler } from '@orpc/openapi/fetch';
@@ -16,7 +16,7 @@ const generator = new OpenAPIGenerator({ converters: [new ZodToJsonSchemaConvert
 // `/api/v1/docs` or `/api/v1/openapi.json`.
 const openApiSpec = generator.generate(rpcRouter, {
   base: {
-    info: { title: 'Agent Zero control plane', version: '0.3.0' },
+    info: { title: 'Code Zero control plane', version: '0.3.0' },
     // `POST /webhooks/github` is a plain Nitro route, not an oRPC procedure — see
     // `server/utils/openapi.ts` for why — so it is merged into the generated spec here instead of
     // appearing as a path the OpenAPI transport itself serves.
@@ -30,7 +30,7 @@ const openApiSpec = generator.generate(rpcRouter, {
  * Same router, same authorization rules as the `/rpc/**` RPC transport; only the wire protocol
  * differs, for callers that want plain HTTP instead of the typed oRPC client. Unlike `/rpc/**`,
  * this transport is meant for cross-origin callers, so it carries a CORS plugin — restricted to
- * `AGENT_ZERO_CONTROL_PLANE_ORIGINS`'s allow-list (default: none) rather than reflecting any
+ * `CODE_ZERO_CONTROL_PLANE_ORIGINS`'s allow-list (default: none) rather than reflecting any
  * request origin, since `tasks.list`/`tasks.get`/`health` are unauthenticated and would otherwise
  * be readable by any website's browser-side JavaScript.
  */

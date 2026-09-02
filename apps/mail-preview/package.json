@@ -1,5 +1,5 @@
 {
-  "name": "@agent-zero/mail-preview",
+  "name": "@code-zero/mail-preview",
   "version": "0.4.0",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
     "dev": "node node_modules/@maizzle/framework/bin/maizzle.mjs serve --port 3005"
   },
   "dependencies": {
-    "@agent-zero/mail": "workspace:*"
+    "@code-zero/mail": "workspace:*"
   },
   "devDependencies": {
     "@maizzle/framework": "^6.0.13",

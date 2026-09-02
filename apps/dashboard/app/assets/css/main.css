@@ -7,41 +7,41 @@
 :root:not([data-theme='light']),
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --az-canvas: oklch(0.15 0.012 160);
-  --az-panel: oklch(0.18 0.012 160);
-  --az-raised: oklch(0.22 0.014 160);
-  --az-line: oklch(0.3 0.014 160);
-  --az-ink: oklch(0.96 0.008 145);
-  --az-muted: oklch(0.7 0.018 160);
-  --az-accent: oklch(0.82 0.2 136);
-  --az-warning: oklch(0.82 0.15 80);
-  --az-danger: oklch(0.68 0.2 25);
-  --az-link: oklch(0.73 0.15 250);
-  --az-grid: color-mix(in oklch, var(--az-accent) 3%, transparent);
-  --az-accent-glow: color-mix(in oklch, var(--az-accent) 72%, transparent);
+  --cz-canvas: oklch(0.15 0.012 160);
+  --cz-panel: oklch(0.18 0.012 160);
+  --cz-raised: oklch(0.22 0.014 160);
+  --cz-line: oklch(0.3 0.014 160);
+  --cz-ink: oklch(0.96 0.008 145);
+  --cz-muted: oklch(0.7 0.018 160);
+  --cz-accent: oklch(0.82 0.2 136);
+  --cz-warning: oklch(0.82 0.15 80);
+  --cz-danger: oklch(0.68 0.2 25);
+  --cz-link: oklch(0.73 0.15 250);
+  --cz-grid: color-mix(in oklch, var(--cz-accent) 3%, transparent);
+  --cz-accent-glow: color-mix(in oklch, var(--cz-accent) 72%, transparent);
 }
 
 :root[data-theme='light'] {
   color-scheme: light;
-  --az-canvas: oklch(0.985 0.004 145);
-  --az-panel: oklch(0.965 0.006 145);
-  --az-raised: oklch(0.93 0.01 145);
-  --az-line: oklch(0.82 0.014 145);
-  --az-ink: oklch(0.18 0.018 155);
-  --az-muted: oklch(0.44 0.025 155);
-  --az-accent: oklch(0.46 0.17 140);
-  --az-warning: oklch(0.55 0.14 75);
-  --az-danger: oklch(0.55 0.2 25);
-  --az-link: oklch(0.48 0.17 250);
-  --az-grid: color-mix(in oklch, var(--az-accent) 5%, transparent);
-  --az-accent-glow: color-mix(in oklch, var(--az-accent) 36%, transparent);
+  --cz-canvas: oklch(0.985 0.004 145);
+  --cz-panel: oklch(0.965 0.006 145);
+  --cz-raised: oklch(0.93 0.01 145);
+  --cz-line: oklch(0.82 0.014 145);
+  --cz-ink: oklch(0.18 0.018 155);
+  --cz-muted: oklch(0.44 0.025 155);
+  --cz-accent: oklch(0.46 0.17 140);
+  --cz-warning: oklch(0.55 0.14 75);
+  --cz-danger: oklch(0.55 0.2 25);
+  --cz-link: oklch(0.48 0.17 250);
+  --cz-grid: color-mix(in oklch, var(--cz-accent) 5%, transparent);
+  --cz-accent-glow: color-mix(in oklch, var(--cz-accent) 36%, transparent);
 }
 
 :root {
-  --az-font-sans:
+  --cz-font-sans:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-family: var(--az-font-sans);
-  background: var(--az-canvas);
+  font-family: var(--cz-font-sans);
+  background: var(--cz-canvas);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -52,10 +52,10 @@ body {
   margin: 0;
   min-width: 320px;
   background:
-    linear-gradient(var(--az-grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--az-grid) 1px, transparent 1px), var(--az-canvas);
+    linear-gradient(var(--cz-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--cz-grid) 1px, transparent 1px), var(--cz-canvas);
   background-size: 32px 32px;
-  color: var(--az-ink);
+  color: var(--cz-ink);
   line-height: 1.5;
 }
 
@@ -70,17 +70,17 @@ button {
 
 :focus-visible,
 :-moz-focusring {
-  outline: 2px solid var(--az-accent) !important;
+  outline: 2px solid var(--cz-accent) !important;
   outline-offset: 2px !important;
 }
 
 ::selection {
-  color: var(--az-canvas);
-  background: var(--az-accent);
+  color: var(--cz-canvas);
+  background: var(--cz-accent);
 }
 
 * {
-  scrollbar-color: var(--az-line) var(--az-canvas);
+  scrollbar-color: var(--cz-line) var(--cz-canvas);
 }
 
 ::-webkit-scrollbar {
@@ -89,27 +89,27 @@ button {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--az-canvas);
+  background: var(--cz-canvas);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--az-line);
+  background: var(--cz-line);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--az-muted);
+  background: var(--cz-muted);
 }
 
 @media (prefers-contrast: more) {
   :root[data-theme='dark'] {
-    --az-line: oklch(0.74 0.01 160);
-    --az-muted: oklch(0.88 0.01 160);
+    --cz-line: oklch(0.74 0.01 160);
+    --cz-muted: oklch(0.88 0.01 160);
   }
 
   :root[data-theme='light'] {
-    --az-line: oklch(0.38 0.014 145);
-    --az-muted: oklch(0.28 0.02 155);
+    --cz-line: oklch(0.38 0.014 145);
+    --cz-muted: oklch(0.28 0.02 155);
   }
 }
 

@@ -1,4 +1,4 @@
-import type { TaskState, TerminalState } from '@agent-zero/shared';
+import type { TaskState, TerminalState } from '@code-zero/shared';
 
 /** Raised when a run attempts a lifecycle transition the machine does not define. */
 export class InvalidTransitionError extends Error {

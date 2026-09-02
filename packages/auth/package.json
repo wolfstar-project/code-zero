@@ -1,5 +1,5 @@
 {
-  "name": "@agent-zero/auth",
+  "name": "@code-zero/auth",
   "version": "0.4.0",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -37,8 +37,8 @@
     "typecheck": "tsc --project tsconfig.json --pretty false --noEmit"
   },
   "dependencies": {
-    "@agent-zero/database": "workspace:*",
     "@better-auth/infra": "^0.4.0",
+    "@code-zero/database": "workspace:*",
     "@octopi-ai/better-enrollment": "^0.4.0",
     "better-auth": "^1.6.26",
     "zod": "^4.4.3"

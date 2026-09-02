@@ -6,7 +6,7 @@ const { name, resetUrl } = useConfig();
 </script>
 
 <template>
-  <Base preheader="Choose a new password for your Agent Zero account.">
+  <Base preheader="Choose a new password for your Code Zero account.">
     <Text
       class="m-0 text-[10px] font-bold tracking-[0.16em] text-[#48574D] uppercase dark:text-[#95A29B]"
     >

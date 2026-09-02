@@ -10,7 +10,7 @@ tag: 'architecture'
 Ask a security reviewer what they think of an autonomous coding agent and they will ask you one
 question back: _what, exactly, can it execute?_
 
-In Agent Zero the answer fits in a sentence: only `packages/runner` may run a command or mutate a
+In Code Zero the answer fits in a sentence: only `packages/runner` may run a command or mutate a
 checkout, and everything else must ask it through typed contracts. Working directories are
 validated, escape attempts are rejected, timeouts and output limits are enforced — in one place.
 

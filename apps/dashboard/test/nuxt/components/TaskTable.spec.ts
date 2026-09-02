@@ -5,7 +5,7 @@ import type { DashboardTask } from '~~/modules/dashboard/types/dashboard';
 
 const QUEUED: DashboardTask[] = [
   {
-    id: 'az_alpha_0001',
+    id: 'cz_alpha_0001',
     repository: 'acme/checkout',
     status: 'running',
     createdAt: '2026-08-09T09:00:00.000Z',
@@ -13,7 +13,7 @@ const QUEUED: DashboardTask[] = [
     events: [],
   },
   {
-    id: 'az_beta_0002',
+    id: 'cz_beta_0002',
     repository: 'acme/billing',
     status: 'queued',
     createdAt: '2026-08-09T08:00:00.000Z',
@@ -80,19 +80,19 @@ describe('TaskTable', () => {
 
     await wrapper.findAll('tbody tr')[1]?.trigger('click');
 
-    expect(wrapper.emitted('select')).toEqual([['az_beta_0002']]);
+    expect(wrapper.emitted('select')).toEqual([['cz_beta_0002']]);
   });
 
   it('exposes the ids in display order, which is what keyboard selection walks', async () => {
     const wrapper = await mountSuspended(TaskTable, { props: { tasks: QUEUED } });
 
-    expect(wrapper.vm.orderedIds).toEqual(['az_alpha_0001', 'az_beta_0002']);
+    expect(wrapper.vm.orderedIds).toEqual(['cz_alpha_0001', 'cz_beta_0002']);
 
     // Sorting by repository ascending flips them, and the exposed order has to follow.
     await wrapper.findAll('thead button')[1]?.trigger('click');
 
     await vi.waitFor(() => {
-      expect(wrapper.vm.orderedIds).toEqual(['az_beta_0002', 'az_alpha_0001']);
+      expect(wrapper.vm.orderedIds).toEqual(['cz_beta_0002', 'cz_alpha_0001']);
     });
   });
 });

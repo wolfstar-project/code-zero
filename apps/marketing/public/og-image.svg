@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img" aria-label="Agent Zero — the open-source autonomous engineer">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img" aria-label="Code Zero — the open-source autonomous engineer">
   <defs>
     <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
       <path d="M32 0H0v32" fill="none" stroke="#8ee34a" stroke-opacity="0.06" stroke-width="1" />
@@ -26,7 +26,7 @@
     <path class="ink-s" d="M106.4,76.64A21.76,21.76 0 0 1 128.16,98.4L128.16,125.6A21.76,21.76 0 0 1 84.64,125.6L84.64,98.4A21.76,21.76 0 0 1 106.4,76.64Z" stroke="#f3f7f1" stroke-dasharray="0 25.563 20.546 27.235 20.546 3.345 20.546 27.235 20.546 25.563"/>
   </g>
   <g class="acc" clip-path="url(#cliplogo)" fill="#8ee34a"><rect x="46.4" y="108.195" width="120" height="7.61" transform="rotate(-62 106.4 112)"/></g>
-  <text x="155" y="123" fill="#f3f7f1" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="30" font-weight="700">Agent Zero</text>
+  <text x="155" y="123" fill="#f3f7f1" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="30" font-weight="700">Code Zero</text>
 
   <text x="80" y="300" fill="#f3f7f1" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="66" font-weight="750">The autonomous engineer</text>
   <text x="80" y="378" fill="#f3f7f1" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="66" font-weight="750">that never merges a guess</text>

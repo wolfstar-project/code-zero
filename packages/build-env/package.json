@@ -1,5 +1,5 @@
 {
-  "name": "@agent-zero/build-env",
+  "name": "@code-zero/build-env",
   "version": "0.4.0",
   "type": "module",
   "main": "./dist/index.mjs",

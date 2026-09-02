@@ -84,11 +84,11 @@ describe('subscriptionProbeCommand', () => {
   });
 
   it('quotes an operator override so a path with spaces stays one argument', () => {
-    expect(subscriptionProbeCommand('codex-cli', { AGENT_ZERO_CODEX_PATH: '/opt/bin/codex' })).toBe(
+    expect(subscriptionProbeCommand('codex-cli', { CODE_ZERO_CODEX_PATH: '/opt/bin/codex' })).toBe(
       '/opt/bin/codex --version',
     );
     expect(
-      subscriptionProbeCommand('codex-cli', { AGENT_ZERO_CODEX_PATH: '/opt/my tools/codex' }),
+      subscriptionProbeCommand('codex-cli', { CODE_ZERO_CODEX_PATH: '/opt/my tools/codex' }),
     ).toBe('"/opt/my tools/codex" --version');
   });
 
@@ -97,22 +97,22 @@ describe('subscriptionProbeCommand', () => {
     // the token's end, so `LocalRunner.check` would reject this and doctor would misreport the
     // CLI as missing. Single-quoting it is what a real shell would do too.
     expect(
-      subscriptionProbeCommand('codex-cli', { AGENT_ZERO_CODEX_PATH: '/tmp/vendor" cli/probe' }),
+      subscriptionProbeCommand('codex-cli', { CODE_ZERO_CODEX_PATH: '/tmp/vendor" cli/probe' }),
     ).toBe(`'/tmp/vendor" cli/probe' --version`);
   });
 
   it('keeps double-quoting a path that merely contains an apostrophe', () => {
     expect(
-      subscriptionProbeCommand('codex-cli', { AGENT_ZERO_CODEX_PATH: "/opt/user's tools/codex" }),
+      subscriptionProbeCommand('codex-cli', { CODE_ZERO_CODEX_PATH: "/opt/user's tools/codex" }),
     ).toBe(`"/opt/user's tools/codex" --version`);
   });
 
   it('refuses a path no quoting can express, rather than probing a truncated one', () => {
     expect(() =>
       subscriptionProbeCommand('codex-cli', {
-        AGENT_ZERO_CODEX_PATH: `/tmp/both" and' quotes/codex`,
+        CODE_ZERO_CODEX_PATH: `/tmp/both" and' quotes/codex`,
       }),
-    ).toThrow('AGENT_ZERO_CODEX_PATH contains both a single and a double quote');
+    ).toThrow('CODE_ZERO_CODEX_PATH contains both a single and a double quote');
   });
 });
 
@@ -122,7 +122,7 @@ describe('subscriptionLanguageModel', () => {
   // keeps a misconfigured provider from taking the control plane down with it.
   it('refuses a missing executable instead of letting the vendor SDK spawn it', async () => {
     const build = subscriptionLanguageModel('codex-cli', 'gpt-5.2-codex', {
-      AGENT_ZERO_CODEX_PATH: '/nonexistent/codex',
+      CODE_ZERO_CODEX_PATH: '/nonexistent/codex',
     });
     await expect(build()).rejects.toBeInstanceOf(SubscriptionProviderUnavailableError);
     await expect(build()).rejects.toThrow('not installed or not on PATH');
@@ -137,7 +137,7 @@ describe('subscriptionLanguageModel', () => {
     // `node` is guaranteed present wherever this suite runs, and is never spawned here: the
     // factory only builds the model.
     const build = subscriptionLanguageModel('claude-code', 'opus', {
-      AGENT_ZERO_CLAUDE_CODE_PATH: process.execPath,
+      CODE_ZERO_CLAUDE_CODE_PATH: process.execPath,
     });
     await expect(build()).resolves.toBeDefined();
   });
@@ -155,7 +155,7 @@ describe('subscriptionLanguageModel', () => {
     const build = subscriptionLanguageModel(
       'claude-code',
       'opus',
-      { AGENT_ZERO_CLAUDE_CODE_PATH: process.execPath },
+      { CODE_ZERO_CLAUDE_CODE_PATH: process.execPath },
       undefined,
       spawnProcess,
     );
@@ -170,7 +170,7 @@ describe('subscriptionLanguageModel', () => {
 
   it('does not probe the host PATH when a spawner is supplied: the executable may only exist in a container', async () => {
     // A composition root's containerized spawner runs the CLI inside a configured image; the host
-    // running Agent Zero never needs `claude` installed at all. Probing the host PATH here would
+    // running Code Zero never needs `claude` installed at all. Probing the host PATH here would
     // refuse a correctly configured containerized transport before the spawner ever ran.
     let spawnedCommand: string | undefined;
     const spawnProcess: ClaudeCodeProcessSpawner = (options) => {
@@ -197,7 +197,7 @@ describe('subscriptionLanguageModel', () => {
     // ai-sdk-provider-codex-cli@2 crashes the process on an unhandled spawn ENOENT; only the
     // pre-flight check here prevents that, and codex-cli never gets a spawner to skip it with.
     const build = subscriptionLanguageModel('codex-cli', 'gpt-5.2-codex', {
-      AGENT_ZERO_CODEX_PATH: '/nonexistent/codex',
+      CODE_ZERO_CODEX_PATH: '/nonexistent/codex',
       PATH: '/nonexistent/bin',
     });
     await expect(build()).rejects.toBeInstanceOf(SubscriptionProviderUnavailableError);
@@ -230,7 +230,7 @@ describe('translateSubscriptionError', () => {
     );
     expect(translated).toBeInstanceOf(SubscriptionProviderUnavailableError);
     expect(translated?.message).toContain('codex CLI is not installed');
-    expect(translated?.message).toContain('AGENT_ZERO_CODEX_PATH');
+    expect(translated?.message).toContain('CODE_ZERO_CODEX_PATH');
     expect(translated?.message).toContain('redacted detail');
   });
 

@@ -2,7 +2,7 @@
 
 ## Our pledge
 
-We pledge to make participation in the Agent Zero community a harassment-free experience for everyone, regardless of background, identity, appearance, ability, experience, education, nationality, race, religion, sex characteristics, gender identity, or sexual orientation.
+We pledge to make participation in the Code Zero community a harassment-free experience for everyone, regardless of background, identity, appearance, ability, experience, education, nationality, race, religion, sex characteristics, gender identity, or sexual orientation.
 
 ## Our standards
 

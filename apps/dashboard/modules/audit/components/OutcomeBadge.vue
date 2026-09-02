@@ -9,7 +9,7 @@
 </template>
 
 <script setup lang="ts">
-import type { AuditOutcome } from '@agent-zero/api';
+import type { AuditOutcome } from '@code-zero/api';
 
 const props = defineProps<{ outcome: AuditOutcome }>();
 

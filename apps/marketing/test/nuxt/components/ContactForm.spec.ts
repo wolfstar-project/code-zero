@@ -2,7 +2,7 @@ import { mountSuspended } from '@nuxt/test-utils/runtime';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import ContactForm from '~~/modules/contact/components/Form.vue';
 
-const MAILTO_PATTERN = /^mailto:hello@agent-zero\.dev\?/u;
+const MAILTO_PATTERN = /^mailto:hello@code-zero\.dev\?/u;
 
 describe('ContactForm', () => {
   const originalHref = window.location.href;

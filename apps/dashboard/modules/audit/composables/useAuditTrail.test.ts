@@ -1,4 +1,4 @@
-import type { AuditLogPage } from '@agent-zero/api';
+import type { AuditLogPage } from '@code-zero/api';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ref } from 'vue';
 
@@ -37,7 +37,7 @@ function controlPlanePage(nextCursor: string | null = null): AuditLogPage {
         actor: { kind: 'principal', name: 'release-manager' },
         action: 'task.created',
         outcome: 'success',
-        subject: { type: 'task', id: 'az_1' },
+        subject: { type: 'task', id: 'cz_1' },
         metadata: { repository: 'acme/app', mode: 'observe' },
       },
     ],
@@ -82,7 +82,7 @@ describe('useAuditTrail', () => {
         actorName: 'release-manager',
         actorKind: 'principal',
         action: 'task.created',
-        subject: 'task:az_1',
+        subject: 'task:cz_1',
         outcome: 'success',
         details: 'repository=acme/app · mode=observe',
       },

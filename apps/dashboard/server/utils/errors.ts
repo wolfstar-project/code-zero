@@ -1,4 +1,4 @@
-import { redactSecrets } from '@agent-zero/shared';
+import { redactSecrets } from '@code-zero/shared';
 import { createError } from 'h3';
 
 /**

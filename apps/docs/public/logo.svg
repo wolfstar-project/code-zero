@@ -1,14 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"
-     width="512" height="512" class="az" role="img" aria-label="Agent Zero">
-  <title>Agent Zero</title>
+     width="512" height="512" class="cz" role="img" aria-label="Code Zero">
+  <title>Code Zero</title>
   <style>
-    .az .ink{fill:var(--az-ink,#EFF3EE)}
-    .az .ink-s{stroke:var(--az-ink,#EFF3EE)}
-    .az .acc{fill:var(--az-accent,#84E04F)}
+    .cz .ink{fill:var(--cz-ink,#EFF3EE)}
+    .cz .ink-s{stroke:var(--cz-ink,#EFF3EE)}
+    .cz .acc{fill:var(--cz-accent,#84E04F)}
     @media (prefers-color-scheme: light){
-      .az .ink{fill:var(--az-ink,#0B140E)}
-      .az .ink-s{stroke:var(--az-ink,#0B140E)}
-      .az .acc{fill:var(--az-accent,#026C00)}
+      .cz .ink{fill:var(--cz-ink,#0B140E)}
+      .cz .ink-s{stroke:var(--cz-ink,#0B140E)}
+      .cz .acc{fill:var(--cz-accent,#026C00)}
     }
   </style>
   <defs>

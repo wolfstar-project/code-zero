@@ -1,4 +1,4 @@
-import type { TaskResult } from '@agent-zero/shared';
+import type { TaskResult } from '@code-zero/shared';
 import { describe, expect, it } from 'vitest';
 
 import type { StoredTask } from './control-plane.js';
@@ -20,7 +20,7 @@ function task(id: string, overrides: Partial<StoredTask> = {}): StoredTask {
 
 function finished(totalTokens: number, costUsd: number): TaskResult {
   return {
-    id: 'az_run',
+    id: 'cz_run',
     state: 'completed',
     verdict: 'accepted',
     verified: true,
@@ -59,15 +59,15 @@ describe('dashboardOverview', () => {
 
   it('counts queued and running work separately', () => {
     const overview = dashboardOverview([
-      task('az_1'),
-      task('az_2', { status: 'running' }),
-      task('az_3', { status: 'completed' }),
+      task('cz_1'),
+      task('cz_2', { status: 'running' }),
+      task('cz_3', { status: 'completed' }),
     ]);
     expect(overview).toMatchObject({ queued: 1, active: 1 });
   });
 
   it('counts only undecided human reviews as awaiting approval', () => {
-    const decided = task('az_2', {
+    const decided = task('cz_2', {
       status: 'needs-human',
       approval: {
         decision: 'approved',
@@ -76,15 +76,15 @@ describe('dashboardOverview', () => {
         decidedAt: TIMESTAMP,
       },
     });
-    const overview = dashboardOverview([task('az_1', { status: 'needs-human' }), decided]);
+    const overview = dashboardOverview([task('cz_1', { status: 'needs-human' }), decided]);
     expect(overview.awaitingApproval).toBe(1);
   });
 
   it('totals usage across finished runs and ignores runs that never reported any', () => {
     const overview = dashboardOverview([
-      task('az_1', { status: 'completed', result: finished(100, 0.25) }),
-      task('az_2', { status: 'completed', result: finished(50, 0.5) }),
-      task('az_3'),
+      task('cz_1', { status: 'completed', result: finished(100, 0.25) }),
+      task('cz_2', { status: 'completed', result: finished(50, 0.5) }),
+      task('cz_3'),
     ]);
     expect(overview).toMatchObject({ totalTokens: 150, costUsd: 0.75 });
   });

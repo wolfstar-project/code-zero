@@ -9,7 +9,7 @@ import { sessionPrincipal, type Principal } from '../access.js';
  *
  * Typed against `better-auth`'s own `Session`/`User` rather than a hand-rolled shape, but never
  * against a concrete instance: building one needs a database adapter and the deployment's
- * authentication policy, both of which live in `@agent-zero/auth`. This package holds the
+ * authentication policy, both of which live in `@code-zero/auth`. This package holds the
  * control-plane router and must not reach persistence or policy, so the composition root
  * (`apps/dashboard/server/`) constructs the instance and passes it in through the oRPC context.
  *
@@ -63,7 +63,7 @@ const DEFAULT_ADMIN_ROLE = 'admin';
 
 /**
  * Better Auth's base `User` carries no `role`; the deployment adds it as an additional field (see
- * `@agent-zero/auth`'s `authBetterAuthOptions`). Read defensively rather than asserted, so a
+ * `@code-zero/auth`'s `authBetterAuthOptions`). Read defensively rather than asserted, so a
  * deployment that drops the field grants the non-writable modes instead of throwing.
  */
 function isAdministrator(user: BetterAuthSessionPayload['user'], adminRole: string): boolean {

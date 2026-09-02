@@ -4,12 +4,12 @@ import { evidenceFromResult, renderEvidenceMarkdown, type EvidenceBundle } from 
 import { allChecksPassed, isRepositoryRelativePath, type TaskResult } from './types.js';
 
 const result: TaskResult = {
-  id: 'az_test',
+  id: 'cz_test',
   state: 'completed',
   verdict: 'accepted',
   verified: true,
   finding: {
-    id: 'az_test_finding',
+    id: 'cz_test_finding',
     changeRisk: 'mechanical',
     title: 'Unhandled null dereference',
     explanation: 'The loader returns null but the caller dereferences it.',
@@ -70,7 +70,7 @@ describe('renderEvidenceMarkdown', () => {
 
   it('reports a passing run as verified with the runner that produced it', () => {
     const report = renderEvidenceMarkdown(bundle);
-    expect(report).toContain('## Agent Zero — feedback accepted');
+    expect(report).toContain('## Code Zero — feedback accepted');
     expect(report).toContain('passed (1 checks)');
     expect(report).toContain('`container` (isolated, read-write, network `none`)');
   });
@@ -111,7 +111,7 @@ describe('renderEvidenceMarkdown', () => {
       },
     };
     const report = renderEvidenceMarkdown(rejected);
-    expect(report).toContain('## Agent Zero — feedback rejected');
+    expect(report).toContain('## Code Zero — feedback rejected');
     expect(report).toContain('### Why this was not accepted');
     expect(report).toContain('src/ghost.ts does not exist');
     expect(report).toContain('No repository-native checks were executed.');
@@ -151,7 +151,7 @@ describe('renderEvidenceMarkdown', () => {
       acceptanceCriteria: ['The loader guards its null return before dereferencing'],
     };
     const report = renderEvidenceMarkdown(issueBundle);
-    expect(report).toContain('## Agent Zero — issue task accepted');
+    expect(report).toContain('## Code Zero — issue task accepted');
     expect(report).toContain('### Acceptance criteria');
     expect(report).toContain('The loader guards its null return before dereferencing');
   });

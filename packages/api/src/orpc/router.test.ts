@@ -136,22 +136,22 @@ describe('rpc router', () => {
   it('reports health without touching the store', async () => {
     await expect(client().health()).resolves.toMatchObject({
       status: 'ok',
-      service: 'agent-zero',
+      service: 'code-zero',
     });
   });
 
   it('reads task history through the injected store', async () => {
-    await store.save(awaiting('az_1'));
+    await store.save(awaiting('cz_1'));
     await expect(client().tasks.list()).resolves.toMatchObject({
-      tasks: [{ id: 'az_1', status: 'needs-human' }],
+      tasks: [{ id: 'cz_1', status: 'needs-human' }],
     });
-    await expect(client().tasks.get({ id: 'az_1' })).resolves.toMatchObject({ id: 'az_1' });
+    await expect(client().tasks.get({ id: 'cz_1' })).resolves.toMatchObject({ id: 'cz_1' });
   });
 
   it('aggregates the dashboard overview from the same store', async () => {
-    await store.save(awaiting('az_1'));
+    await store.save(awaiting('cz_1'));
     await expect(client().dashboard.overview()).resolves.toMatchObject({
-      tasks: [{ id: 'az_1' }],
+      tasks: [{ id: 'cz_1' }],
       active: 0,
       queued: 0,
       awaitingApproval: 1,
@@ -159,7 +159,7 @@ describe('rpc router', () => {
   });
 
   it('resolves an unknown task as absent rather than fabricating one', async () => {
-    await expect(client().tasks.get({ id: 'az_missing' })).resolves.toBeUndefined();
+    await expect(client().tasks.get({ id: 'cz_missing' })).resolves.toBeUndefined();
   });
 
   it('rejects an unknown mode at the procedure boundary', async () => {
@@ -212,26 +212,26 @@ describe('rpc router', () => {
   });
 
   it('rejects an unauthenticated approval decision', async () => {
-    await store.save(awaiting('az_1'));
+    await store.save(awaiting('cz_1'));
     await expect(
-      instrumented(() => client().approvals.decide({ taskId: 'az_1', decision: 'approved' })),
+      instrumented(() => client().approvals.decide({ taskId: 'cz_1', decision: 'approved' })),
     ).rejects.toThrow(UNAUTHORIZED_ERROR);
-    await expect(store.get('az_1')).resolves.toMatchObject({ status: 'needs-human' });
+    await expect(store.get('cz_1')).resolves.toMatchObject({ status: 'needs-human' });
   });
 
   it('records an approval attributed to the authenticated principal', async () => {
-    await store.save(awaiting('az_1'));
+    await store.save(awaiting('cz_1'));
     await expect(
-      instrumented(() => operator().approvals.decide({ taskId: 'az_1', decision: 'approved' })),
+      instrumented(() => operator().approvals.decide({ taskId: 'cz_1', decision: 'approved' })),
     ).resolves.toMatchObject({ approval: { decision: 'approved', actor: 'release-manager' } });
   });
 
   it('ignores a wire-supplied actor in favour of the principal identity', async () => {
-    await store.save(awaiting('az_1'));
+    await store.save(awaiting('cz_1'));
     await expect(
       instrumented(() =>
         operator().approvals.decide({
-          taskId: 'az_1',
+          taskId: 'cz_1',
           decision: 'approved',
           // @ts-expect-error the schema no longer accepts an actor from the wire
           actor: 'impostor',
@@ -241,21 +241,21 @@ describe('rpc router', () => {
   });
 
   it('refuses an approval for a task that is not awaiting review', async () => {
-    await store.save({ ...awaiting('az_1'), status: 'completed' });
+    await store.save({ ...awaiting('cz_1'), status: 'completed' });
     await expect(
-      instrumented(() => operator().approvals.decide({ taskId: 'az_1', decision: 'approved' })),
+      instrumented(() => operator().approvals.decide({ taskId: 'cz_1', decision: 'approved' })),
     ).rejects.toThrow(APPROVAL_ERROR);
   });
 
   it('authenticates a dashboard session when no operator token was presented', async () => {
-    await store.save(awaiting('az_1'));
+    await store.save(awaiting('cz_1'));
     const session = client({
       auth: betterAuth({ email: 'ops@example.test', role: 'admin' }),
       reqHeaders: new Headers(),
       allowRepository: true,
     });
     await expect(
-      instrumented(() => session.approvals.decide({ taskId: 'az_1', decision: 'approved' })),
+      instrumented(() => session.approvals.decide({ taskId: 'cz_1', decision: 'approved' })),
     ).resolves.toMatchObject({ approval: { actor: 'ops@example.test' } });
   });
 
@@ -324,11 +324,11 @@ describe('rpc audit trail', () => {
   });
 
   it('records an approval decision against the principal, never a wire-supplied actor', async () => {
-    await store.save(awaiting('az_1'));
+    await store.save(awaiting('cz_1'));
 
     await instrumented(() =>
       operator().approvals.decide({
-        taskId: 'az_1',
+        taskId: 'cz_1',
         decision: 'approved',
         // @ts-expect-error the schema no longer accepts an actor from the wire
         actor: 'impostor',
@@ -340,17 +340,17 @@ describe('rpc audit trail', () => {
         actor: { kind: 'principal', name: 'release-manager' },
         action: 'approval.decided',
         outcome: 'success',
-        subject: { type: 'task', id: 'az_1' },
+        subject: { type: 'task', id: 'cz_1' },
         metadata: { decision: 'approved', repository: 'acme/app' },
       },
     ]);
   });
 
   it('records nothing for a decision that never reached the record', async () => {
-    await store.save({ ...awaiting('az_1'), status: 'completed' });
+    await store.save({ ...awaiting('cz_1'), status: 'completed' });
 
     await expect(
-      instrumented(() => operator().approvals.decide({ taskId: 'az_1', decision: 'approved' })),
+      instrumented(() => operator().approvals.decide({ taskId: 'cz_1', decision: 'approved' })),
     ).rejects.toThrow(APPROVAL_ERROR);
     expect(audited).toEqual([]);
   });
@@ -378,14 +378,14 @@ describe('rpc audit trail', () => {
   });
 
   it('records a session caller as a user, never as a machine principal', async () => {
-    await store.save(awaiting('az_1'));
+    await store.save(awaiting('cz_1'));
     const session = client({
       auth: betterAuth({ email: 'ops@example.test', role: 'admin' }),
       reqHeaders: new Headers(),
       allowRepository: true,
     });
 
-    await instrumented(() => session.approvals.decide({ taskId: 'az_1', decision: 'approved' }));
+    await instrumented(() => session.approvals.decide({ taskId: 'cz_1', decision: 'approved' }));
 
     // A person and an operator token are revoked through different channels, so a trail that
     // labelled both `principal` could not tell a reader which one to go turn off.
@@ -394,21 +394,21 @@ describe('rpc audit trail', () => {
         actor: { kind: 'user', name: 'ops@example.test' },
         action: 'approval.decided',
         outcome: 'success',
-        subject: { type: 'task', id: 'az_1' },
+        subject: { type: 'task', id: 'cz_1' },
         metadata: { decision: 'approved', repository: 'acme/app' },
       },
     ]);
   });
 
   it('serves callers that keep no audit trail at all', async () => {
-    await store.save(awaiting('az_1'));
+    await store.save(awaiting('cz_1'));
 
     await expect(
       instrumented(() =>
         unaudited({
           principal: { name: 'release-manager', kind: 'token', modes: ['autonomous'] },
           allowRepository: true,
-        }).approvals.decide({ taskId: 'az_1', decision: 'approved' }),
+        }).approvals.decide({ taskId: 'cz_1', decision: 'approved' }),
       ),
     ).resolves.toMatchObject({ approval: { actor: 'release-manager' } });
   });

@@ -104,13 +104,13 @@ describe('containerizedProcessArgv', () => {
       {
         engine: 'docker',
         image: 'node:22',
-        mounts: [{ hostPath: '/home/op/.claude', containerPath: '/agent-zero/claude-config' }],
+        mounts: [{ hostPath: '/home/op/.claude', containerPath: '/code-zero/claude-config' }],
       },
       'claude',
       [],
     );
     expect(args).toEqual(
-      expect.arrayContaining(['--volume', '/home/op/.claude:/agent-zero/claude-config:ro']),
+      expect.arrayContaining(['--volume', '/home/op/.claude:/code-zero/claude-config:ro']),
     );
   });
 
@@ -134,12 +134,12 @@ describe('containerizedProcessArgv', () => {
 
   it('forwards env as -e flags: a container engine spawned on the host sets nothing inside the container on its own', () => {
     const args = containerizedProcessArgv({ engine: 'docker', image: 'node:22' }, 'claude', [], {
-      HOME: '/agent-zero/claude-home',
-      CLAUDE_AGENT_SDK_CLIENT_APP: 'agent-zero/1.0',
+      HOME: '/code-zero/claude-home',
+      CLAUDE_AGENT_SDK_CLIENT_APP: 'code-zero/1.0',
     });
-    expect(args).toEqual(expect.arrayContaining(['-e', 'HOME=/agent-zero/claude-home']));
+    expect(args).toEqual(expect.arrayContaining(['-e', 'HOME=/code-zero/claude-home']));
     expect(args).toEqual(
-      expect.arrayContaining(['-e', 'CLAUDE_AGENT_SDK_CLIENT_APP=agent-zero/1.0']),
+      expect.arrayContaining(['-e', 'CLAUDE_AGENT_SDK_CLIENT_APP=code-zero/1.0']),
     );
   });
 

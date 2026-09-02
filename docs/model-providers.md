@@ -1,6 +1,6 @@
 # Model providers
 
-Agent Zero supports native OpenAI, Anthropic, and Google Generative AI adapters, Vercel AI Gateway, and arbitrary OpenAI-compatible endpoints — all behind one `ModelProvider` contract in `packages/models`, sharing one structured-output, usage-accounting, timeout, and error-redaction path.
+Code Zero supports native OpenAI, Anthropic, and Google Generative AI adapters, Vercel AI Gateway, and arbitrary OpenAI-compatible endpoints — all behind one `ModelProvider` contract in `packages/models`, sharing one structured-output, usage-accounting, timeout, and error-redaction path.
 
 ## Select a provider
 
@@ -20,15 +20,15 @@ model:
 | `openai`            | `OPENAI_API_KEY`                                         | `gpt-5`                       |
 | `openai-compatible` | `OPENAI_COMPATIBLE_API_KEY` (or legacy `OPENAI_API_KEY`) | provider-specific             |
 
-The AI Gateway accepts `provider/model` identifiers and exposes the broader AI SDK provider catalog without adding provider-specific logic to the Agent Zero runtime.
+The AI Gateway accepts `provider/model` identifiers and exposes the broader AI SDK provider catalog without adding provider-specific logic to the Code Zero runtime.
 
 ## Custom endpoints
 
-`AGENT_ZERO_MODEL_BASE_URL` is an optional **operator** environment variable for custom gateways and self-hosted endpoints. Endpoint URLs and credentials cannot be named or embedded in `.agent-zero.yml`, so untrusted repository policy cannot redirect a provider secret.
+`CODE_ZERO_MODEL_BASE_URL` is an optional **operator** environment variable for custom gateways and self-hosted endpoints. Endpoint URLs and credentials cannot be named or embedded in `.code-zero.yml`, so untrusted repository policy cannot redirect a provider secret.
 
 ## Cost accounting
 
-To record cost, configure explicit rates — Agent Zero never guesses provider pricing:
+To record cost, configure explicit rates — Code Zero never guesses provider pricing:
 
 ```yaml
 model:

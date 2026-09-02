@@ -2,11 +2,11 @@ import { symlink, unlink } from 'node:fs/promises';
 import { basename } from 'node:path';
 import process from 'node:process';
 
-// Read from `@agent-zero/auth/config` rather than restated here, so the build-time label below and
+// Read from `@code-zero/auth/config` rather than restated here, so the build-time label below and
 // the runtime enforcement in `server/auth.config.ts` cannot drift. That subpath carries policy
 // only, with none of the database dependencies `authBetterAuthOptions` needs.
-import { authConfigFromEnvironment, infraFromEnvironment } from '@agent-zero/auth/config';
-import { defaultLocale, i18nLocalesFor, localeCookieName } from '@agent-zero/i18n';
+import { authConfigFromEnvironment, infraFromEnvironment } from '@code-zero/auth/config';
+import { defaultLocale, i18nLocalesFor, localeCookieName } from '@code-zero/i18n';
 import { defineNuxtConfig } from 'nuxt/config';
 
 import { viteHubPresetFromEnvironment, viteHubVercelEntryAlias } from './config/env.js';
@@ -73,7 +73,7 @@ export default defineNuxtConfig({
     // `runtimeConfig.public.buildInfo`. On Vercel the values are resolved while the build runs;
     // every other target resolves what it can and the server completes the rest at boot, so a
     // self-hosted bundle still reports the commit it was built from. See packages/build-env.
-    '@agent-zero/build-env/nuxt',
+    '@code-zero/build-env/nuxt',
     '@unocss/nuxt',
     '@nuxt/icon',
     '@nuxtjs/i18n',
@@ -94,7 +94,7 @@ export default defineNuxtConfig({
     fallback: 'dark',
     dataValue: 'theme',
     classSuffix: '',
-    storageKey: 'agent-zero-color-mode',
+    storageKey: 'code-zero-color-mode',
   },
 
   icon: {
@@ -186,7 +186,7 @@ export default defineNuxtConfig({
       meta: [{ name: 'color-scheme', content: 'dark light' }],
       // Repeated in `app/app.vue`'s `useSeoMeta()`: the document needs a title before the app
       // boots, and the social tags need the same string once it has. Pages override both.
-      title: 'Agent Zero · Dashboard',
+      title: 'Code Zero · Dashboard',
     },
   },
 

@@ -1,5 +1,5 @@
 {
-  "name": "@agent-zero/dashboard",
+  "name": "@code-zero/dashboard",
   "version": "0.4.0",
   "type": "module",
   "scripts": {
@@ -22,13 +22,13 @@
     "typecheck": "nuxt typecheck"
   },
   "dependencies": {
-    "@agent-zero/api": "workspace:*",
-    "@agent-zero/auth": "workspace:*",
-    "@agent-zero/build-env": "workspace:*",
-    "@agent-zero/i18n": "workspace:*",
-    "@agent-zero/mail": "workspace:*",
-    "@agent-zero/shared": "workspace:*",
     "@better-auth/infra": "^0.4.0",
+    "@code-zero/api": "workspace:*",
+    "@code-zero/auth": "workspace:*",
+    "@code-zero/build-env": "workspace:*",
+    "@code-zero/i18n": "workspace:*",
+    "@code-zero/mail": "workspace:*",
+    "@code-zero/shared": "workspace:*",
     "@octopi-ai/better-enrollment": "^0.4.0",
     "@onmax/nuxt-better-auth": "^0.1.2",
     "@orpc/client": "2.0.0-beta.26",

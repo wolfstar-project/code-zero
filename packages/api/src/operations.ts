@@ -1,15 +1,15 @@
 import { createHash } from 'node:crypto';
 
-import { AgentZero } from '@agent-zero/agent';
-import { loadConfig, mayModifyRepository } from '@agent-zero/config';
-import { isSubscriptionProviderEnabled, modelFromEnvironment } from '@agent-zero/models';
+import { CodeZero } from '@code-zero/agent';
+import { loadConfig, mayModifyRepository } from '@code-zero/config';
+import { isSubscriptionProviderEnabled, modelFromEnvironment } from '@code-zero/models';
 import {
   createRunner,
   LocalRunner,
   runnerOptionsFromPolicy,
   type Runner,
   type RunnerPool,
-} from '@agent-zero/runner';
+} from '@code-zero/runner';
 import {
   evidenceFromResult,
   now,
@@ -20,7 +20,7 @@ import {
   type IssueRef,
   type ReviewInput,
   type TaskResult,
-} from '@agent-zero/shared';
+} from '@code-zero/shared';
 import {
   createProvider,
   GitHubIssueComments,
@@ -38,7 +38,7 @@ import {
   type IssueTask,
   type ProviderKind,
   type WebhookHeaders,
-} from '@agent-zero/source-control';
+} from '@code-zero/source-control';
 import { z } from 'zod';
 
 import {
@@ -86,7 +86,7 @@ export const approvalInput = z.object({
 });
 
 export function health() {
-  return { status: 'ok' as const, service: 'agent-zero', version: '0.4.0' };
+  return { status: 'ok' as const, service: 'code-zero', version: '0.4.0' };
 }
 
 export async function listTasks(store: TaskStore = defaultStore) {
@@ -194,7 +194,7 @@ export async function runTask(
       // host instead would bypass exactly the isolation, lifecycle, quota, and audit controls an
       // operator configured RunnerPool for. Reported to modelFromEnvironment as a refusal reason,
       // not by disabling the enable flag: the flag would also skip fallback selection, turning a
-      // configured AGENT_ZERO_MODEL_FALLBACK_PROVIDER into a run that fails outright instead of
+      // configured CODE_ZERO_MODEL_FALLBACK_PROVIDER into a run that fails outright instead of
       // degrading to it.
       const refusalReason =
         config.model.provider !== 'claude-code'
@@ -210,7 +210,7 @@ export async function runTask(
         isSubscriptionProviderEnabled('claude-code', process.env)
           ? claudeCodeProcessSpawner(config, process.env)
           : undefined;
-      const agent = new AgentZero({
+      const agent = new CodeZero({
         model: modelFromEnvironment(
           config.model,
           process.env,

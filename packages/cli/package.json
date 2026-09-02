@@ -1,5 +1,5 @@
 {
-  "name": "@agent-zero/cli",
+  "name": "@code-zero/cli",
   "version": "0.4.0",
   "bin": {
     "zero": "./dist/index.js"
@@ -14,13 +14,13 @@
     "typecheck": "tsc --project tsconfig.json --pretty false --noEmit"
   },
   "dependencies": {
-    "@agent-zero/agent": "workspace:*",
-    "@agent-zero/config": "workspace:*",
-    "@agent-zero/models": "workspace:*",
-    "@agent-zero/runner": "workspace:*",
-    "@agent-zero/shared": "workspace:*",
     "@bomb.sh/args": "^0.3.1",
-    "@clack/prompts": "^1.7.0"
+    "@clack/prompts": "^1.7.0",
+    "@code-zero/agent": "workspace:*",
+    "@code-zero/config": "workspace:*",
+    "@code-zero/models": "workspace:*",
+    "@code-zero/runner": "workspace:*",
+    "@code-zero/shared": "workspace:*"
   },
   "devDependencies": {
     "oxlint": "^1.44.0",

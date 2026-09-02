@@ -1,5 +1,5 @@
 {
-  "name": "@agent-zero/models",
+  "name": "@code-zero/models",
   "version": "0.4.0",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -27,11 +27,11 @@
     "typecheck": "tsc --project tsconfig.json --pretty false --noEmit"
   },
   "dependencies": {
-    "@agent-zero/shared": "workspace:*",
     "@ai-sdk/anthropic": "^4.0.36",
     "@ai-sdk/google": "^4.0.39",
     "@ai-sdk/openai": "^4.0.36",
     "@ai-sdk/openai-compatible": "^3.0.16",
+    "@code-zero/shared": "workspace:*",
     "ai": "^7.0.40",
     "ai-sdk-provider-claude-code": "^4.1.0",
     "ai-sdk-provider-codex-cli": "^2.1.2",

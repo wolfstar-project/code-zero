@@ -1,4 +1,4 @@
-import type { TaskEvent, TaskResult } from '@agent-zero/shared';
+import type { TaskEvent, TaskResult } from '@code-zero/shared';
 
 export type ControlPlaneTaskStatus = 'queued' | 'running' | 'completed' | 'needs-human' | 'failed';
 export type ApprovalDecision = 'approved' | 'rejected';

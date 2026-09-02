@@ -6,7 +6,7 @@ const { name, inviterName, organizationName, acceptUrl } = useConfig();
 </script>
 
 <template>
-  <Base preheader="You have been invited to Agent Zero.">
+  <Base preheader="You have been invited to Code Zero.">
     <Text
       class="m-0 text-[10px] font-bold tracking-[0.16em] text-[#48574D] uppercase dark:text-[#95A29B]"
     >
@@ -30,11 +30,9 @@ const { name, inviterName, organizationName, acceptUrl } = useConfig();
 
     <Text class="mt-3 text-[15px] leading-[24px] text-[#0B140E] dark:text-[#EFF3EE]">
       <template v-if="organizationName">
-        {{ inviterName }} invited you to join <strong>{{ organizationName }}</strong> on Agent Zero.
+        {{ inviterName }} invited you to join <strong>{{ organizationName }}</strong> on Code Zero.
       </template>
-      <template v-else>
-        {{ inviterName }} invited you to create an account on Agent Zero.
-      </template>
+      <template v-else> {{ inviterName }} invited you to create an account on Code Zero. </template>
     </Text>
 
     <div class="pt-7">

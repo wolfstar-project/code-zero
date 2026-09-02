@@ -14,7 +14,7 @@ defineProps<{
     :class="class"
   >
     <title>{{ site.name }}</title>
-    <g class="az">
+    <g class="cz">
       <defs>
         <mask
           id="cutm"
@@ -68,24 +68,24 @@ defineProps<{
 </template>
 
 <style>
-.az .ink {
-  fill: var(--az-ink, #eff3ee);
+.cz .ink {
+  fill: var(--cz-ink, #eff3ee);
 }
-.az .ink-s {
-  stroke: var(--az-ink, #eff3ee);
+.cz .ink-s {
+  stroke: var(--cz-ink, #eff3ee);
 }
-.az .acc {
-  fill: var(--az-accent, #84e04f);
+.cz .acc {
+  fill: var(--cz-accent, #84e04f);
 }
 @media (prefers-color-scheme: light) {
-  .az .ink {
-    fill: var(--az-ink, #0b140e);
+  .cz .ink {
+    fill: var(--cz-ink, #0b140e);
   }
-  .az .ink-s {
-    stroke: var(--az-ink, #0b140e);
+  .cz .ink-s {
+    stroke: var(--cz-ink, #0b140e);
   }
-  .az .acc {
-    fill: var(--az-accent, #026c00);
+  .cz .acc {
+    fill: var(--cz-accent, #026c00);
   }
 }
 </style>

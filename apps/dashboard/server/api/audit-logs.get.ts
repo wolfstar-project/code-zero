@@ -1,4 +1,4 @@
-import { ADMIN_USER_ROLE } from '@agent-zero/auth/config';
+import { ADMIN_USER_ROLE } from '@code-zero/auth/config';
 
 /**
  * The dashboard's read side of the audit trail, for signed-in administrators only.
@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
 /**
  * The roles carried by a session's user.
  *
- * `role` is one of `@agent-zero/auth`'s Better Auth `additionalFields`, which the module's
+ * `role` is one of `@code-zero/auth`'s Better Auth `additionalFields`, which the module's
  * `AuthUser` type does not reflect, hence the narrow structural read rather than a wider cast of
  * the session itself. Better Auth stores multiple roles as one comma-separated string, so
  * membership is a split rather than an equality check. Anything that is not a string — an absent
