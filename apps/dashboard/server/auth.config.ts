@@ -103,6 +103,7 @@ export default defineServerAuth(
           invite: [],
           inviteUse: [],
           deviceCode: [],
+          twoFactor: [],
         }),
         // Test-only, and deliberately added here rather than in `packages/auth`: `testUtils`
         // registers no HTTP route, but it hangs privileged helpers off the auth context that can

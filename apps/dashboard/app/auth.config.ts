@@ -6,6 +6,7 @@ import {
   lastLoginMethodClient,
   multiSessionClient,
   organizationClient,
+  twoFactorClient,
 } from 'better-auth/client/plugins';
 
 // Better Auth is mounted in this app's own server (`server/auth.config.ts`), so every request is
@@ -39,6 +40,11 @@ export default defineClientAuth(() => {
       betterEnrollmentClient(),
       lastLoginMethodClient(),
       multiSessionClient(),
+      twoFactorClient({
+        onTwoFactorRedirect: async () => {
+          await navigateTo('/two-factor');
+        },
+      }),
       deviceAuthorizationClient(),
       dashClient(),
       // The one entry that is gated, and the only one whose absence changes nothing about the

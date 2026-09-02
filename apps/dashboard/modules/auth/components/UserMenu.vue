@@ -6,6 +6,9 @@
     <p class="m-0 mt-1 truncate text-xs font-650" :title="user?.email">
       {{ user?.name || user?.email }}
     </p>
+    <NuxtLink class="btn-link mt-2.5 block text-xs" to="/two-factor">
+      {{ $t('auth.twoFactor.link') }}
+    </NuxtLink>
     <button
       class="focus-ring mt-2.5 h-8 w-full border border-line bg-raised text-xs text-ink font-650 transition hover:border-muted"
       type="button"

@@ -181,6 +181,93 @@
           },
           "additionalProperties": false
         },
+        "twoFactor": {
+          "type": "object",
+          "properties": {
+            "link": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "loading": {
+              "type": "string"
+            },
+            "challengeSubtitle": {
+              "type": "string"
+            },
+            "factor": {
+              "type": "object",
+              "properties": {
+                "totp": {
+                  "type": "string"
+                },
+                "backup": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "code": {
+              "type": "string"
+            },
+            "backupCode": {
+              "type": "string"
+            },
+            "trustDevice": {
+              "type": "string"
+            },
+            "verify": {
+              "type": "string"
+            },
+            "verifyPending": {
+              "type": "string"
+            },
+            "enabled": {
+              "type": "string"
+            },
+            "disabled": {
+              "type": "string"
+            },
+            "enable": {
+              "type": "string"
+            },
+            "enablePending": {
+              "type": "string"
+            },
+            "disable": {
+              "type": "string"
+            },
+            "disablePending": {
+              "type": "string"
+            },
+            "scan": {
+              "type": "string"
+            },
+            "qrAlt": {
+              "type": "string"
+            },
+            "backupCodesTitle": {
+              "type": "string"
+            },
+            "backupCodesHint": {
+              "type": "string"
+            },
+            "confirmCode": {
+              "type": "string"
+            },
+            "confirm": {
+              "type": "string"
+            },
+            "confirmPending": {
+              "type": "string"
+            },
+            "error": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
         "errors": {
           "type": "object",
           "properties": {

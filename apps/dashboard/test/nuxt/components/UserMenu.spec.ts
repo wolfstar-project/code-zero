@@ -54,6 +54,15 @@ describe('UserMenu', () => {
     expect(wrapper.get('[title]').attributes('title')).toBe('operator@example.test');
   });
 
+  it('links a signed-in operator to two-factor security settings', async () => {
+    mockReady.value = true;
+    mockUser.value = OPERATOR;
+
+    const wrapper = await mountSuspended(UserMenu);
+
+    expect(wrapper.get('a[href="/two-factor"]').text()).toBe('Two-factor authentication');
+  });
+
   it('falls back to the email when the account has no display name', async () => {
     mockReady.value = true;
     mockUser.value = { name: '', email: 'operator@example.test' };

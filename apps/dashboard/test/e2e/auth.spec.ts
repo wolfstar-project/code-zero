@@ -31,6 +31,28 @@ test.describe('Authentication', () => {
     await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible();
   });
 
+  test('offers two-factor setup to a signed-in operator', async ({ page, goto }) => {
+    await mockAuthSession(page, true);
+
+    await goto('/two-factor', { waitUntil: 'networkidle' });
+
+    await expect(
+      page.getByRole('heading', { name: 'Two-factor authentication', level: 1 }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Set up two-factor authentication' }),
+    ).toBeVisible();
+  });
+
+  test('shows the second-factor challenge before a session exists', async ({ page, goto }) => {
+    await mockAuthSession(page, false);
+
+    await goto('/two-factor', { waitUntil: 'networkidle' });
+
+    await expect(page.getByRole('button', { name: 'Verify and sign in' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Backup code' })).toBeVisible();
+  });
+
   test('hides disabled sign-in methods on the login page', async ({ page, goto }) => {
     await mockAuthSession(page, false);
 

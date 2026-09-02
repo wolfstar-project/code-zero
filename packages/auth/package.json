@@ -41,6 +41,7 @@
     "@code-zero/database": "workspace:*",
     "@octopi-ai/better-enrollment": "^0.4.0",
     "better-auth": "^1.6.26",
+    "drizzle-orm": "^0.45.2",
     "zod": "^4.4.3"
   },
   "devDependencies": {

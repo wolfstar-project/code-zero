@@ -109,3 +109,16 @@ export const viteHubVercelEntryName = '__server.func';
 export function viteHubVercelEntryAlias(serverDirectory: string): string {
   return join(dirname(serverDirectory), viteHubVercelEntryName);
 }
+
+// Aube can leave this optional peer link inside Better Auth's adapter package pointing at a
+// virtual-store entry it did not materialize. Nitro's node-file trace records the dangling path,
+// then fails while canonicalising every recorded reason even though `drizzle-orm` is also traced
+// through the database package's valid dependency. Ignore only that nested link: the valid package
+// and every other auth dependency remain external and are still copied into the server output.
+const brokenAuthDrizzlePeerLink =
+  /(?:^|\/)\.aube\/@better-auth\+drizzle-adapter@[^/]+\/node_modules\/drizzle-orm(?:\/|$)/u;
+
+/** Returns whether Nitro's file trace should skip Aube's dangling optional peer link. */
+export function shouldIgnoreBrokenAuthPeerLink(path: string): boolean {
+  return brokenAuthDrizzlePeerLink.test(path.replaceAll('\\', '/'));
+}

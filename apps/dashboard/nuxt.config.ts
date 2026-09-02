@@ -9,7 +9,11 @@ import { authConfigFromEnvironment, infraFromEnvironment } from '@code-zero/auth
 import { defaultLocale, i18nLocalesFor, localeCookieName } from '@code-zero/i18n';
 import { defineNuxtConfig } from 'nuxt/config';
 
-import { viteHubPresetFromEnvironment, viteHubVercelEntryAlias } from './config/env.js';
+import {
+  shouldIgnoreBrokenAuthPeerLink,
+  viteHubPresetFromEnvironment,
+  viteHubVercelEntryAlias,
+} from './config/env.js';
 
 // Resolved once at config evaluation so the dashboard's auth pages publish the same sign-in
 // policy `server/auth.config.ts` enforces at runtime (AUTH_ENABLE_SIGNUP, GitHub OAuth
@@ -191,6 +195,11 @@ export default defineNuxtConfig({
   },
 
   nitro: {
+    externals: {
+      traceOptions: {
+        ignore: shouldIgnoreBrokenAuthPeerLink,
+      },
+    },
     // Registered as a Nitro module rather than through `nitro.hooks`: a handler under that key
     // replaces the preset's own handler for the same hook, and the `vercel` preset writes
     // `config.json` and each function's `.vc-config.json` from its `compiled` hook — losing it
@@ -239,6 +248,9 @@ export default defineNuxtConfig({
     // than being shown the form. The auth layout, not the shell, because the visitor arriving here
     // typed a code off a terminal and has no business in the navigation.
     '/device': { auth: { only: 'user' } },
+    // Serves both authenticated enrollment and the pre-session challenge after password sign-in.
+    // The Better Auth endpoints enforce the relevant cookie/session for each operation.
+    '/two-factor': { auth: false },
     // Reached from an invitation email, so the visitor is frequently signed out at that moment:
     // requiring a session sends them through /login and back, rather than rejecting the link.
     '/organizations/accept-invitation/**': { appLayout: 'default', auth: { only: 'user' } },

@@ -1,4 +1,12 @@
-import { boolean, index, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core';
 
 import { timestampColumns } from './columns.js';
 
@@ -36,9 +44,33 @@ export const user = pgTable(
      * because every account predates its first sign-in under this plugin.
      */
     lastLoginMethod: text('last_login_method'),
+    // Set only after the first authenticator code verifies the pending TOTP enrollment.
+    twoFactorEnabled: boolean('two_factor_enabled').notNull().default(false),
     ...timestampColumns,
   },
   (table) => [uniqueIndex('user_email_unique').on(table.email)],
+);
+
+/** TOTP material managed by Better Auth's two-factor plugin. */
+export const twoFactor = pgTable(
+  'two_factor',
+  {
+    id: text('id').primaryKey(),
+    // Better Auth encrypts both values with the deployment's auth secret before persistence.
+    secret: text('secret').notNull(),
+    backupCodes: text('backup_codes').notNull(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    verified: boolean('verified').notNull().default(true),
+    failedVerificationCount: integer('failed_verification_count').notNull().default(0),
+    lockedUntil: timestamp('locked_until', { withTimezone: true }),
+    ...timestampColumns,
+  },
+  (table) => [
+    index('two_factor_secret_idx').on(table.secret),
+    index('two_factor_user_id_idx').on(table.userId),
+  ],
 );
 
 export const session = pgTable(

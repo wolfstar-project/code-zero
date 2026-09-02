@@ -12,6 +12,7 @@ import {
   multiSession,
   oAuthProxy,
   organization,
+  twoFactor,
 } from 'better-auth/plugins';
 import type { OrganizationOptions } from 'better-auth/plugins';
 
@@ -220,6 +221,12 @@ function authPlugins(options: AuthDatabaseOptions): BetterAuthPlugin[] {
   // console is routinely driven from a personal account and a shared break-glass one, and
   // without this the second sign-in silently evicts the first.
   plugins.push(multiSession({ maximumSessions: config.maximumDeviceSessions }));
+
+  // TOTP and one-time backup codes are available to every account. Registering the plugin does
+  // not weaken sign-in on its own: a user must re-enter their password, enroll a secret, and
+  // verify the first authenticator code before Better Auth marks `twoFactorEnabled`. Failed
+  // sign-in challenges use Better Auth's account-level lockout defaults.
+  plugins.push(twoFactor({ issuer: 'Agent Zero' }));
 
   // Only on the deployments that need it — a preview or local origin the OAuth provider has no
   // callback registered for. `oauthProxyFromEnvironment` withholds the settings unless both the
