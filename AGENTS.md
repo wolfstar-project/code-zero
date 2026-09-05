@@ -85,6 +85,7 @@ cp apps/dashboard/.env.example apps/dashboard/.env
 
 ```bash
 aube run dev             # watch workspace development tasks
+aube run dev:solo        # dashboard alone, no database (apps/dashboard/.env.solo)
 aube run zero doctor     # inspect the local environment
 aube test                # deterministic Vitest suites
 aube run test:browser    # dashboard and marketing browser suites

@@ -6,6 +6,7 @@
     "build": "nuxt build",
     "clean": "nuxt cleanup && tsc -b --clean",
     "dev": "nuxt dev",
+    "dev:solo": "nuxt dev --dotenv .env.solo",
     "lint": "oxlint --config ../../tooling/oxc/apps.oxlintrc.json --type-aware --type-check --ignore-pattern \"test/nuxt/components/**\" --ignore-pattern \"test/nuxt/pages/**\" app config modules server test",
     "lint:fix": "oxlint --fix --config ../../tooling/oxc/apps.oxlintrc.json --type-aware --type-check --ignore-pattern \"test/nuxt/components/**\" --ignore-pattern \"test/nuxt/pages/**\" app config modules server test",
     "prelint": "nuxt prepare",

@@ -12,6 +12,7 @@
     "db:generate": "turbo run db:generate",
     "db:migrate": "node --env-file-if-exists=apps/dashboard/.env node_modules/turbo/bin/turbo run db:migrate",
     "dev": "turbo run dev",
+    "dev:solo": "turbo run dev:solo --filter=@code-zero/dashboard",
     "format": "oxfmt -c tooling/oxc/.oxfmtrc.json --ignore-path .oxfmtignore .",
     "format:check": "oxfmt -c tooling/oxc/.oxfmtrc.json --ignore-path .oxfmtignore --check .",
     "i18n:report": "turbo run i18n:report",
