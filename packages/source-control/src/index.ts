@@ -64,6 +64,7 @@ export {
   isSafeBranchName,
   type BranchFile,
   type GitHubPullRequestsOptions,
+  type OpenPullRequest,
   type OpenPullRequestOptions,
   type PublishBranchOptions,
   type RepositoryTarget,

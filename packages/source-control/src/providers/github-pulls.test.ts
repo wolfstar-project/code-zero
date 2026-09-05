@@ -91,6 +91,95 @@ describe('defaultBranch', () => {
   });
 });
 
+describe('listOpenPullRequests', () => {
+  const headSha = 'c'.repeat(40);
+
+  function pull(number: number, overrides: Record<string, unknown> = {}) {
+    return {
+      number,
+      title: `Pull ${String(number)}`,
+      head: { sha: headSha, ref: `feature/${String(number)}` },
+      base: { sha: baseSha },
+      html_url: `https://github.com/acme/app/pull/${String(number)}`,
+      draft: false,
+      ...overrides,
+    };
+  }
+
+  it('reduces GitHub records to what deciding to review one needs', async () => {
+    const { pulls, requests } = adapter({ '/repos/acme/app/pulls': [pull(412)] });
+
+    await expect(pulls.listOpenPullRequests(target)).resolves.toEqual([
+      {
+        number: 412,
+        title: 'Pull 412',
+        headSha,
+        headRef: 'feature/412',
+        baseSha,
+        url: 'https://github.com/acme/app/pull/412',
+        draft: false,
+      },
+    ]);
+    expect(requests[0]?.method).toBe('GET');
+  });
+
+  it('asks only for open pull requests, most recently updated first', async () => {
+    const { pulls, requests } = adapter({ '/repos/acme/app/pulls': [] });
+
+    await pulls.listOpenPullRequests(target, 10);
+
+    // The path carries the query, so this is the request GitHub actually receives.
+    expect(requests[0]?.path).toBe('/repos/acme/app/pulls');
+  });
+
+  it('clamps the page size rather than passing an unbounded one through', async () => {
+    const sizes: string[] = [];
+    const pulls = new GitHubPullRequests({
+      token: 'secret-token-value',
+      // The adapter only ever passes a string URL; the union is narrowed the same way
+      // `fakeGitHub` above does it rather than stringified.
+      fetch: async (input) => {
+        const url = new URL(
+          typeof input === 'string' ? input : 'url' in input ? input.url : input.href,
+        );
+        sizes.push(url.searchParams.get('per_page') ?? '');
+        return new Response('[]', { status: 200 });
+      },
+    });
+
+    await pulls.listOpenPullRequests(target, 5_000);
+    await pulls.listOpenPullRequests(target, 0);
+
+    expect(sizes).toEqual(['100', '1']);
+  });
+
+  it('skips a malformed record instead of losing the page it came in', async () => {
+    const { pulls } = adapter({
+      '/repos/acme/app/pulls': [
+        pull(1, { head: { sha: 'not-a-sha!', ref: 'x' } }),
+        pull(2, { number: 'two' }),
+        pull(3, { head: { sha: headSha } }),
+        pull(5, { base: { sha: 'not-a-sha!' } }),
+        pull(4),
+      ],
+    });
+
+    await expect(pulls.listOpenPullRequests(target)).resolves.toMatchObject([{ number: 4 }]);
+  });
+
+  it('reports a draft, so a caller can decide not to review one', async () => {
+    const { pulls } = adapter({ '/repos/acme/app/pulls': [pull(9, { draft: true })] });
+
+    await expect(pulls.listOpenPullRequests(target)).resolves.toMatchObject([{ draft: true }]);
+  });
+
+  it('fails loudly when GitHub answers with something that is not a list', async () => {
+    const { pulls } = adapter({ '/repos/acme/app/pulls': { message: 'nope' } });
+
+    await expect(pulls.listOpenPullRequests(target)).rejects.toThrow('did not report a list');
+  });
+});
+
 describe('publishBranch', () => {
   const responses = {
     [`/repos/acme/app/git/commits/${baseSha}`]: { tree: { sha: 't'.repeat(40) } },

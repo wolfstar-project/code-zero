@@ -30,6 +30,7 @@
     "@code-zero/i18n": "workspace:*",
     "@code-zero/mail": "workspace:*",
     "@code-zero/shared": "workspace:*",
+    "@code-zero/source-control": "workspace:*",
     "@octopi-ai/better-enrollment": "^0.4.0",
     "@onmax/nuxt-better-auth": "^0.1.2",
     "@orpc/client": "2.0.0-beta.26",

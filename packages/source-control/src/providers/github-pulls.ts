@@ -37,6 +37,25 @@ export interface OpenPullRequestOptions {
   base: string;
 }
 
+/**
+ * An open pull request, reduced to what deciding whether to review it needs.
+ *
+ * Deliberately not the provider's payload: a caller reasons about the head commit and the
+ * identifiers, and passing GitHub's object through would put an SDK shape into the runtime's
+ * vocabulary.
+ */
+export interface OpenPullRequest {
+  number: number;
+  title: string;
+  /** The commit under review. A new one is what makes a pull request worth looking at again. */
+  headSha: string;
+  headRef: string;
+  /** The commit the change is measured against; a review reads the diff between the two. */
+  baseSha: string;
+  url: string;
+  draft: boolean;
+}
+
 export interface GitHubPullRequestsOptions {
   token: string;
   baseUrl?: string;
@@ -190,6 +209,60 @@ export class GitHubPullRequests {
     const url = readString(body, 'html_url');
     if (number === undefined || !url) throw new Error('GitHub did not return the pull request');
     return { number, url };
+  }
+
+  /**
+   * The repository's open pull requests, newest first, one page at a time.
+   *
+   * Read-only, and the only thing here that goes looking for work rather than publishing it. A
+   * page limit rather than full pagination: a caller polls repeatedly, so a repository with more
+   * open pull requests than one page is one whose oldest simply wait for the next pass — which is
+   * better than a poll that walks hundreds of pages every interval.
+   *
+   * A record GitHub returns without an integer number or a commit-shaped head sha is skipped
+   * rather than raised: one malformed entry must not cost the caller the whole page.
+   */
+  async listOpenPullRequests(target: RepositoryTarget, perPage = 50): Promise<OpenPullRequest[]> {
+    const query = new URLSearchParams({
+      state: 'open',
+      sort: 'updated',
+      direction: 'desc',
+      per_page: String(Math.min(Math.max(Math.trunc(perPage), 1), 100)),
+    });
+    const payload = await this.send(
+      'GET',
+      `/repos/${target.owner}/${target.repo}/pulls?${query.toString()}`,
+    );
+    if (!Array.isArray(payload)) throw new Error('GitHub did not report a list of pull requests');
+    const requests: OpenPullRequest[] = [];
+    for (const entry of payload) {
+      const number = readNumber(entry, 'number');
+      const head = readRecord(entry, 'head');
+      const headSha = readString(head, 'sha');
+      const headRef = readString(head, 'ref');
+      const baseSha = readString(readRecord(entry, 'base'), 'sha');
+      // Both commits are required: a review reads the diff between them, so a record missing
+      // either describes nothing a run could inspect.
+      if (
+        number === undefined ||
+        !headSha ||
+        !COMMIT_SHA.test(headSha) ||
+        !headRef ||
+        !baseSha ||
+        !COMMIT_SHA.test(baseSha)
+      )
+        continue;
+      requests.push({
+        number,
+        title: readString(entry, 'title') ?? '',
+        headSha,
+        headRef,
+        baseSha,
+        url: readString(entry, 'html_url') ?? '',
+        draft: readRecord(entry, 'draft') === true,
+      });
+    }
+    return requests;
   }
 
   private async send(
