@@ -4,7 +4,7 @@ import type { AuditEvent } from '@code-zero/api';
 import { computed } from 'vue';
 
 import type { AuditRow } from '../types/audit.js';
-import { useAuditLogs } from './useAuditLogs.js';
+import { useAuditLogs, type AuditLogReader } from './useAuditLogs.js';
 import { useAuthAuditLogs } from './useAuthAuditLogs.js';
 
 /**
@@ -20,8 +20,8 @@ import { useAuthAuditLogs } from './useAuthAuditLogs.js';
  * plane's records, which this deployment owns and can always read; the page shows what it has and
  * says what is missing.
  */
-export function useAuditTrail() {
-  const controlPlane = useAuditLogs();
+export function useAuditTrail(read: AuditLogReader) {
+  const controlPlane = useAuditLogs(read);
   const authentication = useAuthAuditLogs();
 
   const rows = computed<AuditRow[]>(() => [
@@ -58,17 +58,25 @@ export function useAuditTrail() {
 
 /** The control plane's durable record, in the shape the table lays out. */
 function toRow(event: AuditEvent): AuditRow {
+  // Everything the target carries beyond identifying itself is detail about the action — the
+  // repository a task was created for, the decision an approval recorded. evlog's target is an
+  // open map for exactly this, so the row renders what a record happens to carry rather than a
+  // fixed set this mapper would have to keep in step with the procedures.
+  const { type: _type, id: _id, ...details } = event.target ?? {};
   return {
     id: `control:${event.id}`,
     occurredAt: event.occurredAt,
     source: 'control-plane',
-    actorName: event.actor.name,
-    actorKind: event.actor.kind,
+    // The email is what a reader recognises; the id is the fallback for an actor that has none,
+    // which is every operator token.
+    actorName: event.actor.email ?? event.actor.displayName ?? event.actor.id,
+    actorKind: event.actor.type,
     action: event.action,
-    subject: event.subject ? `${event.subject.type}:${event.subject.id}` : '',
+    subject: event.target ? `${event.target.type}:${event.target.id}` : '',
     outcome: event.outcome,
-    details: Object.entries(event.metadata ?? {})
-      .map(([key, value]) => `${key}=${value}`)
-      .join(' · '),
+    details: [
+      ...(event.reason === undefined ? [] : [event.reason]),
+      ...Object.entries(details).map(([key, value]) => `${key}=${String(value)}`),
+    ].join(' · '),
   };
 }

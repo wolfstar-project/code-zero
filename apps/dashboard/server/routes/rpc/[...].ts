@@ -18,7 +18,7 @@ const handler = new RPCHandler(rpcRouter, {
     // cross-site form submission cannot forge — no client-side plugin is needed to satisfy it, see
     // `app/plugins/orpc.client.ts` and `orpc.server.ts`.
     new SimpleCsrfProtectionHandlerPlugin(),
-    new EvlogHandlerPlugin({ storage: requestLoggerStorage }),
+    new EvlogHandlerPlugin({ storage: requestLoggerStorage, plugins: auditPlugins }),
   ],
 });
 // Fails closed: without configured tokens every mutation is rejected while reads stay open.
@@ -44,7 +44,7 @@ export default defineEventHandler(async (event) => {
       prefix: '/rpc',
       context: {
         ...buildRpcContext(request, access, taskStore, serverAuth(event)),
-        audit: auditRecorder,
+        auditLog: auditLogStore,
       },
     });
     if (matched) return response;

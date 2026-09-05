@@ -1,13 +1,20 @@
 import { createRouterClient } from '@orpc/server';
-import { createRequestLogger } from 'evlog';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { createRequestLogger, initLogger, mockAudit, type MockAudit } from 'evlog';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { Principal } from '../access.js';
-import type { AuditEntryInput, AuditRecorder } from '../audit.js';
+import { MemoryAuditLogStore, type AuditEvent } from '../audit.js';
 import { MemoryTaskStore, type StoredTask } from '../control-plane.js';
 import type { BetterAuthSessionApi } from './auth.js';
 import { requestLoggerStorage } from './logging.js';
 import { rpcRouter } from './router.js';
+
+/**
+ * Emitting a wide event publishes it, and evlog writes one to the console by default, which would
+ * bury this suite's output. Nothing here asserts on that output: `mockAudit` collects the audit
+ * fields as the event is finalised, which is the step a deployment's own drain reads.
+ */
+initLogger({ silent: true });
 
 const TIMESTAMP = '2026-08-09T10:00:00.000Z';
 const VALIDATION_ERROR = /validation/i;
@@ -16,9 +23,16 @@ const UNAUTHORIZED_ERROR = /authentication required/i;
 const FORBIDDEN_ERROR = /not allow-listed/i;
 const MODE_ERROR = /not granted/i;
 const STORAGE_ERROR = /storage unavailable/i;
+const ADMIN_ERROR = /admin role/i;
+const NO_AUDIT_LOG_ERROR = /keeps no audit log/i;
 
 let store: MemoryTaskStore;
-let audited: AuditEntryInput[];
+let auditLog: MemoryAuditLogStore;
+/**
+ * evlog's own capture helper, so the assertions below read the audit events the router actually
+ * emitted through `log.audit()` rather than a hand-rolled recorder double standing in for it.
+ */
+let audited: MockAudit;
 
 interface ClientOptions {
   principal?: Principal;
@@ -26,13 +40,6 @@ interface ClientOptions {
   reqHeaders?: Headers;
   allowRepository?: boolean;
 }
-
-/** Collects what the router recorded; the durable store has its own tests in `audit.test.ts`. */
-const recorder: AuditRecorder = {
-  async record(entry) {
-    audited.push(entry);
-  },
-};
 
 /** A server-side client exercises every procedure without opening a network port. */
 function client(options: ClientOptions = {}) {
@@ -43,7 +50,7 @@ function client(options: ClientOptions = {}) {
       ...(options.auth ? { auth: options.auth } : {}),
       ...(options.reqHeaders ? { reqHeaders: options.reqHeaders } : {}),
       mayTargetRepository: () => options.allowRepository ?? false,
-      audit: recorder,
+      auditLog,
     },
   });
 }
@@ -65,17 +72,19 @@ function failingStoreClient(options: ClientOptions = {}) {
       },
       ...(options.principal ? { principal: options.principal } : {}),
       mayTargetRepository: () => options.allowRepository ?? false,
-      audit: recorder,
+      auditLog,
     },
   });
 }
 
-/** Deliberately omits the recorder: the audit trail is an optional capability, not a requirement. */
+/** Deliberately omits the log: reading the trail back is an optional capability, not a requirement. */
 function unaudited(options: ClientOptions = {}) {
   return createRouterClient(rpcRouter, {
     context: {
       store,
       ...(options.principal ? { principal: options.principal } : {}),
+      ...(options.auth ? { auth: options.auth } : {}),
+      ...(options.reqHeaders ? { reqHeaders: options.reqHeaders } : {}),
       mayTargetRepository: () => options.allowRepository ?? false,
     },
   });
@@ -90,7 +99,18 @@ function unaudited(options: ClientOptions = {}) {
  * tolerance is what would let the plugin be dropped from a handler without anything failing.
  */
 function instrumented<T>(run: () => Promise<T>): Promise<T> {
-  return requestLoggerStorage ? requestLoggerStorage.run(createRequestLogger(), run) : run();
+  if (!requestLoggerStorage) return run();
+  const logger = createRequestLogger();
+  return requestLoggerStorage.run(logger, async () => {
+    try {
+      return await run();
+    } finally {
+      // `log.audit()` sets fields on the wide event; evlog finalises and publishes them when the
+      // event is emitted, which a transport does at the end of the request. Emitting here is what
+      // makes `mockAudit` observe exactly what a deployment's drain would receive.
+      logger.emit();
+    }
+  });
 }
 
 function operator() {
@@ -99,6 +119,7 @@ function operator() {
       name: 'release-manager',
       kind: 'token',
       modes: ['observe', 'suggest', 'fix', 'autonomous'],
+      admin: false,
     },
     allowRepository: true,
   });
@@ -116,6 +137,16 @@ function betterAuth(user: { email: string; role: string } | null): BetterAuthSes
   };
 }
 
+function auditRecord(id: string, occurredAt: string): AuditEvent {
+  return {
+    id,
+    occurredAt,
+    actor: { type: 'user', id: 'ops@example.test' },
+    action: 'approval.decided',
+    outcome: 'success',
+  };
+}
+
 function awaiting(id: string): StoredTask {
   return {
     id,
@@ -129,7 +160,12 @@ function awaiting(id: string): StoredTask {
 
 beforeEach(() => {
   store = new MemoryTaskStore();
-  audited = [];
+  auditLog = new MemoryAuditLogStore();
+  audited = mockAudit();
+});
+
+afterEach(() => {
+  audited.restore();
 });
 
 describe('rpc router', () => {
@@ -184,7 +220,12 @@ describe('rpc router', () => {
     await expect(
       instrumented(() =>
         client({
-          principal: { name: 'release-manager', kind: 'token', modes: ['autonomous'] },
+          principal: {
+            name: 'release-manager',
+            kind: 'token',
+            modes: ['autonomous'],
+            admin: false,
+          },
         }).tasks.create({
           repository: '/etc',
           feedback: 'x',
@@ -197,7 +238,7 @@ describe('rpc router', () => {
 
   it('refuses an execution mode outside the principal grant', async () => {
     const readOnly = client({
-      principal: { name: 'ci', kind: 'token', modes: ['observe', 'suggest'] },
+      principal: { name: 'ci', kind: 'token', modes: ['observe', 'suggest'], admin: false },
       allowRepository: true,
     });
     await expect(
@@ -285,7 +326,9 @@ describe('rpc audit trail', () => {
   it('records a repository refusal against the principal that attempted it', async () => {
     await expect(
       instrumented(() =>
-        client({ principal: { name: 'ci', kind: 'token', modes: ['autonomous'] } }).tasks.create({
+        client({
+          principal: { name: 'ci', kind: 'token', modes: ['autonomous'], admin: false },
+        }).tasks.create({
           repository: '/etc',
           feedback: 'x',
           mode: 'autonomous',
@@ -293,12 +336,13 @@ describe('rpc audit trail', () => {
       ),
     ).rejects.toThrow(FORBIDDEN_ERROR);
 
-    expect(audited).toEqual([
+    expect(audited.events).toMatchObject([
       {
-        actor: { kind: 'principal', name: 'ci' },
+        actor: { type: 'api', id: 'ci' },
         action: 'task.create',
         outcome: 'denied',
-        metadata: { repository: '/etc', reason: 'repository-not-allow-listed' },
+        reason: 'Repository is not allow-listed for task creation',
+        target: { type: 'repository', id: '/etc' },
       },
     ]);
   });
@@ -307,18 +351,19 @@ describe('rpc audit trail', () => {
     await expect(
       instrumented(() =>
         client({
-          principal: { name: 'ci', kind: 'token', modes: ['observe'] },
+          principal: { name: 'ci', kind: 'token', modes: ['observe'], admin: false },
           allowRepository: true,
         }).tasks.create({ repository: '.', feedback: 'x', mode: 'fix' }),
       ),
     ).rejects.toThrow(MODE_ERROR);
 
-    expect(audited).toEqual([
+    expect(audited.events).toMatchObject([
       {
-        actor: { kind: 'principal', name: 'ci' },
+        actor: { type: 'api', id: 'ci' },
         action: 'task.create',
         outcome: 'denied',
-        metadata: { repository: '.', mode: 'fix', reason: 'mode-not-granted' },
+        reason: "Execution mode 'fix' is not granted to this principal",
+        target: { type: 'repository', id: '.', mode: 'fix' },
       },
     ]);
   });
@@ -335,13 +380,12 @@ describe('rpc audit trail', () => {
       }),
     );
 
-    expect(audited).toEqual([
+    expect(audited.events).toMatchObject([
       {
-        actor: { kind: 'principal', name: 'release-manager' },
+        actor: { type: 'api', id: 'release-manager' },
         action: 'approval.decided',
         outcome: 'success',
-        subject: { type: 'task', id: 'cz_1' },
-        metadata: { decision: 'approved', repository: 'acme/app' },
+        target: { type: 'task', id: 'cz_1', decision: 'approved', repository: 'acme/app' },
       },
     ]);
   });
@@ -352,14 +396,19 @@ describe('rpc audit trail', () => {
     await expect(
       instrumented(() => operator().approvals.decide({ taskId: 'cz_1', decision: 'approved' })),
     ).rejects.toThrow(APPROVAL_ERROR);
-    expect(audited).toEqual([]);
+    expect(audited.events).toEqual([]);
   });
 
   it('records a creation that failed after the request was authorised', async () => {
     await expect(
       instrumented(() =>
         failingStoreClient({
-          principal: { name: 'release-manager', kind: 'token', modes: ['autonomous'] },
+          principal: {
+            name: 'release-manager',
+            kind: 'token',
+            modes: ['autonomous'],
+            admin: false,
+          },
           allowRepository: true,
         }).tasks.create({ repository: '.', feedback: 'x', mode: 'autonomous' }),
       ),
@@ -367,12 +416,13 @@ describe('rpc audit trail', () => {
 
     // Without this the trail would show the request being authorised and then nothing at all,
     // which reads as a task that was never attempted rather than one that broke.
-    expect(audited).toEqual([
+    expect(audited.events).toMatchObject([
       {
-        actor: { kind: 'principal', name: 'release-manager' },
+        actor: { type: 'api', id: 'release-manager' },
         action: 'task.create',
         outcome: 'failure',
-        metadata: { repository: '.', mode: 'autonomous', reason: 'storage unavailable' },
+        reason: 'storage unavailable',
+        target: { type: 'repository', id: '.', mode: 'autonomous' },
       },
     ]);
   });
@@ -389,24 +439,74 @@ describe('rpc audit trail', () => {
 
     // A person and an operator token are revoked through different channels, so a trail that
     // labelled both `principal` could not tell a reader which one to go turn off.
-    expect(audited).toEqual([
+    expect(audited.events).toMatchObject([
       {
-        actor: { kind: 'user', name: 'ops@example.test' },
+        actor: { type: 'user', id: 'ops@example.test' },
         action: 'approval.decided',
         outcome: 'success',
-        subject: { type: 'task', id: 'cz_1' },
-        metadata: { decision: 'approved', repository: 'acme/app' },
+        target: { type: 'task', id: 'cz_1', decision: 'approved', repository: 'acme/app' },
       },
     ]);
   });
 
-  it('serves callers that keep no audit trail at all', async () => {
+  it('reads the trail back for an administrator, newest first', async () => {
+    await auditLog.append(auditRecord('audit_1', '2026-08-09T10:00:00.000Z'));
+    await auditLog.append(auditRecord('audit_2', '2026-08-09T10:00:01.000Z'));
+
+    const page = await instrumented(() =>
+      client({
+        auth: betterAuth({ email: 'ops@example.test', role: 'admin' }),
+        reqHeaders: new Headers(),
+      }).audit.list({}),
+    );
+
+    expect(page.events.map((entry) => entry.id)).toEqual(['audit_2', 'audit_1']);
+  });
+
+  it('refuses a signed-in reader who is not an administrator', async () => {
+    await expect(
+      instrumented(() =>
+        client({
+          auth: betterAuth({ email: 'dev@example.test', role: 'member' }),
+          reqHeaders: new Headers(),
+        }).audit.list({}),
+      ),
+    ).rejects.toThrow(ADMIN_ERROR);
+  });
+
+  it('refuses an operator token, which the trail records rather than serves', async () => {
+    // A token that could read the trail could read its own use back; reading is a person's
+    // surface, reached with a session.
+    await expect(instrumented(() => operator().audit.list({}))).rejects.toThrow(ADMIN_ERROR);
+  });
+
+  it('refuses an unauthenticated reader', async () => {
+    await expect(instrumented(() => client().audit.list({}))).rejects.toThrow(UNAUTHORIZED_ERROR);
+  });
+
+  it('says a deployment keeps no trail rather than reporting an empty one', async () => {
+    await expect(
+      instrumented(() =>
+        unaudited({
+          auth: betterAuth({ email: 'ops@example.test', role: 'admin' }),
+          reqHeaders: new Headers(),
+        }).audit.list({}),
+      ),
+    ).rejects.toThrow(NO_AUDIT_LOG_ERROR);
+  });
+
+  it('serves callers that keep no readable audit log at all', async () => {
     await store.save(awaiting('cz_1'));
 
     await expect(
       instrumented(() =>
         unaudited({
-          principal: { name: 'release-manager', kind: 'token', modes: ['autonomous'] },
+          principal: {
+            name: 'release-manager',
+            kind: 'token',
+            modes: ['autonomous'],
+            admin: false,
+          },
           allowRepository: true,
         }).approvals.decide({ taskId: 'cz_1', decision: 'approved' }),
       ),

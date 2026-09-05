@@ -19,6 +19,17 @@ export interface Principal {
   kind: PrincipalKind;
   /** Execution modes this principal may request from `tasks.create`. */
   modes: readonly RunMode[];
+  /**
+   * Whether the caller may read surfaces reserved for an app-wide administrator, `audit.list`
+   * being the one today.
+   *
+   * Carried explicitly rather than inferred from {@link Principal.modes}: the two grants answer
+   * different questions — what a caller may run, and what a caller may see — and a reader of this
+   * type should not have to learn that holding `autonomous` happens to imply the second.
+   * Operator tokens are never administrators: the trail records who used them, so letting a token
+   * read it back would let one audit itself.
+   */
+  admin: boolean;
 }
 
 /**
@@ -81,7 +92,14 @@ export function accessFromEnvironment(
     if (name === '' || token === '')
       throw new Error('CODE_ZERO_CONTROL_PLANE_TOKENS entries must be name:token pairs');
     names.add(name);
-    principals.set(token, { name, kind: 'token', modes: grants.get(name) ?? DEFAULT_MODES });
+    principals.set(token, {
+      name,
+      kind: 'token',
+      modes: grants.get(name) ?? DEFAULT_MODES,
+      // An operator token is a machine credential the trail records the use of; reading the trail
+      // back is a person's surface, reached with a session.
+      admin: false,
+    });
   }
   if (principals.size === 0) return undefined;
   for (const name of grants.keys())
@@ -169,7 +187,7 @@ export function authenticate(
  * way — see {@link mayTargetRepository}.
  */
 export function sessionPrincipal(name: string, isAdmin: boolean): Principal {
-  return { name, kind: 'session', modes: isAdmin ? ADMIN_MODES : DEFAULT_MODES };
+  return { name, kind: 'session', modes: isAdmin ? ADMIN_MODES : DEFAULT_MODES, admin: isAdmin };
 }
 
 /** Whether task creation may target this repository path. Fails closed without a policy. */

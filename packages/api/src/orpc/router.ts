@@ -9,7 +9,7 @@ import { ORPCError, os } from '@orpc/server';
 import { z } from 'zod';
 
 import type { Principal } from '../access.js';
-import type { AuditActor, AuditRecorder } from '../audit.js';
+import type { AuditActor, AuditLogStore } from '../audit.js';
 import type { TaskStore } from '../control-plane.js';
 import { dashboardOverview } from '../dashboard.js';
 import {
@@ -29,11 +29,16 @@ export interface RpcContext extends BetterAuthContext {
   /** Whether `tasks.create` may target this repository. Fails closed when absent. */
   mayTargetRepository?: (repository: string) => boolean;
   /**
-   * Durable audit trail supplied by the composition root. Optional like the predicate above, but
-   * for the opposite reason: an embedded caller that keeps no audit log should still be able to
-   * drive the router, so procedures record through `?.` rather than requiring a recorder.
+   * The durable audit trail, for reading it back.
+   *
+   * Writing does not go through here: procedures record with `log.audit()`, which lands on the
+   * request's wide event and reaches this same store through the evlog drain the composition root
+   * installed (`auditLogPlugins`). Optional like the predicate above, because an embedded caller
+   * that keeps no trail should still be able to drive the router — `audit.list` reports that it
+   * has none rather than inventing an empty one, so a reader cannot mistake "not configured" for
+   * "nothing has happened".
    */
-  audit?: AuditRecorder;
+  auditLog?: AuditLogStore;
 }
 
 const procedure = os.$context<RpcContext>();
@@ -103,27 +108,24 @@ export const rpcRouter = {
         // repository or a mode it was never given is the signal a trail exists to preserve.
         const actor = principalActor(context.principal);
         if (!context.mayTargetRepository?.(input.repository)) {
-          await context.audit?.record({
+          useLogger().audit.deny('Repository is not allow-listed for task creation', {
             actor,
             action: 'task.create',
-            outcome: 'denied',
-            metadata: { repository: input.repository, reason: 'repository-not-allow-listed' },
+            target: { type: 'repository', id: input.repository },
           });
           throw new ORPCError('FORBIDDEN', {
             message: 'Repository is not allow-listed for task creation',
           });
         }
         if (!context.principal.modes.includes(input.mode)) {
-          await context.audit?.record({
-            actor,
-            action: 'task.create',
-            outcome: 'denied',
-            metadata: {
-              repository: input.repository,
-              mode: input.mode,
-              reason: 'mode-not-granted',
+          useLogger().audit.deny(
+            `Execution mode '${input.mode}' is not granted to this principal`,
+            {
+              actor,
+              action: 'task.create',
+              target: { type: 'repository', id: input.repository, mode: input.mode },
             },
-          });
+          );
           throw new ORPCError('FORBIDDEN', {
             message: `Execution mode '${input.mode}' is not granted to this principal`,
           });
@@ -136,26 +138,68 @@ export const rpcRouter = {
         try {
           task = await createTask(input, context.store);
         } catch (error) {
-          await context.audit?.record({
+          useLogger().audit({
             actor,
             action: 'task.create',
             outcome: 'failure',
-            metadata: {
-              repository: input.repository,
-              mode: input.mode,
-              reason: redactSecrets(error instanceof Error ? error.message : String(error)),
-            },
+            reason: redactSecrets(error instanceof Error ? error.message : String(error)),
+            target: { type: 'repository', id: input.repository, mode: input.mode },
           });
           throw error;
         }
-        await context.audit?.record({
+        useLogger().audit({
           actor,
           action: 'task.created',
           outcome: 'success',
-          subject: { type: 'task', id: task.id },
-          metadata: { repository: input.repository, mode: input.mode },
+          target: { type: 'task', id: task.id, repository: input.repository, mode: input.mode },
         });
         return task;
+      }),
+  },
+  audit: {
+    /**
+     * The audit trail, newest first, for an app-wide administrator.
+     *
+     * A procedure rather than the Nitro route this used to be: since the router learned to accept
+     * a dashboard session, `authenticated` covers the browser as well as an operator token, so the
+     * read no longer has to live outside the router to reach the person looking at it. Serving it
+     * here also means one authorization rule instead of two — the page and any other client get
+     * the same answer, and the trail is documented alongside every other control-plane operation.
+     *
+     * `admin` rather than a mode grant: reading who did what is not an execution capability, and
+     * an operator token is never an administrator (see {@link Principal.admin}).
+     */
+    list: authenticated
+      .meta(
+        openapi({
+          method: 'GET',
+          path: '/audit-logs',
+          tags: ['Audit'],
+          summary: 'Read the append-only audit trail, newest first',
+        }),
+      )
+      .input(
+        z.object({
+          limit: z.number().int().positive().optional(),
+          /** The storage key of the last record read; the next page starts strictly after it. */
+          cursor: z.string().min(1).optional(),
+        }),
+      )
+      .handler(async ({ input, context }) => {
+        if (!context.principal.admin)
+          throw new ORPCError('FORBIDDEN', {
+            message: 'Reading the audit log requires the admin role',
+          });
+        if (!context.auditLog)
+          throw new ORPCError('NOT_IMPLEMENTED', {
+            message: 'This deployment keeps no audit log',
+          });
+        // Spread conditionally rather than passed whole: under `exactOptionalPropertyTypes` an
+        // absent input field is `undefined`, which is not the same as the store's "not given".
+        return context.auditLog.list({
+          ...(input.limit === undefined ? {} : { limit: input.limit }),
+          ...(input.cursor === undefined ? {} : { cursor: input.cursor }),
+        });
       }),
   },
   approvals: {
@@ -180,12 +224,16 @@ export const rpcRouter = {
           input.comment,
           context.store,
         );
-        await context.audit?.record({
+        useLogger().audit({
           actor: principalActor(context.principal),
           action: 'approval.decided',
           outcome: 'success',
-          subject: { type: 'task', id: input.taskId },
-          metadata: { decision: input.decision, repository: task.repository },
+          target: {
+            type: 'task',
+            id: input.taskId,
+            decision: input.decision,
+            repository: task.repository,
+          },
         });
         return task;
       }),
@@ -201,7 +249,7 @@ export const rpcRouter = {
  * off — the same reason `AuditActorKind` carries `user` at all.
  */
 function principalActor(principal: Principal): AuditActor {
-  return { kind: principal.kind === 'session' ? 'user' : 'principal', name: principal.name };
+  return { type: principal.kind === 'session' ? 'user' : 'api', id: principal.name };
 }
 
 export type RpcRouter = typeof rpcRouter;

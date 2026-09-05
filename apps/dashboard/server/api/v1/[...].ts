@@ -37,7 +37,7 @@ const openApiSpec = generator.generate(rpcRouter, {
 const handler = new OpenAPIHandler(rpcRouter, {
   plugins: [
     new CORSHandlerPlugin({ origin: controlPlaneOriginsFromEnvironment() }),
-    new EvlogHandlerPlugin({ storage: requestLoggerStorage }),
+    new EvlogHandlerPlugin({ storage: requestLoggerStorage, plugins: auditPlugins }),
     new OpenAPIReferenceHandlerPlugin({
       docsPath: '/docs',
       specPath: '/openapi.json',
@@ -53,7 +53,7 @@ export default defineEventHandler(async (event) => {
   try {
     const { matched, response } = await handler.handle(request, {
       prefix: '/api/v1',
-      context: { ...buildRpcContext(request, access, taskStore), audit: auditRecorder },
+      context: { ...buildRpcContext(request, access, taskStore), auditLog: auditLogStore },
     });
     if (matched) return response;
   } catch (error) {

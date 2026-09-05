@@ -1,14 +1,17 @@
+import { EventEmitter } from 'node:events';
+
 import {
-  createAuditRecorder,
+  auditLogPlugins,
   PersistentAuditLogStore,
   PersistentDeliveryClaimStore,
   PersistentTaskStore,
   type AuditLogStore,
-  type AuditRecorder,
   type DeliveryClaimStore,
   type KeyValueStorage,
+  type StoredTask,
   type TaskStore,
 } from '@code-zero/api';
+import type { EvlogPlugin } from 'evlog';
 import { kv } from 'vite-hub/kv';
 
 /** Adapts the ViteHub KV Runtime Helper to the transport-neutral {@link KeyValueStorage} contract. */
@@ -43,7 +46,41 @@ class KvKeyValueStorage implements KeyValueStorage {
  */
 const storage: KeyValueStorage = new KvKeyValueStorage();
 
-export const taskStore: TaskStore = new PersistentTaskStore(storage);
+/**
+ * Announces that a task record changed, so `server/api/events.get.ts` can push the overview to
+ * every connected dashboard instead of waiting for someone to press refresh.
+ *
+ * Process-local on purpose. It carries no payload and is not a message bus: a listener re-reads
+ * the store, which is the durable copy every instance shares. A second server instance therefore
+ * pushes its own writes and not this one's — the same limitation the page had when it polled, and
+ * one only a shared pub/sub backend would remove.
+ *
+ * The listener cap is lifted because a listener is one open browser tab, not a leak; each stream
+ * removes its own in `onClosed`.
+ */
+export const taskChanges = new EventEmitter().setMaxListeners(0);
+
+/** The event `taskChanges` emits. Named once so a subscriber cannot misspell it. */
+export const TASK_CHANGED = 'changed';
+
+/**
+ * The task store, plus a signal after each write.
+ *
+ * Wrapping the write here rather than in `packages/api` keeps the notification where the
+ * connections are: the store contract stays a plain persistence interface, and the package that
+ * owns it holds no transport concern. Every writer — the router's `tasks.create`, the webhook
+ * route, and the run itself as it records lifecycle events — goes through this one instance, so
+ * subscribing to it observes the whole lifecycle and not only the transitions a transport happens
+ * to see.
+ */
+class ObservedTaskStore extends PersistentTaskStore {
+  override async save(task: StoredTask): Promise<void> {
+    await super.save(task);
+    taskChanges.emit(TASK_CHANGED);
+  }
+}
+
+export const taskStore: TaskStore = new ObservedTaskStore(storage);
 
 /**
  * The one durable delivery-claim store for this deployment, injected as
@@ -58,15 +95,26 @@ export const taskStore: TaskStore = new PersistentTaskStore(storage);
 export const deliveryClaimStore: DeliveryClaimStore = new PersistentDeliveryClaimStore(storage);
 
 /**
- * The durable audit trail, read by `server/api/audit-logs.get.ts` and written by the procedures
- * both transports serve. It shares the deployment's KV backend with task history rather than
+ * The durable audit trail, read by the router's `audit.list` and written by the evlog drain in
+ * {@link auditPlugins}. It shares the deployment's KV backend with task history rather than
  * opening a store of its own, so an audit record survives a restart exactly as a task does.
  */
 export const auditLogStore: AuditLogStore = new PersistentAuditLogStore(storage);
 
 /**
- * One recorder per server process, injected into the RPC context by both transports. Built here
- * rather than in `context.ts` because it is a deployment-owned capability, like the stores above,
- * and because the recorder must be the same instance for every request the process serves.
+ * The evlog plugins that carry `log.audit()` from a procedure to {@link auditLogStore}, handed to
+ * `EvlogHandlerPlugin` by both transports.
+ *
+ * Built here rather than in each route because it is a deployment-owned capability, like the
+ * stores above, and because both transports must install the same pipeline — a trail that
+ * depended on which wire protocol a caller reached for would be worse than none.
  */
-export const auditRecorder: AuditRecorder = createAuditRecorder({ store: auditLogStore });
+export const auditPlugins: EvlogPlugin[] = auditLogPlugins({
+  store: auditLogStore,
+  // The drain fails open, so a lost record would otherwise be silent. Nitro's console is the one
+  // place this process can still report to at that point: the request it belonged to has already
+  // been answered.
+  onError: (error) => {
+    console.error('[audit] failed to append an audit record', error);
+  },
+});

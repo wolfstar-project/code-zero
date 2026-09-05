@@ -1,26 +1,28 @@
 import type { AuditEvent, AuditLogPage } from '@code-zero/api';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { ORPCError } from '@orpc/client';
+import { describe, expect, it } from 'vitest';
 
-import { useAuditLogs } from './useAuditLogs.js';
+import { useAuditLogs, type AuditLogReader } from './useAuditLogs.js';
 
 /**
- * `$fetch` is a Nuxt global rather than an import, so the specs stub it. Nothing else in the
- * composable needs the app runtime, which keeps these in the plain-Node `unit` project.
+ * The composable takes its reader as an argument, so a spec hands it one instead of standing up
+ * the Nuxt app the real client hangs off. That is what keeps these in the plain-Node `unit`
+ * project.
  */
-function stubFetch(...responses: (AuditLogPage | Error)[]): void {
+function reader(...responses: (AuditLogPage | Error)[]): AuditLogReader {
   const queue = [...responses];
-  vi.stubGlobal('$fetch', () => {
+  return () => {
     const next = queue.shift();
-    if (next instanceof Error) return Promise.reject(next);
-    return Promise.resolve(next);
-  });
+    if (next === undefined) return Promise.reject(new Error('No response queued for this call'));
+    return next instanceof Error ? Promise.reject(next) : Promise.resolve(next);
+  };
 }
 
 function event(id: string): AuditEvent {
   return {
     id,
     occurredAt: '2026-08-09T10:00:00.000Z',
-    actor: { kind: 'principal', name: 'release-manager' },
+    actor: { type: 'api', id: 'release-manager' },
     action: 'task.created',
     outcome: 'success',
   };
@@ -30,19 +32,14 @@ function page(ids: string[], nextCursor: string | null): AuditLogPage {
   return { events: ids.map(event), nextCursor };
 }
 
-/** The shape `$fetch` rejects with; only `statusCode` is read, and never the server's text. */
-function httpError(statusCode: number): Error {
-  return Object.assign(new Error('request failed'), { statusCode });
+/** The shape oRPC rejects with; only the code is read, and never the server's text. */
+function rejection(code: 'FORBIDDEN' | 'UNAUTHORIZED' | 'INTERNAL_SERVER_ERROR'): Error {
+  return new ORPCError(code);
 }
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
 
 describe('useAuditLogs', () => {
   it('appends a cursor-loaded page to the rows already read', async () => {
-    stubFetch(page(['audit_3'], 'cursor_1'), page(['audit_2'], null));
-    const log = useAuditLogs();
+    const log = useAuditLogs(reader(page(['audit_3'], 'cursor_1'), page(['audit_2'], null)));
 
     await log.refresh();
     await log.loadMore();
@@ -52,8 +49,13 @@ describe('useAuditLogs', () => {
   });
 
   it('keeps the cursor when a page load fails, so the same page can be retried', async () => {
-    stubFetch(page(['audit_3'], 'cursor_1'), httpError(503), page(['audit_2'], null));
-    const log = useAuditLogs();
+    const log = useAuditLogs(
+      reader(
+        page(['audit_3'], 'cursor_1'),
+        rejection('INTERNAL_SERVER_ERROR'),
+        page(['audit_2'], null),
+      ),
+    );
     await log.refresh();
 
     await log.loadMore();
@@ -71,8 +73,7 @@ describe('useAuditLogs', () => {
   });
 
   it('resets the list and the cursor when a cursorless load fails', async () => {
-    stubFetch(page(['audit_3'], 'cursor_1'), httpError(403));
-    const log = useAuditLogs();
+    const log = useAuditLogs(reader(page(['audit_3'], 'cursor_1'), rejection('FORBIDDEN')));
     await log.refresh();
 
     await log.refresh();

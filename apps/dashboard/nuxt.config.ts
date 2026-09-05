@@ -229,7 +229,7 @@ export default defineNuxtConfig({
   routeRules: {
     '/': { appLayout: 'default', auth: { only: 'user' } },
     // A session is enough to reach the page; the admin role is enforced by the endpoint it reads
-    // (`server/api/audit-logs.get.ts`), so a non-admin sees the refusal rather than a redirect.
+    // (the router's `audit.list`), so a non-admin sees the refusal rather than a redirect.
     '/audit': { appLayout: 'default', auth: { only: 'user' } },
     '/login': { auth: { only: 'guest' } },
     '/signin': { auth: { only: 'guest' } },

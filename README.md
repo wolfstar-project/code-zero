@@ -147,11 +147,11 @@ The CLI parses arguments with [`@bomb.sh/args`](https://github.com/bomb-sh/args)
 
 `aube run dev` starts the single deployable app on `http://localhost:3000` (override with `PORT`). It is the only adapter that composes a runner for hosted work, and the same Nuxt app serves the UI, the control plane, and authentication from one origin:
 
-| Surface        | Purpose                                                                                               |
-| -------------- | ----------------------------------------------------------------------------------------------------- |
-| `/rpc/**`      | Typed oRPC router: `health`, `dashboard.overview`, `tasks.list/get/create`, `approvals.decide`        |
-| `/api/v1/**`   | The same router over OpenAPI/REST; interactive docs at `/api/v1/docs`, spec at `/api/v1/openapi.json` |
-| `/api/auth/**` | The Better Auth handler (mounted by `@onmax/nuxt-better-auth` from `server/auth.config.ts`)           |
+| Surface        | Purpose                                                                                                      |
+| -------------- | ------------------------------------------------------------------------------------------------------------ |
+| `/rpc/**`      | Typed oRPC router: `health`, `dashboard.overview`, `tasks.list/get/create`, `approvals.decide`, `audit.list` |
+| `/api/v1/**`   | The same router over OpenAPI/REST; interactive docs at `/api/v1/docs`, spec at `/api/v1/openapi.json`        |
+| `/api/auth/**` | The Better Auth handler (mounted by `@onmax/nuxt-better-auth` from `server/auth.config.ts`)                  |
 
 `/rpc/**` and `/api/v1/**` are the same `rpcRouter` from [`packages/api`](./packages/api) served over two wire protocols, so authorization behaves identically either way. Reads are open for the dashboard; mutations (`tasks.create`, `approvals.decide`) fail closed. `CODE_ZERO_CONTROL_PLANE_TOKENS` holds comma-separated `name:token` bearer credentials, and `CODE_ZERO_CONTROL_PLANE_REPOSITORIES` allow-lists the repository paths `tasks.create` may target; without them every mutation is rejected. `CODE_ZERO_CONTROL_PLANE_MODES` holds comma-separated `name:mode|mode` grants for the execution modes each principal may request; without a grant a principal may only request the non-writable `observe` and `suggest` modes, so `fix` and `autonomous` require an explicit operator grant. The approval actor is the authenticated principal's name, never a wire-supplied value. This bearer-token scheme authorizes the control-plane API and is independent of the Better Auth session that protects the dashboard UI.
 

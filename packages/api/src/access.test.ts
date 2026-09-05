@@ -19,7 +19,12 @@ function access(overrides: Partial<ControlPlaneAccess> = {}): ControlPlaneAccess
     principals: new Map([
       [
         'token-value',
-        { name: 'release-manager', kind: 'token' as const, modes: ['observe', 'suggest'] as const },
+        {
+          name: 'release-manager',
+          kind: 'token' as const,
+          modes: ['observe', 'suggest'] as const,
+          admin: false,
+        },
       ],
     ]),
     repositories: ['/srv/checkout'],
@@ -96,6 +101,7 @@ describe('authenticate', () => {
     expect(authenticate('Bearer token-value', access())).toEqual({
       name: 'release-manager',
       kind: 'token',
+      admin: false,
       modes: ['observe', 'suggest'],
     });
   });
@@ -149,6 +155,7 @@ describe('sessionPrincipal', () => {
     expect(sessionPrincipal('ops@example.test', true)).toEqual({
       name: 'ops@example.test',
       kind: 'session',
+      admin: true,
       modes: ['observe', 'suggest', 'fix', 'autonomous'],
     });
   });
@@ -157,6 +164,7 @@ describe('sessionPrincipal', () => {
     expect(sessionPrincipal('dev@example.test', false)).toEqual({
       name: 'dev@example.test',
       kind: 'session',
+      admin: false,
       modes: ['observe', 'suggest'],
     });
   });

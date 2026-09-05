@@ -1,10 +1,10 @@
+import type { AuditFields, DrainContext } from 'evlog';
 import { describe, expect, it } from 'vitest';
 
 import {
-  createAuditRecorder,
+  auditLogDrain,
   MemoryAuditLogStore,
   PersistentAuditLogStore,
-  type AuditEntryInput,
   type AuditEvent,
   type AuditLogStore,
 } from './audit.js';
@@ -37,7 +37,7 @@ function event(id: string, occurredAt: string, overrides: Partial<AuditEvent> = 
   return {
     id,
     occurredAt,
-    actor: { kind: 'principal', name: 'release-manager' },
+    actor: { type: 'api', id: 'release-manager' },
     action: 'task.created',
     outcome: 'success',
     ...overrides,
@@ -122,18 +122,16 @@ describe.each([
 });
 
 describe('audit persistence', () => {
-  it('redacts secrets carried in metadata before the record reaches storage', async () => {
+  it('redacts secrets carried in the reason before the record reaches storage', async () => {
     const storage = new RecordingStorage();
     const store = new PersistentAuditLogStore(storage, ['ghp_supersecret']);
 
-    await store.append(
-      event('audit_1', FIRST, { metadata: { reason: 'token ghp_supersecret rejected' } }),
-    );
+    await store.append(event('audit_1', FIRST, { reason: 'token ghp_supersecret rejected' }));
 
     const [persisted] = [...storage.values.values()];
     expect(JSON.stringify(persisted)).not.toContain('ghp_supersecret');
     const page = await store.list();
-    expect(page.events[0]?.metadata?.reason).toBe('token [redacted] rejected');
+    expect(page.events[0]?.reason).toBe('token [redacted] rejected');
   });
 
   it('refuses to persist a record that is not an audit event', async () => {
@@ -162,9 +160,9 @@ describe('audit persistence', () => {
 
   it.each([
     ['an outcome outside the union', { outcome: 'approved' }],
-    ['an actor kind outside the union', { actor: { kind: 'admin', name: 'root' } }],
-    ['a subject missing its id', { subject: { type: 'task' } }],
-    ['metadata that is not a flat string map', { metadata: { nested: { deep: 'value' } } }],
+    ['an actor type outside the union', { actor: { type: 'admin', id: 'root' } }],
+    ['an actor missing its id', { actor: { type: 'user' } }],
+    ['a target missing its id', { target: { type: 'task' } }],
   ])('refuses to persist %s', async (_name, overrides) => {
     const store = new PersistentAuditLogStore(new RecordingStorage());
     // oxlint-disable-next-line no-unsafe-type-assertion -- deliberately invalid input under test
@@ -202,54 +200,70 @@ describe('audit persistence', () => {
   });
 });
 
-describe('audit recorder', () => {
-  const entry: AuditEntryInput = {
-    actor: { kind: 'principal', name: 'release-manager' },
+describe('audit log drain', () => {
+  const fields = {
+    actor: { type: 'api', id: 'release-manager' },
     action: 'task.created',
     outcome: 'success',
-    subject: { type: 'task', id: 'cz_1' },
-    metadata: { repository: 'acme/app', mode: 'observe' },
-  };
+    target: { type: 'task', id: 'cz_1', repository: 'acme/app', mode: 'observe' },
+  } as const;
 
-  it('mints the identity and the timestamp the call site does not supply', async () => {
+  /** The shape a drain receives: one wide event, with the audit fields `log.audit()` set on it. */
+  function drained(audit?: AuditFields, timestamp?: string): DrainContext {
+    return {
+      event: {
+        timestamp: timestamp ?? FIRST,
+        level: 'info',
+        service: 'app',
+        environment: 'test',
+        ...(audit ? { audit } : {}),
+      },
+    };
+  }
+
+  it('appends the audit fields the wide event carried', async () => {
     const store = new MemoryAuditLogStore();
-    const recorder = createAuditRecorder({ store, now: () => FIRST, id: () => 'audit_1' });
 
-    await recorder.record(entry);
+    await auditLogDrain({ store, id: () => 'audit_1' })(drained({ ...fields }));
 
-    expect(store.records).toEqual([{ id: 'audit_1', occurredAt: FIRST, ...entry }]);
+    expect(store.records).toEqual([{ id: 'audit_1', occurredAt: FIRST, ...fields }]);
+  });
+
+  it('takes the identity from the idempotency key, so a retried delivery appends once', async () => {
+    const store = new MemoryAuditLogStore();
+    const drain = auditLogDrain({ store, id: () => 'audit_unused' });
+    const context = drained({ ...fields, idempotencyKey: 'ak_1' });
+
+    await drain(context);
+    await drain(context);
+
+    expect(store.records.map((record) => record.id)).toEqual(['ak_1']);
+  });
+
+  it('ignores a wide event that carries no audit fields', async () => {
+    const store = new MemoryAuditLogStore();
+
+    await auditLogDrain({ store })(drained());
+
+    expect(store.records).toEqual([]);
   });
 
   it('resolves and reports the loss when the durable write fails', async () => {
     const failures: unknown[] = [];
-    const recorder = createAuditRecorder({
-      store: {
-        async append(): Promise<void> {
-          throw new Error('storage unavailable');
-        },
-        async list() {
-          return { events: [], nextCursor: null };
-        },
-      },
+    const drain = auditLogDrain({
+      store: failingStore(),
       onError: (error) => failures.push(error),
     });
 
-    // The mutation this records already committed: rejecting here would report a failure for
-    // work that actually happened.
-    await expect(recorder.record(entry)).resolves.toBeUndefined();
+    // The mutation this records already committed: rejecting here would fail a request whose work
+    // actually happened.
+    await expect(drain(drained({ ...fields }))).resolves.toBeUndefined();
     expect(String(failures[0])).toContain('storage unavailable');
   });
 
   it('still resolves when the failure observer itself throws', async () => {
-    const recorder = createAuditRecorder({
-      store: {
-        async append(): Promise<void> {
-          throw new Error('storage unavailable');
-        },
-        async list() {
-          return { events: [], nextCursor: null };
-        },
-      },
+    const drain = auditLogDrain({
+      store: failingStore(),
       onError: () => {
         throw new Error('reporter unavailable');
       },
@@ -257,6 +271,17 @@ describe('audit recorder', () => {
 
     // Failing open has to survive a broken observer too, or the reporting path becomes the way a
     // committed mutation gets reported as failed.
-    await expect(recorder.record(entry)).resolves.toBeUndefined();
+    await expect(drain(drained({ ...fields }))).resolves.toBeUndefined();
   });
 });
+
+function failingStore(): AuditLogStore {
+  return {
+    async append(): Promise<void> {
+      throw new Error('storage unavailable');
+    },
+    async list() {
+      return { events: [], nextCursor: null };
+    },
+  };
+}
