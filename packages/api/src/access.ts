@@ -71,19 +71,32 @@ function isRunMode(value: string): value is RunMode {
  * `CODE_ZERO_CONTROL_PLANE_TOKENS` holds comma-separated `name:token` pairs,
  * `CODE_ZERO_CONTROL_PLANE_REPOSITORIES` holds comma-separated repository paths, and
  * `CODE_ZERO_CONTROL_PLANE_MODES` holds comma-separated `name:mode|mode` grants. Principals
- * without a grant may only request the non-writable `observe` and `suggest` modes. Returns
- * `undefined` when no tokens are configured, which keeps every mutation rejected.
+ * without a grant may only request the non-writable `observe` and `suggest` modes.
+ *
+ * Either variable is enough to produce a policy, because the two answer different questions. The
+ * tokens decide who a machine caller is; the repositories decide what any authenticated caller may
+ * target, including a person signed into the dashboard. Requiring tokens for the second left a
+ * deployment that authenticates only browser sessions unable to create a task at all — the
+ * allow-list it had configured did not exist, so every target failed closed.
+ *
+ * Returns `undefined` only when neither is configured, which keeps an unconfigured deployment
+ * rejecting every mutation.
  */
 export function accessFromEnvironment(
   tokens = process.env.CODE_ZERO_CONTROL_PLANE_TOKENS,
   repositories = process.env.CODE_ZERO_CONTROL_PLANE_REPOSITORIES,
   modes = process.env.CODE_ZERO_CONTROL_PLANE_MODES,
 ): ControlPlaneAccess | undefined {
-  if (tokens === undefined || tokens.trim() === '') return undefined;
+  const allowedRepositories = (repositories ?? '')
+    .split(',')
+    .map((path) => path.trim())
+    .filter((path) => path !== '');
+  if ((tokens === undefined || tokens.trim() === '') && allowedRepositories.length === 0)
+    return undefined;
   const grants = parseModeGrants(modes);
   const principals = new Map<string, Principal>();
   const names = new Set<string>();
-  for (const entry of tokens.split(',')) {
+  for (const entry of (tokens ?? '').split(',')) {
     const trimmed = entry.trim();
     if (trimmed === '') continue;
     const separator = trimmed.indexOf(':');
@@ -101,19 +114,13 @@ export function accessFromEnvironment(
       admin: false,
     });
   }
-  if (principals.size === 0) return undefined;
+  if (principals.size === 0 && allowedRepositories.length === 0) return undefined;
   for (const name of grants.keys())
     if (!names.has(name))
       throw new Error(
         `CODE_ZERO_CONTROL_PLANE_MODES grants modes to an unknown principal: ${name}`,
       );
-  return {
-    principals,
-    repositories: (repositories ?? '')
-      .split(',')
-      .map((path) => path.trim())
-      .filter((path) => path !== ''),
-  };
+  return { principals, repositories: allowedRepositories };
 }
 
 /** Parse `name:mode|mode` grants, refusing unknown modes rather than silently widening or narrowing. */

@@ -33,10 +33,20 @@ function access(overrides: Partial<ControlPlaneAccess> = {}): ControlPlaneAccess
 }
 
 describe('accessFromEnvironment', () => {
-  it('fails closed when no tokens are configured', () => {
-    expect(accessFromEnvironment(undefined, '/srv/checkout')).toBeUndefined();
-    expect(accessFromEnvironment('', '/srv/checkout')).toBeUndefined();
-    expect(accessFromEnvironment(' , ', '/srv/checkout')).toBeUndefined();
+  it('fails closed when nothing is configured', () => {
+    expect(accessFromEnvironment(undefined, undefined)).toBeUndefined();
+    expect(accessFromEnvironment('', '')).toBeUndefined();
+    expect(accessFromEnvironment(' , ', '  ')).toBeUndefined();
+  });
+
+  it('accepts an allow-list without tokens, for a deployment that only has sessions', () => {
+    // The two answer different questions: tokens say who a machine caller is, the allow-list says
+    // what any authenticated caller may target — including a person signed into the dashboard.
+    const parsed = accessFromEnvironment(undefined, '/srv/checkout');
+
+    expect(parsed?.repositories).toEqual(['/srv/checkout']);
+    // No token authenticates anything, which is what keeps this still closed to machine callers.
+    expect(parsed?.principals.size).toBe(0);
   });
 
   it('parses name:token pairs and the repository allow-list', () => {
