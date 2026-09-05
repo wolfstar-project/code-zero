@@ -10,6 +10,7 @@ describe('parseCliArguments', () => {
       help: false,
       json: true,
       proactive: false,
+      remote: false,
       version: false,
     });
   });
@@ -67,5 +68,33 @@ describe('parseCliArguments', () => {
       proactive: true,
     });
     expect(parsed.feedback).toBeUndefined();
+  });
+});
+
+describe('parseCliArguments --remote', () => {
+  it('accepts a remote run and the deployment it names', () => {
+    expect(
+      parseCliArguments(['run', '--proactive', '--remote', '--url', 'https://zero.example.com']),
+    ).toMatchObject({
+      command: 'run',
+      remote: true,
+      url: 'https://zero.example.com',
+    });
+  });
+
+  it('defaults to running in this checkout', () => {
+    expect(parseCliArguments(['run', '--proactive']).remote).toBe(false);
+  });
+
+  it('refuses --remote on a command that runs no agent', () => {
+    expect(() => parseCliArguments(['doctor', '--remote'])).toThrow(
+      '--remote is only valid with review, fix, or run',
+    );
+  });
+
+  it('still refuses --url on a local run, where it would select nothing', () => {
+    expect(() =>
+      parseCliArguments(['run', '--proactive', '--url', 'https://zero.example.com']),
+    ).toThrow('--url is only valid with login, logout, or a --remote run');
   });
 });
