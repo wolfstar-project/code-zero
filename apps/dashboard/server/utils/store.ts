@@ -64,23 +64,36 @@ export const taskChanges = new EventEmitter().setMaxListeners(0);
 export const TASK_CHANGED = 'changed';
 
 /**
- * The task store, plus a signal after each write.
+ * The same store, announcing each write once it has landed.
  *
- * Wrapping the write here rather than in `packages/api` keeps the notification where the
- * connections are: the store contract stays a plain persistence interface, and the package that
- * owns it holds no transport concern. Every writer — the router's `tasks.create`, the webhook
- * route, and the run itself as it records lifecycle events — goes through this one instance, so
- * subscribing to it observes the whole lifecycle and not only the transitions a transport happens
- * to see.
+ * A decorator rather than a subclass: it composes over any {@link TaskStore}, which is what lets a
+ * test drive it against an in-memory one instead of the deployment's KV. The notification fires
+ * after the write resolves, so a subscriber that re-reads the store cannot observe the state from
+ * before it.
+ *
+ * Wrapping here rather than in `packages/api` keeps the notification where the connections are:
+ * the store contract stays a plain persistence interface, and the package that owns it holds no
+ * transport concern.
  */
-class ObservedTaskStore extends PersistentTaskStore {
-  override async save(task: StoredTask): Promise<void> {
-    await super.save(task);
-    taskChanges.emit(TASK_CHANGED);
-  }
+export function observeWrites(store: TaskStore, notify: () => void): TaskStore {
+  return {
+    get: (id) => store.get(id),
+    list: () => store.list(),
+    async save(task: StoredTask): Promise<void> {
+      await store.save(task);
+      notify();
+    },
+  };
 }
 
-export const taskStore: TaskStore = new ObservedTaskStore(storage);
+/**
+ * Every writer — the router's `tasks.create`, the webhook route, the poller, and the run itself as
+ * it records lifecycle events — goes through this one instance, so subscribing to it observes the
+ * whole lifecycle and not only the transitions one transport happens to see.
+ */
+export const taskStore: TaskStore = observeWrites(new PersistentTaskStore(storage), () => {
+  taskChanges.emit(TASK_CHANGED);
+});
 
 /**
  * The one durable delivery-claim store for this deployment, injected as

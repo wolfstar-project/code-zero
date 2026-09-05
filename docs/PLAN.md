@@ -114,6 +114,40 @@ Fatto quando: `zero run --proactive` da terminale compare nella Board entro un s
 - `docs/architecture.md`: sezione "Live state" che descrive SSE e poller.
 - Test: uno per l'emitter dello store, uno per `events.get`, uno Playwright per approve.
 
+## Stato al 2026-09-05
+
+Fasi 0-5 eseguite. Cosa è cambiato rispetto al piano, e perché:
+
+- **Fase 0** — `dev:solo` legge `apps/dashboard/.env.solo` con `--dotenv`, invece di variabili
+  inline. Il file è versionato: non contiene nulla che valga la pena tenere fuori dal repository.
+  `bin/check` del kit non è stato copiato: `aube run lint:ci`, `typecheck` e `test` fanno già
+  quel lavoro, e gli hook husky esistono già.
+- **Fase 1** — fatta come previsto. Il contratto di `tasks.create` non è stato cambiato: il record
+  viene salvato prima di essere schedulato, quindi la board lo vede comunque comparire subito, e
+  cambiarlo avrebbe rotto i chiamanti REST e i run su serverless.
+- **Fase 2** — approvazioni e form fatti. Il repository si digita invece di sceglierlo da una
+  lista: l'allow-list sono percorsi di checkout lato server, che i record persistiti tengono
+  deliberatamente fuori portata. `DESIGN.md` non è stato scritto.
+- **Fase 3** — fatta. Niente worktree: lo scheduler limita già a un run per repository, che era la
+  ragione per cui il piano li voleva.
+- **Fase 4** — `--remote` è un flag esplicito, non l'inferenza da `CODE_ZERO_URL` che il piano
+  proponeva: quella variabile sceglie già su quale deployment agiscono `login` e `logout`, e
+  dedurne "esegui altrove" sposterebbe il run di qualcuno in silenzio.
+- **Fase 5** — fatta, tranne il riordino di `.env.example`, reso inutile da `.env.solo`.
+
+Trovato strada facendo: l'allow-list dei repository esisteva solo se erano configurati anche i
+token operatore, quindi un deployment con sole sessioni non poteva creare nessun task. Corretto.
+
+## Cosa resta
+
+| Cosa                                     | Perché non è stato fatto                                        |
+| ---------------------------------------- | --------------------------------------------------------------- |
+| Review visiva con `nuxt-frontend-review` | l'ambiente di sviluppo non ha un host di automazione browser    |
+| `DESIGN.md`                              | previsto in Fase 2, non scritto                                 |
+| Un test Playwright per l'approvazione    | coperto da 7 test di componente; l'e2e resta da aggiungere      |
+| Un test della route `/api/events`        | verificata dal vivo; il pezzo testabile è l'emitter dello store |
+| Una passata del poller su GitHub vero    | nessuna credenziale qui, e i test non devono toccare la rete    |
+
 ## Rimandato, e quando
 
 | Cosa                                   | Quando                                                       |
