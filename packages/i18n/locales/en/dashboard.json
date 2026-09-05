@@ -4,7 +4,11 @@
     "header": {
       "eyebrow": "Code Zero / Operations",
       "title": "Control Plane",
-      "mode": "Local interface"
+      "mode": "Local interface",
+      "live": "Live",
+      "stale": "Reconnecting",
+      "liveAria": "Live updates connected",
+      "staleAria": "Live updates interrupted; the board may be out of date"
     },
     "nav": {
       "aria": "Primary",

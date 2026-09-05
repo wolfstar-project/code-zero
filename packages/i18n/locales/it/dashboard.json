@@ -4,7 +4,11 @@
     "header": {
       "eyebrow": "Code Zero / Operazioni",
       "title": "Piano di controllo",
-      "mode": "Interfaccia locale"
+      "mode": "Interfaccia locale",
+      "live": "In diretta",
+      "stale": "Riconnessione",
+      "liveAria": "Aggiornamenti in tempo reale connessi",
+      "staleAria": "Aggiornamenti in tempo reale interrotti; la board potrebbe non essere aggiornata"
     },
     "nav": {
       "aria": "Primaria",
