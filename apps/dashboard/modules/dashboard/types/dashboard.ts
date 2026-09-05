@@ -15,6 +15,14 @@ interface DashboardTaskResult {
   };
 }
 
+/** A recorded human decision on a task that stopped for one. Absent while it is still waiting. */
+export interface DashboardTaskApproval {
+  decision: 'approved' | 'rejected';
+  actor: string;
+  comment: string | null;
+  decidedAt: string;
+}
+
 export interface DashboardTask {
   id: string;
   repository: string;
@@ -23,6 +31,7 @@ export interface DashboardTask {
   updatedAt: string;
   events: DashboardTaskEvent[];
   result?: DashboardTaskResult;
+  approval?: DashboardTaskApproval;
 }
 
 export interface DashboardOverview {
