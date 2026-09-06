@@ -13,6 +13,7 @@ const HEAD = 'c'.repeat(40);
 const BASE = 'b'.repeat(40);
 
 const WATCHED: WatchedRepository = {
+  provider: 'github',
   owner: 'acme',
   name: 'app',
   checkoutPath: '/srv/checkouts/acme-app',
@@ -167,6 +168,35 @@ describe('pollOnce', () => {
     // The claim was released, so the next pass gets to try the same commit again.
     const runs = collector();
     await pollOnce({ ...failing, start: runs.start, onError: undefined });
+    expect(runs.started).toHaveLength(1);
+  });
+
+  it('retries a commit whose review ran but whose claim could not be recorded as complete', async () => {
+    // The review itself succeeded; only the write that marks the claim complete failed, the way a
+    // transient storage error would. Nothing here distinguishes that from a failed start: either
+    // way the claim must not be left standing, or this commit is unreviewable-by-record forever.
+    class FlakyClaims extends MemoryClaims {
+      override complete(): Promise<void> {
+        return Promise.reject(new Error('storage unavailable'));
+      }
+    }
+    const claims = new FlakyClaims();
+    const failures: unknown[] = [];
+    const flaky = {
+      repositories: [WATCHED],
+      source: source(pull()),
+      claims,
+      start: collector().start,
+      onError: (_repository: string, error: unknown) => failures.push(error),
+    };
+
+    await pollOnce(flaky);
+    expect(String(failures[0])).toContain('storage unavailable');
+
+    // The claim was released despite the review having run, so the same store lets the next pass
+    // claim and retry the commit rather than treating it as claimed forever.
+    const runs = collector();
+    await pollOnce({ ...flaky, start: runs.start, onError: undefined });
     expect(runs.started).toHaveLength(1);
   });
 

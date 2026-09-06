@@ -39,7 +39,21 @@ export default defineNitroPlugin((nitroApp) => {
   let stopped = false;
 
   async function pass(): Promise<void> {
-    const repositories = await repositoryStore.watched();
+    const watched = await repositoryStore.watched();
+    // Only a GitHub source exists in this process; a repository configured for another provider
+    // would otherwise be queried through it under owner/repo coordinates that provider never
+    // issued, and — because `pollClaimKey` keys on the provider it is told — could never converge
+    // with the claim its own webhook takes for the same commit. Reported rather than silently
+    // dropped, since it names an operator's misconfiguration.
+    const repositories = watched.flatMap((repository) => {
+      if (repository.provider !== 'github') {
+        console.warn(
+          `[poll] ${repository.owner}/${repository.name} is configured for '${repository.provider}', which this poller cannot query; skipping`,
+        );
+        return [];
+      }
+      return [{ ...repository, provider: 'github' as const }];
+    });
     if (repositories.length === 0) return;
     await pollOnce({
       repositories,

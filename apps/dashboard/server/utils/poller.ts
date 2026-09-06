@@ -1,5 +1,5 @@
 import { reviewDeliveryKey, type DeliveryClaimStore } from '@code-zero/api';
-import type { OpenPullRequest, RepositoryTarget } from '@code-zero/source-control';
+import type { OpenPullRequest, ProviderKind, RepositoryTarget } from '@code-zero/source-control';
 
 /**
  * What one pass needs to know about a configured repository.
@@ -10,6 +10,14 @@ import type { OpenPullRequest, RepositoryTarget } from '@code-zero/source-contro
  * provider to ask about, and which checkout on this host a run may execute against.
  */
 export interface WatchedRepository {
+  /**
+   * Which provider `owner/name` names a repository on. Carried per repository rather than assumed,
+   * because the store this is read from (`@code-zero/database`'s `repository` table) accepts any
+   * provider a caller names, while the process feeding this pass a `source` only ever speaks to
+   * one — see `server/plugins/poller.ts`, which is where a repository whose provider that `source`
+   * does not understand is reported and skipped, rather than silently queried under the wrong API.
+   */
+  provider: ProviderKind;
   owner: string;
   name: string;
   checkoutPath: string;
@@ -58,13 +66,14 @@ export interface PollRequest {
  * Built with `@code-zero/api`'s `reviewDeliveryKey`, the same function the webhook route's
  * proactive-trigger path claims with: a commit a webhook delivery already claimed is one this pass
  * skips, and a commit this pass claims first is one a redelivered webhook observes rather than
- * reviews again. The head sha is part of the key rather than the pull request alone, which is what
- * makes a new push the thing that earns a new review: an unchanged pull request is claimed
+ * reviews again — which only holds because both sides key on the repository's real provider rather
+ * than assuming one. The head sha is part of the key rather than the pull request alone, which is
+ * what makes a new push the thing that earns a new review: an unchanged pull request is claimed
  * already, and a force-push or a new commit is a key nobody has claimed.
  */
 export function pollClaimKey(target: WatchedRepository, pull: OpenPullRequest): string {
   return reviewDeliveryKey({
-    provider: 'github',
+    provider: target.provider,
     owner: target.owner,
     repo: target.name,
     number: pull.number,
@@ -76,15 +85,21 @@ export function pollClaimKey(target: WatchedRepository, pull: OpenPullRequest): 
  * One pass over every watched repository, starting a review for each pull request commit that has
  * not been reviewed yet.
  *
- * Every claimed review is started without waiting for it to finish before considering the next
- * pull request or repository: `options.start` hands the run to a scheduler that already bounds how
- * many run at once, so serializing ahead of it here would only make one long review delay the rest
- * of the pass discovering work behind it. Every started review is still awaited before this
- * function returns, so its outcome — recording the claim as complete, or releasing it for the next
- * pass to retry — is always settled by the time the caller acts on the count this returns.
+ * Every repository is discovered concurrently rather than one after another: `options.source` is
+ * one network round trip per repository, and a pass over many repositories must not pay their sum
+ * in latency when nothing here depends on one repository's answer to ask about the next. Every
+ * claimed review is likewise started without waiting for it to finish before considering the rest
+ * of that repository's pull requests: `options.start` hands the run to a scheduler that already
+ * bounds how many run at once, so serializing ahead of it here would only make one long review
+ * delay the rest of the pass discovering work behind it. Every started review is still awaited
+ * before this function returns, so its outcome — recording the claim as complete, or releasing it
+ * for the next pass to retry — is always settled by the time the caller acts on the count this
+ * returns.
  *
- * Returns how many reviews it started, which is what the caller logs; everything else about them
- * is on the task records the run itself writes.
+ * Returns how many reviews it started — a claim taken and `options.start` resolved without
+ * throwing — which is what the caller logs; everything else about them is on the task records the
+ * run itself writes. A start that throws is not counted: its claim is released for the next pass
+ * to retry, so counting it would report work that, from the trail's point of view, never happened.
  *
  * Drafts are skipped. A draft is the author saying the change is not ready to be read, and a
  * review that arrives anyway costs a model call to tell them something they already know.
@@ -93,59 +108,62 @@ export async function pollOnce(options: PollOptions): Promise<number> {
   let started = 0;
   const dispatched: Promise<void>[] = [];
 
-  for (const repository of options.repositories) {
-    const label = `${repository.owner}/${repository.name}`;
-    let open: OpenPullRequest[];
-    try {
-      open = await options.source.listOpenPullRequests({
-        owner: repository.owner,
-        repo: repository.name,
-      });
-    } catch (error) {
-      options.onError?.(label, error);
-      continue;
-    }
-
-    for (const pull of open) {
-      if (pull.draft) continue;
-      const key = pollClaimKey(repository, pull);
-      let claim;
+  await Promise.all(
+    options.repositories.map(async (repository) => {
+      const label = `${repository.owner}/${repository.name}`;
+      let open: OpenPullRequest[];
       try {
-        claim = await options.claims.claim(key);
+        open = await options.source.listOpenPullRequests({
+          owner: repository.owner,
+          repo: repository.name,
+        });
       } catch (error) {
         options.onError?.(label, error);
-        continue;
+        return;
       }
-      if (!claim.claimed) continue;
 
-      started += 1;
-      dispatched.push(
-        options
-          .start({
-            repository: repository.checkoutPath,
-            mode: repository.mode,
-            pullRequest: {
-              owner: repository.owner,
-              repo: repository.name,
-              number: pull.number,
-              baseSha: pull.baseSha,
-              headSha: pull.headSha,
-            },
-            source: `poll:${label}#${String(pull.number)}`,
-          })
-          .then(
-            () => options.claims.complete(key, { started: true }),
-            async (error: unknown) => {
-              // The claim is released rather than completed, so the next pass retries this
-              // commit. A failed start is a run that never happened; leaving the claim standing
-              // would make one transient failure mean the commit is never reviewed at all.
+      for (const pull of open) {
+        if (pull.draft) continue;
+        const key = pollClaimKey(repository, pull);
+        let claim;
+        try {
+          claim = await options.claims.claim(key);
+        } catch (error) {
+          options.onError?.(label, error);
+          continue;
+        }
+        if (!claim.claimed) continue;
+
+        dispatched.push(
+          (async () => {
+            try {
+              await options.start({
+                repository: repository.checkoutPath,
+                mode: repository.mode,
+                pullRequest: {
+                  owner: repository.owner,
+                  repo: repository.name,
+                  number: pull.number,
+                  baseSha: pull.baseSha,
+                  headSha: pull.headSha,
+                },
+                source: `poll:${label}#${String(pull.number)}`,
+              });
+              started += 1;
+              await options.claims.complete(key, { started: true });
+            } catch (error) {
+              // Released rather than completed — regardless of whether it was the start or this
+              // completion write that failed — so the next pass retries this commit. Leaving the
+              // claim standing on either failure would make one transient error mean the commit is
+              // never reviewed at all.
               await options.claims.release(key).catch(() => undefined);
               options.onError?.(label, error);
-            },
-          ),
-      );
-    }
-  }
+            }
+          })(),
+        );
+      }
+    }),
+  );
 
   await Promise.all(dispatched);
   return started;

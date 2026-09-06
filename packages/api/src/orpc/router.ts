@@ -1,4 +1,5 @@
 import { redactSecrets } from '@code-zero/shared';
+import { providerKinds } from '@code-zero/source-control';
 // `openapi(meta)` builds the same metadata plugin `.route()` sugars over (see
 // `@orpc/openapi/extensions/route`), but as a real import a bundler can't tree-shake away. The
 // prototype-patching `.route()` extension depends on a bare side-effect import surviving whatever
@@ -64,7 +65,7 @@ export interface RpcContext extends BetterAuthContext {
  * nothing rather than fail the request that configured it.
  */
 const repositoryInput = z.object({
-  provider: z.string().min(1).optional(),
+  provider: z.enum(providerKinds).optional(),
   owner: z.string().min(1).nullable().optional(),
   name: z.string().min(1).nullable().optional(),
   checkoutPath: z.string().min(1),
