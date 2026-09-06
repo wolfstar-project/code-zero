@@ -1,8 +1,3 @@
-import { dashboardOverview } from '@code-zero/api';
-
-/** Coalesces a burst of writes into one push. A run records several lifecycle events in a row. */
-const PUSH_DELAY_MS = 250;
-
 /**
  * An empty `heartbeat` message every 20s. Nothing reads it: it exists so an idle connection keeps
  * producing bytes, which is what stops a proxy from reclaiming it as dead during a long quiet run.
@@ -21,6 +16,10 @@ const HEARTBEAT_MS = 20_000;
  * Each message is the whole overview rather than a delta. The page renders the aggregate anyway,
  * so a delta would only add a way for the two to disagree, and a reconnecting client would need a
  * replay log to catch up rather than simply taking the next message as the truth.
+ *
+ * The overview itself is computed once per write and shared by every connected stream (see
+ * `../utils/overview.ts`): this handler only pushes bytes onto its own connection, so opening more
+ * tabs never costs the task store more reads.
  */
 export default defineEventHandler(async (event) => {
   // Raises 401 when the request carries no session, so the stream is no more readable than the
@@ -29,46 +28,33 @@ export default defineEventHandler(async (event) => {
 
   const stream = createEventStream(event);
   let closed = false;
-  let pushTimer: ReturnType<typeof setTimeout> | undefined;
 
-  async function push(): Promise<void> {
+  async function push(overview: unknown): Promise<void> {
     if (closed) return;
     try {
-      await stream.push(JSON.stringify(dashboardOverview(await taskStore.list())));
+      await stream.push(JSON.stringify(overview));
     } catch {
       // The client went away between the write landing and this read finishing. Nothing to
       // report: `onClosed` below is what tears the subscription down.
     }
   }
 
-  /**
-   * A write only ever schedules a push, never performs one, so a run that records ten events in a
-   * few milliseconds sends one overview rather than ten.
-   */
-  function schedulePush(): void {
-    if (closed || pushTimer) return;
-    pushTimer = setTimeout(() => {
-      pushTimer = undefined;
-      void push();
-    }, PUSH_DELAY_MS);
-  }
+  const unsubscribe = subscribeOverview((overview) => void push(overview));
 
   const heartbeat = setInterval(() => {
     if (!closed) void stream.push({ event: 'heartbeat', data: '' }).catch(() => undefined);
   }, HEARTBEAT_MS);
 
-  taskChanges.on(TASK_CHANGED, schedulePush);
   stream.onClosed(() => {
     closed = true;
-    taskChanges.off(TASK_CHANGED, schedulePush);
+    unsubscribe();
     clearInterval(heartbeat);
-    if (pushTimer) clearTimeout(pushTimer);
   });
 
   // The current state before any change, so a page that connects mid-run renders immediately
-  // rather than staying empty until something else happens. Scheduled rather than awaited: `send()`
-  // is what puts the response on the wire, and a push that ran before it would be waiting for a
-  // reader that does not exist yet — the request would hang without ever answering.
-  schedulePush();
+  // rather than staying empty until something else happens. Not awaited: `send()` is what puts the
+  // response on the wire, and a push that ran before it would be waiting for a reader that does
+  // not exist yet — the request would hang without ever answering.
+  void currentOverview().then((overview) => push(overview));
   return stream.send();
 });

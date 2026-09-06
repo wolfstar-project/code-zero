@@ -74,4 +74,10 @@ export {
 } from './orpc/auth.js';
 export { requestLoggerStorage, useLogger } from './orpc/logging.js';
 export { rpcRouter, type RpcContext, type RpcRouter } from './orpc/router.js';
+export type {
+  RepositoryAdmin,
+  RepositoryInput,
+  RepositoryMode,
+  RepositoryRecord,
+} from './repositories.js';
 export { FileKeyValueStorage } from './storage.js';

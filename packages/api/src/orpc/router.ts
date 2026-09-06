@@ -21,12 +21,12 @@ import {
   listTasks,
   taskInput,
 } from '../operations.js';
+import type { RepositoryAdmin } from '../repositories.js';
 import { authMiddleware, type BetterAuthContext } from './auth.js';
 import { useLogger } from './logging.js';
 
 export interface RpcContext extends BetterAuthContext {
   store: TaskStore;
-  /** Whether `tasks.create` may target this repository. Fails closed when absent. */
   /**
    * Whether `tasks.create` may target this checkout path. Fails closed when absent.
    *
@@ -35,6 +35,15 @@ export interface RpcContext extends BetterAuthContext {
    * request honours it, with no restart and no second copy of the allow-list to keep in step.
    */
   mayTargetRepository?: (repository: string) => boolean | Promise<boolean>;
+  /**
+   * The configured repositories themselves, for `repositories.list`/`.save`/`.remove` to read and
+   * write. A separate capability from {@link mayTargetRepository} above: that one only answers
+   * "may a run target this checkout", which every unauthenticated `tasks.create` attempt asks, and
+   * granting it whatever it needed to check membership would let a non-administrator enumerate
+   * every configured repository. Optional for the same reason `auditLog` is: an embedded caller
+   * that keeps no repository store should still be able to drive the rest of the router.
+   */
+  repositories?: RepositoryAdmin;
   /**
    * The durable audit trail, for reading it back.
    *
@@ -46,6 +55,34 @@ export interface RpcContext extends BetterAuthContext {
    * "nothing has happened".
    */
   auditLog?: AuditLogStore;
+}
+
+/**
+ * `repositories.save`'s input. Mirrors `RepositoryInput`, validated at the wire boundary rather
+ * than trusted from it: `checkoutPath` is the value `mayTargetRepository` will compare a future
+ * `tasks.create` request against verbatim, so an empty or malformed one would silently allow
+ * nothing rather than fail the request that configured it.
+ */
+const repositoryInput = z.object({
+  provider: z.string().min(1).optional(),
+  owner: z.string().min(1).nullable().optional(),
+  name: z.string().min(1).nullable().optional(),
+  checkoutPath: z.string().min(1),
+  mode: z.enum(['observe', 'suggest']).optional(),
+  pollEnabled: z.boolean().optional(),
+});
+
+/** Every procedure below requires the app-wide administrator role, the same gate `audit.list` uses. */
+function requireRepositoryAdmin(context: RpcContext): RepositoryAdmin {
+  if (!context.principal?.admin)
+    throw new ORPCError('FORBIDDEN', {
+      message: 'Configuring repositories requires the admin role',
+    });
+  if (!context.repositories)
+    throw new ORPCError('NOT_IMPLEMENTED', {
+      message: 'This deployment keeps no repository store',
+    });
+  return context.repositories;
 }
 
 const procedure = os.$context<RpcContext>();
@@ -161,6 +198,74 @@ export const rpcRouter = {
           target: { type: 'task', id: task.id, repository: input.repository, mode: input.mode },
         });
         return task;
+      }),
+  },
+  repositories: {
+    /**
+     * Every configured repository, for an app-wide administrator.
+     *
+     * The supported way to see what `tasks.create` will accept: the table starts empty on every
+     * deployment, including one upgrading from an environment-variable allow-list, so there is no
+     * baked-in list to fall back to reading instead.
+     */
+    list: authenticated
+      .meta(
+        openapi({
+          method: 'GET',
+          path: '/repositories',
+          tags: ['Repositories'],
+          summary: 'List configured repositories',
+        }),
+      )
+      .handler(({ context }) => requireRepositoryAdmin(context).list()),
+    /**
+     * Add a repository, or update the one already claiming this checkout path.
+     *
+     * The supported way to populate the allow-list: nothing else in this deployment can, since the
+     * table an upgrade lands with is always empty and a database console is not a control-plane
+     * operation this trail can record.
+     */
+    save: authenticated
+      .meta(
+        openapi({
+          method: 'POST',
+          path: '/repositories',
+          tags: ['Repositories'],
+          summary: 'Add or update a configured repository',
+        }),
+      )
+      .input(repositoryInput)
+      .handler(async ({ input, context }) => {
+        const repositories = requireRepositoryAdmin(context);
+        const record = await repositories.save(input);
+        useLogger().audit({
+          actor: principalActor(context.principal),
+          action: 'repository.saved',
+          outcome: 'success',
+          target: { type: 'repository', id: record.checkoutPath },
+        });
+        return record;
+      }),
+    remove: authenticated
+      .meta(
+        openapi({
+          method: 'DELETE',
+          path: '/repositories/{id}',
+          tags: ['Repositories'],
+          summary: 'Remove a configured repository',
+        }),
+      )
+      .input(z.object({ id: z.string().min(1) }))
+      .handler(async ({ input, context }) => {
+        const repositories = requireRepositoryAdmin(context);
+        const removed = await repositories.remove(input.id);
+        useLogger().audit({
+          actor: principalActor(context.principal),
+          action: 'repository.removed',
+          outcome: removed ? 'success' : 'failure',
+          target: { type: 'repository', id: input.id },
+        });
+        return { removed };
       }),
   },
   audit: {

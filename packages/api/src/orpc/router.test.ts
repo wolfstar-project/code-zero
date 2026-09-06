@@ -5,9 +5,42 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Principal } from '../access.js';
 import { MemoryAuditLogStore, type AuditEvent } from '../audit.js';
 import { MemoryTaskStore, type StoredTask } from '../control-plane.js';
+import type { RepositoryAdmin, RepositoryInput, RepositoryRecord } from '../repositories.js';
 import type { BetterAuthSessionApi } from './auth.js';
 import { requestLoggerStorage } from './logging.js';
 import { rpcRouter } from './router.js';
+
+/** An in-memory stand-in, so this suite covers the router's gate rather than a Drizzle table. */
+class MemoryRepositoryAdmin implements RepositoryAdmin {
+  private readonly records = new Map<string, RepositoryRecord>();
+  private sequence = 0;
+
+  list(): Promise<RepositoryRecord[]> {
+    return Promise.resolve([...this.records.values()]);
+  }
+
+  save(input: RepositoryInput): Promise<RepositoryRecord> {
+    const existing = [...this.records.values()].find(
+      (record) => record.checkoutPath === input.checkoutPath,
+    );
+    this.sequence += 1;
+    const record: RepositoryRecord = {
+      id: existing?.id ?? `repo_${String(this.sequence)}`,
+      provider: input.provider ?? 'github',
+      owner: input.owner ?? null,
+      name: input.name ?? null,
+      checkoutPath: input.checkoutPath,
+      mode: input.mode ?? 'observe',
+      pollEnabled: input.pollEnabled ?? false,
+    };
+    this.records.set(record.id, record);
+    return Promise.resolve(record);
+  }
+
+  remove(id: string): Promise<boolean> {
+    return Promise.resolve(this.records.delete(id));
+  }
+}
 
 /**
  * Emitting a wide event publishes it, and evlog writes one to the console by default, which would
@@ -28,6 +61,7 @@ const NO_AUDIT_LOG_ERROR = /keeps no audit log/i;
 
 let store: MemoryTaskStore;
 let auditLog: MemoryAuditLogStore;
+let repositories: MemoryRepositoryAdmin;
 /**
  * evlog's own capture helper, so the assertions below read the audit events the router actually
  * emitted through `log.audit()` rather than a hand-rolled recorder double standing in for it.
