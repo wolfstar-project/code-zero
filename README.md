@@ -108,17 +108,21 @@ To see the dashboard before configuring anything, start it on its own instead:
 ```bash
 mise install
 aube ci
-aube run dev:solo        # http://localhost:3000, then sign up at /signup
+aube run dev:dashboard   # http://localhost:3000, then sign up at /signup
 ```
 
-`dev:solo` is `nuxt dev` reading [`apps/dashboard/.env.solo`](./apps/dashboard/.env.solo) in place of
-`.env`: Better Auth runs on an in-memory store, so there is no Postgres to install and no migration
-to apply, and the account you create lives until you stop the process. Nothing else about the app
-changes — it is the same UI, the same router, and the same authentication endpoints a deployment
-serves. Tasks still need a checkout to target, so add one to
+`dev:dashboard` is `nuxt dev` reading [`apps/dashboard/.env.solo`](./apps/dashboard/.env.solo) in
+place of `.env`: Better Auth runs on an in-memory store, so there is no Postgres to install and no
+migration to apply, and the account you create lives until you stop the process. Nothing else
+about the app changes — it is the same UI, the same router, and the same authentication endpoints
+a deployment serves. Tasks still need a checkout to target, so add one to
 `CODE_ZERO_CONTROL_PLANE_REPOSITORIES` in that file; `observe` runs no model, so a task can be
 created and inspected without a provider credential. Use `aube run dev` and `apps/dashboard/.env`
 for anything that has to persist.
+
+`dev:docs` and `dev:marketing` start those two apps on their own the same way `mail:preview`
+already does for `apps/mail-preview` — a plain `turbo run dev` filtered to one app, with no
+alternate env file.
 
 `aube run <script>` and `aube test` check install freshness first, so a separate install step is rarely needed. aube reads and writes the existing `pnpm-lock.yaml` and `pnpm-workspace.yaml` in place — the lockfile stays in pnpm's v9 format for anyone who still runs pnpm.
 

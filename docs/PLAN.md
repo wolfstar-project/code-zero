@@ -52,13 +52,13 @@ passano e il criterio "fatto quando" è dimostrato in browser o con `curl`.
 
 ### Fase 0: avvio in un comando (mezza giornata)
 
-- `apps/dashboard`: script `dev:solo` = `nuxt dev` con `AUTH_E2E_MEMORY=true`,
+- `apps/dashboard`: script `dev:dashboard` = `nuxt dev` con `AUTH_E2E_MEMORY=true`,
   `AUTH_ENABLE_SIGNUP=true`, token `dev:dev`, modes `dev:observe|suggest|fix`, repo allow-list
   dalla env `CODE_ZERO_REPOSITORIES`. Nessun Postgres.
-- README: sezione "Primo avvio" con i tre comandi (install, `aube exec turbo run build`, `dev:solo`).
+- README: sezione "Primo avvio" con i tre comandi (install, `aube exec turbo run build`, `dev:dashboard`).
 - `bin/check` copiato dal kit, più hook `pre-commit-push` e `oxlint` on save in `.claude/`.
 
-Fatto quando: da clone pulito, `mise install && aube install && aube run dev:solo` apre la
+Fatto quando: da clone pulito, `mise install && aube install && aube run dev:dashboard` apre la
 dashboard e il signup funziona.
 
 ### Fase 1: stato vivo (1 giorno)
@@ -79,12 +79,12 @@ che scorrono nella Timeline, poi Completed, senza premere Refresh.
 
 - Inspector: pulsanti Approve e Reject su `needs-human` (`approvals.decide`), con commento.
 - Header: "New task" con form repository (select dall'allow-list), mode, trigger. Chiama
-  `tasks.create`. In `observe` non serve alcuna chiave modello, quindi funziona anche in `dev:solo`.
+  `tasks.create`. In `observe` non serve alcuna chiave modello, quindi funziona anche in `dev:dashboard`.
 - Sidebar: eliminare le 9 voci senza pagina. Restano Control Plane e Audit Log.
 - `DESIGN.md` scritto dai token già in `uno.theme.ts` e `main.css`. Poche regole, ognuna deve poter
   bocciare un cambiamento.
 
-Fatto quando: la skill `nuxt-frontend-review` gira `dev:solo`, esercita approve, reject e new task
+Fatto quando: la skill `nuxt-frontend-review` gira `dev:dashboard`, esercita approve, reject e new task
 a 1440 e 375, light e dark, e non trova rifiuti duri. Screenshot nella PR.
 
 ### Fase 3: il servizio trova lavoro da solo (2 giorni)
@@ -96,7 +96,7 @@ a 1440 e 375, light e dark, e non trova rifiuti duri. Screenshot nella PR.
   `trustedCheckoutRoots` del riferimento. Un task per SHA, dedup nello store.
 - Worktree per task (`git worktree add` in una cartella temporanea, rimossa a fine run) così due
   run sullo stesso repo non si pestano. Il runner già limita cosa può eseguire.
-- Il plugin non parte in `dev:solo` senza repo configurati, e si ferma su `nitroApp.hooks.hook('close')`.
+- Il plugin non parte in `dev:dashboard` senza repo configurati, e si ferma su `nitroApp.hooks.hook('close')`.
 
 Fatto quando: con un repo reale configurato, un push su una PR fa comparire un task entro un
 ciclo di poll senza webhook, e due PR sullo stesso repo girano in worktree distinti.
@@ -110,7 +110,7 @@ Fatto quando: `zero run --proactive` da terminale compare nella Board entro un s
 
 ### Fase 5: pulizia (mezza giornata)
 
-- `.env.example` del dashboard riordinato: prima i 5 valori per `dev:solo`, poi il resto.
+- `.env.example` del dashboard riordinato: prima i 5 valori per `dev:dashboard`, poi il resto.
 - `docs/architecture.md`: sezione "Live state" che descrive SSE e poller.
 - Test: uno per l'emitter dello store, uno per `events.get`, uno Playwright per approve.
 
@@ -118,7 +118,7 @@ Fatto quando: `zero run --proactive` da terminale compare nella Board entro un s
 
 Fasi 0-5 eseguite. Cosa è cambiato rispetto al piano, e perché:
 
-- **Fase 0** — `dev:solo` legge `apps/dashboard/.env.solo` con `--dotenv`, invece di variabili
+- **Fase 0** — `dev:dashboard` legge `apps/dashboard/.env.solo` con `--dotenv`, invece di variabili
   inline. Il file è versionato: non contiene nulla che valga la pena tenere fuori dal repository.
   `bin/check` del kit non è stato copiato: `aube run lint:ci`, `typecheck` e `test` fanno già
   quel lavoro, e gli hook husky esistono già.
@@ -160,7 +160,7 @@ token operatore, quindi un deployment con sole sessioni non poteva creare nessun
 
 ## Rischi
 
-- **Run lunghi dentro `nuxt dev`**: HMR riavvia Nitro e uccide il run. Mitigazione: `dev:solo` in
+- **Run lunghi dentro `nuxt dev`**: HMR riavvia Nitro e uccide il run. Mitigazione: `dev:dashboard` in
   `observe`, run veri solo su `.output/` o con `nuxt dev --no-fork`.
 - **KV `fs-lite` senza scrittura atomica**: `list()` legge tutte le chiavi a ogni overview. Va bene
   fino a qualche migliaio di task; poi Postgres (già in repo per l'auth).

@@ -27,7 +27,14 @@ import { useLogger } from './logging.js';
 export interface RpcContext extends BetterAuthContext {
   store: TaskStore;
   /** Whether `tasks.create` may target this repository. Fails closed when absent. */
-  mayTargetRepository?: (repository: string) => boolean;
+  /**
+   * Whether `tasks.create` may target this checkout path. Fails closed when absent.
+   *
+   * Allowed to answer asynchronously because the composition root backs it with the deployment's
+   * own store rather than a list baked in at boot: an operator adds a repository and the next
+   * request honours it, with no restart and no second copy of the allow-list to keep in step.
+   */
+  mayTargetRepository?: (repository: string) => boolean | Promise<boolean>;
   /**
    * The durable audit trail, for reading it back.
    *
@@ -107,7 +114,7 @@ export const rpcRouter = {
         // Refusals are audited as deliberately as grants: a token repeatedly reaching for a
         // repository or a mode it was never given is the signal a trail exists to preserve.
         const actor = principalActor(context.principal);
-        if (!context.mayTargetRepository?.(input.repository)) {
+        if (!(await context.mayTargetRepository?.(input.repository))) {
           useLogger().audit.deny('Repository is not allow-listed for task creation', {
             actor,
             action: 'task.create',

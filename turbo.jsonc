@@ -200,7 +200,7 @@
     // The dashboard on its own, reading apps/dashboard/.env.solo instead of .env: no database, no
     // model credentials, no other app in the graph. Same task shape as `dev`, since it is the same
     // command with a different env file.
-    "dev:solo": {
+    "dev:dashboard": {
       "dependsOn": ["^build"],
       "cache": false,
       "persistent": true,

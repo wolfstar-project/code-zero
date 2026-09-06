@@ -7,6 +7,16 @@ import { parse } from 'yaml';
 import { assertExecutableCommand } from './checks.js';
 
 export {
+  defaultDeploymentConfig,
+  DEPLOYMENT_CONFIG_FILE,
+  describeDeploymentConfigIssues,
+  loadDeploymentConfig,
+  parseDeploymentConfig,
+  type DeploymentConfig,
+  type DeploymentConfigIssue,
+  type DeploymentConfigResult,
+} from './deployment.js';
+export {
   assertExecutableCommand,
   checkKinds,
   detectPackageManager,

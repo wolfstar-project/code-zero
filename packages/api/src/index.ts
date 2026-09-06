@@ -29,8 +29,6 @@ export {
 export {
   accessFromEnvironment,
   authenticate,
-  controlPlaneOriginsFromEnvironment,
-  mayTargetRepository,
   sessionPrincipal,
   type ControlPlaneAccess,
   type Principal,

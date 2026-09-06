@@ -2,12 +2,14 @@ import { account, session, user, verification } from './auth.js';
 import { deviceCode } from './device.js';
 import { invite, inviteUse } from './enrollment.js';
 import { invitation, member, organization } from './organization.js';
+import { repository } from './repository.js';
 
 export { account, session, user, verification } from './auth.js';
 export { timestampColumns } from './columns.js';
 export { deviceCode } from './device.js';
 export { invite, inviteUse } from './enrollment.js';
 export { invitation, member, organization } from './organization.js';
+export { repository } from './repository.js';
 
 /**
  * Every table in the store, as one object.
@@ -31,6 +33,7 @@ export const schema = {
   invite,
   inviteUse,
   deviceCode,
+  repository,
 };
 
 /** The set of tables the database client is opened with. */
