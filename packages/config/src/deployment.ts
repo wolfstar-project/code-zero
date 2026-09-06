@@ -152,9 +152,7 @@ export function parseDeploymentConfig(text: string): DeploymentConfigResult {
 }
 
 /** Renders issues as one message, for a composition root that refuses to start on a bad file. */
-export function describeDeploymentConfigIssues(
-  issues: readonly DeploymentConfigIssue[],
-): string {
+export function describeDeploymentConfigIssues(issues: readonly DeploymentConfigIssue[]): string {
   return issues.map((issue) => `${issue.path}: ${issue.message}`).join('\n');
 }
 

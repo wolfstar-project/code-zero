@@ -1,6 +1,5 @@
-import { describe, expect, it } from 'vitest';
-
 import type { RunMode } from '@code-zero/shared';
+import { describe, expect, it } from 'vitest';
 
 import {
   accessFromEnvironment,
