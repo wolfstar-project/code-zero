@@ -11,6 +11,7 @@ export {
   openIssuePullRequest,
   publishEvidence,
   publishIssueValidation,
+  reviewDeliveryKey,
   runTask,
   statusTokenFromEnvironment,
   taskInput,

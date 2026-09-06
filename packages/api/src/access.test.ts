@@ -75,6 +75,15 @@ describe('accessFromEnvironment', () => {
     expect(parsed?.principals.get('tok2')?.modes).toEqual(['observe', 'suggest']);
   });
 
+  it('grants nothing to a principal whose configured grant resolved to no valid mode', () => {
+    // `packages/config`'s `parseDeploymentConfig` refuses a grant that named an unknown mode, but
+    // still records the principal with an empty mode list rather than omitting it — omitting it
+    // would land here as "no grant configured" and widen the principal to the non-writable
+    // defaults, which is worse than the mistake it was meant to catch.
+    const parsed = accessFromEnvironment('ci:tok', grants({ ci: [] }));
+    expect(parsed?.principals.get('tok')?.modes).toEqual([]);
+  });
+
   it('refuses grants for principals that hold no token', () => {
     // A grant nobody can use is a typo in one of the two places, and the deployment should be told
     // which rather than quietly running with a narrower policy than it wrote down.

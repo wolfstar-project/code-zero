@@ -188,6 +188,22 @@ describe('audit persistence', () => {
     expect(page.events.map((entry) => entry.id)).toEqual(['audit_1']);
   });
 
+  it('reads a record written before the actor moved to evlog\'s { type, id } vocabulary', async () => {
+    const storage = new RecordingStorage();
+    // Written straight past `append`, the shape a pre-upgrade deployment actually left on disk.
+    await storage.setItem(`audit:${FIRST}:audit_1`, {
+      ...event('audit_1', FIRST),
+      actor: { kind: 'principal', name: 'release-manager' },
+    });
+    const store = new PersistentAuditLogStore(storage);
+
+    const page = await store.list();
+
+    expect(page.events).toMatchObject([
+      { id: 'audit_1', actor: { type: 'api', id: 'release-manager' } },
+    ]);
+  });
+
   it('ignores foreign records sharing the audit prefix', async () => {
     const storage = new RecordingStorage();
     await storage.setItem('audit:2026-08-09T10:00:00.000Z:junk', { unrelated: true });

@@ -222,6 +222,11 @@ function modeGrants(
     const path = `$.control_plane.modes.${name}`;
     if (!isStringArray(value) || value.length === 0) {
       issues.push({ path, message: 'Expected a non-empty list of execution modes.' });
+      // Recorded with nothing granted rather than left out: a name absent from this map reads
+      // downstream as "no grant configured", which resolves to the non-writable defaults. A grant
+      // that was configured and refused must never resolve to more than the empty list this
+      // parsed to — the mistake it corrects would otherwise widen the very principal it named.
+      grants.set(name, []);
       continue;
     }
     const parsed: RunMode[] = [];
@@ -235,7 +240,7 @@ function modeGrants(
       }
       parsed.push(mode);
     }
-    if (valid) grants.set(name, parsed);
+    grants.set(name, valid ? parsed : []);
   }
   return grants;
 }

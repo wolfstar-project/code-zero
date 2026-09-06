@@ -58,6 +58,7 @@ const MODE_ERROR = /not granted/i;
 const STORAGE_ERROR = /storage unavailable/i;
 const ADMIN_ERROR = /admin role/i;
 const NO_AUDIT_LOG_ERROR = /keeps no audit log/i;
+const NO_REPOSITORY_STORE_ERROR = /keeps no repository store/i;
 
 let store: MemoryTaskStore;
 let auditLog: MemoryAuditLogStore;
@@ -84,6 +85,7 @@ function client(options: ClientOptions = {}) {
       ...(options.auth ? { auth: options.auth } : {}),
       ...(options.reqHeaders ? { reqHeaders: options.reqHeaders } : {}),
       mayTargetRepository: () => options.allowRepository ?? false,
+      repositories,
       auditLog,
     },
   });
@@ -195,6 +197,7 @@ function awaiting(id: string): StoredTask {
 beforeEach(() => {
   store = new MemoryTaskStore();
   auditLog = new MemoryAuditLogStore();
+  repositories = new MemoryRepositoryAdmin();
   audited = mockAudit();
 });
 
@@ -545,5 +548,108 @@ describe('rpc audit trail', () => {
         }).approvals.decide({ taskId: 'cz_1', decision: 'approved' }),
       ),
     ).resolves.toMatchObject({ approval: { actor: 'release-manager' } });
+  });
+});
+
+describe('rpc repositories', () => {
+  it('lists configured repositories for an administrator', async () => {
+    await repositories.save({ checkoutPath: '/srv/checkouts/acme-app' });
+
+    const page = await instrumented(() =>
+      client({
+        auth: betterAuth({ email: 'ops@example.test', role: 'admin' }),
+        reqHeaders: new Headers(),
+      }).repositories.list(),
+    );
+
+    expect(page).toMatchObject([{ checkoutPath: '/srv/checkouts/acme-app', mode: 'observe' }]);
+  });
+
+  it('adds a repository, and the next task creation honours it with no restart', async () => {
+    const admin = client({
+      auth: betterAuth({ email: 'ops@example.test', role: 'admin' }),
+      reqHeaders: new Headers(),
+    });
+
+    const saved = await instrumented(() =>
+      admin.repositories.save({ checkoutPath: '/srv/checkouts/acme-app', mode: 'suggest' }),
+    );
+
+    expect(saved).toMatchObject({ checkoutPath: '/srv/checkouts/acme-app', mode: 'suggest' });
+    expect(audited.events).toMatchObject([
+      {
+        actor: { type: 'user', id: 'ops@example.test' },
+        action: 'repository.saved',
+        outcome: 'success',
+        target: { type: 'repository', id: '/srv/checkouts/acme-app' },
+      },
+    ]);
+  });
+
+  it('updates the repository already claiming a checkout path rather than duplicating it', async () => {
+    const admin = client({
+      auth: betterAuth({ email: 'ops@example.test', role: 'admin' }),
+      reqHeaders: new Headers(),
+    });
+
+    const first = await instrumented(() =>
+      admin.repositories.save({ checkoutPath: '/srv/checkouts/acme-app' }),
+    );
+    const second = await instrumented(() =>
+      admin.repositories.save({ checkoutPath: '/srv/checkouts/acme-app', mode: 'suggest' }),
+    );
+
+    expect(second.id).toBe(first.id);
+    await expect(instrumented(() => admin.repositories.list())).resolves.toHaveLength(1);
+  });
+
+  it('removes a configured repository', async () => {
+    const admin = client({
+      auth: betterAuth({ email: 'ops@example.test', role: 'admin' }),
+      reqHeaders: new Headers(),
+    });
+    const saved = await instrumented(() =>
+      admin.repositories.save({ checkoutPath: '/srv/checkouts/acme-app' }),
+    );
+
+    const result = await instrumented(() => admin.repositories.remove({ id: saved.id }));
+
+    expect(result).toEqual({ removed: true });
+    expect(audited.events).toMatchObject([
+      {},
+      { action: 'repository.removed', outcome: 'success', target: { id: saved.id } },
+    ]);
+  });
+
+  it('refuses a signed-in reader who is not an administrator', async () => {
+    await expect(
+      instrumented(() =>
+        client({
+          auth: betterAuth({ email: 'dev@example.test', role: 'member' }),
+          reqHeaders: new Headers(),
+        }).repositories.list(),
+      ),
+    ).rejects.toThrow(ADMIN_ERROR);
+  });
+
+  it('refuses an operator token, which may run work but not configure what it may run against', () => {
+    return expect(instrumented(() => operator().repositories.list())).rejects.toThrow(ADMIN_ERROR);
+  });
+
+  it('refuses an unauthenticated caller', async () => {
+    await expect(instrumented(() => client().repositories.list())).rejects.toThrow(
+      UNAUTHORIZED_ERROR,
+    );
+  });
+
+  it('says a deployment keeps no repository store rather than reporting an empty one', async () => {
+    await expect(
+      instrumented(() =>
+        unaudited({
+          auth: betterAuth({ email: 'ops@example.test', role: 'admin' }),
+          reqHeaders: new Headers(),
+        }).repositories.list(),
+      ),
+    ).rejects.toThrow(NO_REPOSITORY_STORE_ERROR);
   });
 });

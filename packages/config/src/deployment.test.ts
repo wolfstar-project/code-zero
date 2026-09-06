@@ -79,8 +79,11 @@ poll:
     expect(issues).toEqual([
       { path: '$.control_plane.modes.ci', message: 'Unknown execution mode: teleport' },
     ]);
-    // The whole grant is dropped: half of what was asked for is not what was asked for.
-    expect(config.controlPlane.modes.has('ci')).toBe(false);
+    // The whole grant is refused rather than narrowed to its valid half, but the principal still
+    // resolves to an empty grant rather than none at all: a missing entry reads downstream as "no
+    // grant configured" and widens to the non-writable defaults, which would grant `ci` more than
+    // the mistake in its config ever asked for.
+    expect(config.controlPlane.modes.get('ci')).toEqual([]);
   });
 
   it('refuses an empty grant, which reads as a mistake rather than as "no modes"', () => {

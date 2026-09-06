@@ -110,7 +110,7 @@ export class PersistentAuditLogStore implements AuditLogStore {
     const page = keys.slice(start, start + limit);
     const records = await Promise.all(page.map((key) => this.storage.getItem(key)));
     return {
-      events: records.filter(isAuditEvent),
+      events: records.map(migrateLegacyActor).filter(isAuditEvent),
       nextCursor: start + limit < keys.length ? (page.at(-1) ?? null) : null,
     };
   }
@@ -240,6 +240,40 @@ function sanitizeEvent(event: AuditEvent, secrets: readonly string[]): AuditEven
 
 const ACTOR_TYPES = new Set<string>(['user', 'system', 'api', 'agent']);
 const OUTCOMES = new Set<string>(['success', 'denied', 'failure']);
+
+/**
+ * The actor kind this trail recorded before it moved onto evlog's `{ type, id }` vocabulary,
+ * mapped to the closest type in the new one. `principal` was the machine-token actor the router
+ * now calls `api`; `user` is unchanged; `webhook` and `system` were never actually written by any
+ * caller in this codebase, but are handled all the same since the type they came from allowed them.
+ */
+const LEGACY_ACTOR_KINDS: Record<string, string> = {
+  principal: 'api',
+  user: 'user',
+  webhook: 'system',
+  system: 'system',
+};
+
+/**
+ * Reshapes a record written before the actor moved onto evlog's `{ type, id }` vocabulary into
+ * that shape, so a deployment upgrading past that change keeps reading its own history.
+ *
+ * Applied only when reading: `append` still refuses anything but the current shape, so nothing
+ * new is ever written in the old one. Without this, `isAuditEvent` below would reject every
+ * pre-existing record — `{ kind, name }` has neither field its `isAuditActor` check looks for —
+ * and an append-only trail silently losing history it already has is worse than one that takes a
+ * moment longer to read it.
+ */
+function migrateLegacyActor(value: unknown): unknown {
+  if (!isRecord(value)) return value;
+  const actor = value.actor;
+  if (!isRecord(actor) || typeof actor.type === 'string') return value;
+  const { kind, name } = actor;
+  if (typeof kind !== 'string' || typeof name !== 'string') return value;
+  const type = LEGACY_ACTOR_KINDS[kind];
+  if (!type) return value;
+  return { ...value, actor: { type, id: name } };
+}
 
 /**
  * The full shape, not just the field names.
