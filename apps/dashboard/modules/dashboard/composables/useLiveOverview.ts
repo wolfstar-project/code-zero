@@ -78,6 +78,15 @@ export function useLiveOverview(queryKey: readonly unknown[]): LiveOverview {
           // carries the whole overview again.
         }
       });
+      // Named so it never reaches the `message` listener above as an empty overview (see
+      // `server/api/events.get.ts`). Counted toward freshness all the same: it is the server
+      // proving the connection is still alive between overviews, and a stream that only ever
+      // updated freshness on an overview would call a healthy, merely quiet connection stale.
+      stream.addEventListener('heartbeat', () => {
+        connected.value = true;
+        lastMessageAt.value = Date.now();
+        now.value = lastMessageAt.value;
+      });
       // Fires for a dropped connection and for a refused one alike. `EventSource` retries on its
       // own, but not after the server closed the stream deliberately, so the reconnect is explicit.
       stream.addEventListener('error', () => {

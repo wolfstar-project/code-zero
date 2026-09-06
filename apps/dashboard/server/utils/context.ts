@@ -4,6 +4,7 @@ import {
   authenticate,
   type BetterAuthSessionApi,
   type ControlPlaneAccess,
+  type RepositoryAdmin,
   type RpcContext,
   type TaskStore,
 } from '@code-zero/api';
@@ -27,6 +28,11 @@ import {
  * moment ago has to be answerable without a restart. The path is resolved first, so `/srv/app` and
  * `/srv/app/../app` cannot be two different answers.
  *
+ * The same `repositories` also becomes `context.repositories`, the capability
+ * `repositories.list`/`.save`/`.remove` read and write: it is a superset of the narrower
+ * `{ allows }` shape those procedures need, and the composition root has only the one store to
+ * hand either surface.
+ *
  * Takes `store` rather than importing `taskStore` itself, so this stays testable without pulling
  * in the ViteHub KV binding `../utils/store.js` resolves at runtime.
  */
@@ -34,7 +40,7 @@ export function buildRpcContext(
   request: Request,
   access: ControlPlaneAccess | undefined,
   store: TaskStore,
-  repositories: { allows: (checkoutPath: string) => Promise<boolean> },
+  repositories: RepositoryAdmin & { allows: (checkoutPath: string) => Promise<boolean> },
   auth?: BetterAuthSessionApi,
 ): RpcContext {
   const principal = authenticate(request.headers.get('authorization') ?? undefined, access);
@@ -43,5 +49,6 @@ export function buildRpcContext(
     ...(principal ? { principal } : {}),
     ...(auth ? { auth } : {}),
     mayTargetRepository: (repository) => repositories.allows(resolve(repository)),
+    repositories,
   };
 }

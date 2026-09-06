@@ -16,22 +16,19 @@ let scheduled: ReturnType<typeof setTimeout> | undefined;
  * whole store independently, so N open streams turned one write into N full scans. This is what
  * keeps that cost at one regardless of how many streams are listening.
  */
-function broadcast(): void {
+async function broadcast(): Promise<void> {
   scheduled = undefined;
-  void taskStore
-    .list()
-    .then((tasks) => {
-      const overview = dashboardOverview(tasks);
-      for (const listener of listeners) listener(overview);
-    })
-    .catch((error: unknown) => {
-      console.error('[events] failed to compute the dashboard overview', error);
-    });
+  try {
+    const overview = dashboardOverview(await taskStore.list());
+    for (const listener of listeners) listener(overview);
+  } catch (error) {
+    console.error('[events] failed to compute the dashboard overview', error);
+  }
 }
 
 function scheduleBroadcast(): void {
   if (scheduled) return;
-  scheduled = setTimeout(broadcast, PUSH_DELAY_MS);
+  scheduled = setTimeout(() => void broadcast(), PUSH_DELAY_MS);
 }
 
 taskChanges.on(TASK_CHANGED, scheduleBroadcast);

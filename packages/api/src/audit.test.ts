@@ -188,7 +188,7 @@ describe('audit persistence', () => {
     expect(page.events.map((entry) => entry.id)).toEqual(['audit_1']);
   });
 
-  it('reads a record written before the actor moved to evlog\'s { type, id } vocabulary', async () => {
+  it("reads a record written before the actor moved to evlog's { type, id } vocabulary", async () => {
     const storage = new RecordingStorage();
     // Written straight past `append`, the shape a pre-upgrade deployment actually left on disk.
     await storage.setItem(`audit:${FIRST}:audit_1`, {

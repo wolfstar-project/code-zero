@@ -1,4 +1,4 @@
-import type { DeliveryClaim, DeliveryClaimStore } from '@code-zero/api';
+import { reviewDeliveryKey, type DeliveryClaim, type DeliveryClaimStore } from '@code-zero/api';
 import type { OpenPullRequest } from '@code-zero/source-control';
 import { describe, expect, it } from 'vitest';
 
@@ -193,6 +193,39 @@ describe('pollOnce', () => {
     expect(runs.started[0]?.source).toBe('poll:acme/billing#9');
   });
 
+  it('starts a review without waiting for an earlier one to finish before considering the rest', async () => {
+    const order: string[] = [];
+    let resolveFirst!: () => void;
+    const first = new Promise<void>((resolve) => {
+      resolveFirst = resolve;
+    });
+    const second = { ...WATCHED, name: 'billing', checkoutPath: '/srv/checkouts/acme-billing' };
+
+    const started = await pollOnce({
+      repositories: [WATCHED, second],
+      source: {
+        listOpenPullRequests: async (target) =>
+          target.repo === 'app' ? [pull({ number: 1 })] : [pull({ number: 2 })],
+      },
+      claims: new MemoryClaims(),
+      start: async (request) => {
+        if (request.pullRequest.repo === 'app') {
+          order.push('app started');
+          await first;
+          order.push('app finished');
+          return;
+        }
+        order.push('billing started');
+        resolveFirst();
+      },
+    });
+
+    expect(started).toBe(2);
+    // "billing started" lands before "app finished": the second repository's review was
+    // dispatched to the scheduler without this pass waiting for the first one to complete.
+    expect(order.indexOf('billing started')).toBeLessThan(order.indexOf('app finished'));
+  });
+
   it('does nothing at all when no repository is watched', async () => {
     const runs = collector();
 
@@ -211,9 +244,21 @@ describe('pollOnce', () => {
 
 describe('pollClaimKey', () => {
   it('identifies one commit of one pull request, so a new push is a new key', () => {
-    expect(pollClaimKey(WATCHED, pull())).toBe(`poll:acme/app#412@${HEAD}`);
+    expect(pollClaimKey(WATCHED, pull())).toBe(`review:github:acme/app#412@${HEAD}`);
     expect(pollClaimKey(WATCHED, pull({ headSha: 'd'.repeat(40) }))).not.toBe(
       pollClaimKey(WATCHED, pull()),
+    );
+  });
+
+  it('matches the key the webhook route claims for the same commit, so neither reviews it twice', () => {
+    expect(pollClaimKey(WATCHED, pull())).toBe(
+      reviewDeliveryKey({
+        provider: 'github',
+        owner: WATCHED.owner,
+        repo: WATCHED.name,
+        number: 412,
+        headSha: HEAD,
+      }),
     );
   });
 });
