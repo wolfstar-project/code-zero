@@ -2,16 +2,21 @@ import type { DeliveryClaim, DeliveryClaimStore } from '@code-zero/api';
 import type { OpenPullRequest } from '@code-zero/source-control';
 import { describe, expect, it } from 'vitest';
 
-import type { WatchedRepository } from '../../server/utils/environment.js';
-import { pollClaimKey, pollOnce, type PollRequest } from '../../server/utils/poller.js';
+import {
+  pollClaimKey,
+  pollOnce,
+  type PollRequest,
+  type WatchedRepository,
+} from '../../server/utils/poller.js';
 
 const HEAD = 'c'.repeat(40);
 const BASE = 'b'.repeat(40);
 
 const WATCHED: WatchedRepository = {
   owner: 'acme',
-  repo: 'app',
+  name: 'app',
   checkoutPath: '/srv/checkouts/acme-app',
+  mode: 'observe',
 };
 
 function pull(overrides: Partial<OpenPullRequest> = {}): OpenPullRequest {
@@ -71,10 +76,24 @@ describe('pollOnce', () => {
       {
         // Never a path derived from the provider's answer; only the one that was configured.
         repository: '/srv/checkouts/acme-app',
+        mode: 'observe',
         pullRequest: { owner: 'acme', repo: 'app', number: 412, baseSha: BASE, headSha: HEAD },
         source: 'poll:acme/app#412',
       },
     ]);
+  });
+
+  it('starts each run in the mode its own repository is configured with', async () => {
+    const runs = collector();
+
+    await pollOnce({
+      repositories: [{ ...WATCHED, mode: 'suggest' }],
+      source: source(pull()),
+      claims: new MemoryClaims(),
+      start: runs.start,
+    });
+
+    expect(runs.started[0]?.mode).toBe('suggest');
   });
 
   it('does not review the same commit twice across passes', async () => {
@@ -153,7 +172,7 @@ describe('pollOnce', () => {
 
   it('keeps polling the other repositories when one provider fails', async () => {
     const runs = collector();
-    const second = { ...WATCHED, repo: 'billing', checkoutPath: '/srv/checkouts/acme-billing' };
+    const second = { ...WATCHED, name: 'billing', checkoutPath: '/srv/checkouts/acme-billing' };
     const failures: string[] = [];
 
     const started = await pollOnce({

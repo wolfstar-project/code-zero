@@ -1,7 +1,21 @@
 import type { DeliveryClaimStore } from '@code-zero/api';
 import type { OpenPullRequest, RepositoryTarget } from '@code-zero/source-control';
 
-import type { WatchedRepository } from './environment.js';
+/**
+ * What one pass needs to know about a configured repository.
+ *
+ * Structural, so `@code-zero/database`'s `WatchedRepositoryRecord` satisfies it without this
+ * module importing the store: the poller composes runs, it does not decide which repositories
+ * exist. Two things have to be stated because neither can be derived — which repository on the
+ * provider to ask about, and which checkout on this host a run may execute against.
+ */
+export interface WatchedRepository {
+  owner: string;
+  name: string;
+  checkoutPath: string;
+  /** The mode a run starts in. Neither value can write to the checkout. */
+  mode: 'observe' | 'suggest';
+}
 
 /** The one thing the poller asks a provider for. Narrow so a test needs no HTTP adapter. */
 export interface OpenPullRequestSource {
@@ -28,6 +42,11 @@ export interface PollOptions {
 export interface PollRequest {
   /** The local checkout the run executes against, always one an operator named. */
   repository: string;
+  /**
+   * The mode this repository is configured with, carried per repository rather than per pass:
+   * one deployment can watch a repository it only observes beside one it may suggest on.
+   */
+  mode: 'observe' | 'suggest';
   pullRequest: { owner: string; repo: string; number: number; baseSha: string; headSha: string };
   /** Provenance for the task record, e.g. `poll:acme/app#412`. */
   source: string;
@@ -41,7 +60,7 @@ export interface PollRequest {
  * force-push or a new commit is a key nobody has claimed.
  */
 export function pollClaimKey(target: WatchedRepository, pull: OpenPullRequest): string {
-  return `poll:${target.owner}/${target.repo}#${String(pull.number)}@${pull.headSha}`;
+  return `poll:${target.owner}/${target.name}#${String(pull.number)}@${pull.headSha}`;
 }
 
 /**
@@ -57,12 +76,12 @@ export function pollClaimKey(target: WatchedRepository, pull: OpenPullRequest): 
 export async function pollOnce(options: PollOptions): Promise<number> {
   let started = 0;
   for (const repository of options.repositories) {
-    const label = `${repository.owner}/${repository.repo}`;
+    const label = `${repository.owner}/${repository.name}`;
     let open: OpenPullRequest[];
     try {
       open = await options.source.listOpenPullRequests({
         owner: repository.owner,
-        repo: repository.repo,
+        repo: repository.name,
       });
     } catch (error) {
       options.onError?.(label, error);
@@ -84,9 +103,10 @@ export async function pollOnce(options: PollOptions): Promise<number> {
       try {
         await options.start({
           repository: repository.checkoutPath,
+          mode: repository.mode,
           pullRequest: {
             owner: repository.owner,
-            repo: repository.repo,
+            repo: repository.name,
             number: pull.number,
             baseSha: pull.baseSha,
             headSha: pull.headSha,

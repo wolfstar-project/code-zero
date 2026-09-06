@@ -31,6 +31,10 @@ export type RepositoryMode = 'observe' | 'suggest';
 
 const MODES = new Set<string>(['observe', 'suggest']);
 
+function isMode(value: string): value is RepositoryMode {
+  return MODES.has(value);
+}
+
 /** A repository that is watched: it has provider coordinates and polling is on. */
 export interface WatchedRepositoryRecord extends RepositoryRecord {
   owner: string;
@@ -160,7 +164,7 @@ function toRecord(row: typeof repository.$inferSelect): RepositoryRecord {
     owner: row.owner,
     name: row.name,
     checkoutPath: row.checkoutPath,
-    mode: MODES.has(row.mode) ? (row.mode as RepositoryMode) : 'observe',
+    mode: isMode(row.mode) ? row.mode : 'observe',
     pollEnabled: row.pollEnabled,
   };
 }

@@ -94,6 +94,7 @@ describe('schema', () => {
       'inviteUse',
       'member',
       'organization',
+      'repository',
       'session',
       'user',
       'verification',

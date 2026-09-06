@@ -1,9 +1,4 @@
-import {
-  accessFromEnvironment,
-  controlPlaneOriginsFromEnvironment,
-  requestLoggerStorage,
-  rpcRouter,
-} from '@code-zero/api';
+import { requestLoggerStorage, rpcRouter } from '@code-zero/api';
 import { EvlogHandlerPlugin } from '@orpc/evlog';
 import { OpenAPIGenerator } from '@orpc/openapi';
 import { OpenAPIHandler } from '@orpc/openapi/fetch';
@@ -30,13 +25,13 @@ const openApiSpec = generator.generate(rpcRouter, {
  * Same router, same authorization rules as the `/rpc/**` RPC transport; only the wire protocol
  * differs, for callers that want plain HTTP instead of the typed oRPC client. Unlike `/rpc/**`,
  * this transport is meant for cross-origin callers, so it carries a CORS plugin — restricted to
- * `CODE_ZERO_CONTROL_PLANE_ORIGINS`'s allow-list (default: none) rather than reflecting any
+ * `control_plane.origins`'s allow-list (default: none) rather than reflecting any
  * request origin, since `tasks.list`/`tasks.get`/`health` are unauthenticated and would otherwise
  * be readable by any website's browser-side JavaScript.
  */
 const handler = new OpenAPIHandler(rpcRouter, {
   plugins: [
-    new CORSHandlerPlugin({ origin: controlPlaneOriginsFromEnvironment() }),
+    new CORSHandlerPlugin({ origin: async () => (await deploymentConfig()).controlPlane.origins }),
     new EvlogHandlerPlugin({ storage: requestLoggerStorage, plugins: auditPlugins }),
     new OpenAPIReferenceHandlerPlugin({
       docsPath: '/docs',
@@ -45,15 +40,16 @@ const handler = new OpenAPIHandler(rpcRouter, {
     }),
   ],
 });
-// Fails closed: without configured tokens every mutation is rejected while reads stay open.
-const access = accessFromEnvironment();
 
 export default defineEventHandler(async (event) => {
   const request = toWebRequest(event);
   try {
     const { matched, response } = await handler.handle(request, {
       prefix: '/api/v1',
-      context: { ...buildRpcContext(request, access, taskStore), auditLog: auditLogStore },
+      context: {
+        ...buildRpcContext(request, await controlPlaneAccess(), taskStore, repositoryStore),
+        auditLog: auditLogStore,
+      },
     });
     if (matched) return response;
   } catch (error) {

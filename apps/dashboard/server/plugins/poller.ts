@@ -4,14 +4,23 @@ import { GitHubPullRequests } from '@code-zero/source-control';
 /**
  * Finds work on its own, so a self-hosted deployment does not need a public webhook URL.
  *
- * Off unless `CODE_ZERO_POLL_REPOSITORIES` names something. It runs an interval in this process,
- * so it belongs to a deployment that stays up: a serverless target freezes between requests and
- * would poll only by accident. Nothing else changes when it is off — the webhook route remains the
- * push-based path, and this is the pull-based one, sharing the same durable delivery claims so the
- * two cannot review the same commit twice.
+ * Which repositories it watches is read from the store on every pass, not once at boot: the list
+ * is a table an operator edits from the dashboard, so turning polling on for a repository has to
+ * take effect without a restart. A pass over an empty list asks the provider nothing, which is
+ * what makes it safe to always schedule the next one instead of deciding at boot whether to.
  *
- * The mode is `observe` unless an operator asks for `suggest`. Work nobody requested must not be
- * able to write to a checkout, and neither mode can.
+ * It runs a timer in this process, so it belongs to a deployment that stays up: a serverless
+ * target freezes between requests and would poll only by accident. Nothing else changes when
+ * nothing is watched — the webhook route remains the push-based path, and this is the pull-based
+ * one, sharing the same durable delivery claims so the two cannot review the same commit twice.
+ *
+ * Each pass schedules the next one when it finishes, rather than running on a fixed interval: a
+ * pass that overruns cannot then have a second one start beside it, and the delay is re-read each
+ * time, so `poll.interval_seconds` is answered by the same lazily-loaded configuration everything
+ * else reads instead of a value captured before the plugin could await it.
+ *
+ * Each repository carries its own mode, and neither mode it may carry can write to a checkout:
+ * work nobody requested must not be able to.
  *
  * The watched checkout has to be current: a review reads the diff between the pull request's base
  * and head commits, so a checkout that has not fetched them fails the run rather than reviewing
@@ -19,60 +28,60 @@ import { GitHubPullRequests } from '@code-zero/source-control';
  * webhook route.
  */
 export default defineNitroPlugin((nitroApp) => {
-  const repositories = watchedRepositoriesFromEnvironment(process.env);
-  if (repositories.length === 0) return;
-
   const token = githubTokenFromEnvironment();
   if (!token) {
-    console.warn('[poll] CODE_ZERO_POLL_REPOSITORIES is set but GITHUB_TOKEN is not; not polling');
+    console.warn('[poll] GITHUB_TOKEN is not configured; not polling');
     return;
   }
 
   const pulls = new GitHubPullRequests({ token });
-  const intervalMs = pollIntervalFromEnvironment(process.env) * 1_000;
-  const mode = pollModeFromEnvironment(process.env);
-  let running = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let stopped = false;
 
   async function pass(): Promise<void> {
-    // A pass that overruns its interval must not start a second one beside itself: the claims
-    // would still keep the work unique, but the provider would be asked twice for nothing.
-    if (running) return;
-    running = true;
-    try {
-      await pollOnce({
-        repositories,
-        source: pulls,
-        claims: deliveryClaimStore,
-        start: (request) =>
-          runTask(
-            {
-              repository: request.repository,
-              mode,
-              trigger: 'proactive',
-              source: request.source,
-              pullRequest: request.pullRequest,
-            },
-            { store: taskStore },
-          ),
-        onError: (repository, error) => {
-          console.error(`[poll] ${repository} failed`, error);
-        },
-      });
-    } finally {
-      running = false;
-    }
+    const repositories = await repositoryStore.watched();
+    if (repositories.length === 0) return;
+    await pollOnce({
+      repositories,
+      source: pulls,
+      claims: deliveryClaimStore,
+      start: (request) =>
+        runTask(
+          {
+            repository: request.repository,
+            mode: request.mode,
+            trigger: 'proactive',
+            source: request.source,
+            pullRequest: request.pullRequest,
+          },
+          { store: taskStore },
+        ),
+      onError: (repository, error) => {
+        console.error(`[poll] ${repository} failed`, error);
+      },
+    });
   }
 
-  const timer = setInterval(() => void pass(), intervalMs);
-  // Never hold the process open on its own account: a deployment shutting down should not wait out
-  // an interval that has nothing to do.
-  timer.unref();
+  async function loop(): Promise<void> {
+    try {
+      await pass();
+    } catch (error) {
+      // A pass that cannot even read the store must not take the timer down with it: the database
+      // being briefly unreachable is a reason to try again, not to stop polling.
+      console.error('[poll] pass failed', error);
+    }
+    if (stopped) return;
+    const { poll } = await deploymentConfig();
+    timer = setTimeout(() => void loop(), poll.intervalSeconds * 1_000);
+    // Never hold the process open on its own account: a deployment shutting down should not wait
+    // out an interval that has nothing to do.
+    timer.unref();
+  }
+
   nitroApp.hooks.hook('close', () => {
-    clearInterval(timer);
+    stopped = true;
+    if (timer) clearTimeout(timer);
   });
 
-  console.info(
-    `[poll] watching ${String(repositories.length)} repositories every ${String(intervalMs / 1_000)}s in ${mode} mode`,
-  );
-  void pass();
+  void loop();
 });

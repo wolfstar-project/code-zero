@@ -1,0 +1,35 @@
+# Deployment policy for the dashboard, copied to `code-zero.deployment.yml` (or to any path named
+# by CODE_ZERO_CONFIG). Every section is optional; a deployment that has changed nothing ships no
+# file at all and gets these defaults.
+#
+# What belongs here, and what does not:
+#
+#   - Here: policy. Values that are fixed for the life of the process, are not secret, and are read
+#     more easily as a structured document than as a comma-separated variable.
+#   - The environment: secrets, and the two bootstrap values needed to find everything else
+#     (DATABASE_URL, CODE_ZERO_CONFIG).
+#   - The `repository` table: anything that changes while the process runs. Which checkouts a task
+#     may target, and which repositories the poller watches, are rows an operator edits from the
+#     dashboard — a repository added a moment ago is answerable without a restart.
+#
+# Every field is validated. A value that is refused is reported on stderr with its own `$.path` and
+# falls back to the default below, so one wrong line does not stop the dashboard from loading.
+
+control_plane:
+  # Origins allowed to read /api/v1/** cross-origin via CORS. Empty by default: `tasks.list`,
+  # `tasks.get` and `health` are unauthenticated by design, so letting a browser read their
+  # responses from another origin is an explicit opt-in, not the default.
+  origins: []
+  #  - https://ops.example.com
+
+  # Execution modes each operator token may request from `tasks.create`, keyed by the principal
+  # name in CODE_ZERO_CONTROL_PLANE_TOKENS. Without a grant a principal may only request the
+  # non-writable `observe` and `suggest`. An unknown mode, or an unknown principal name, is
+  # refused rather than quietly narrowed.
+  modes: {}
+  #  ci: [observe, suggest]
+  #  release: [observe, suggest, fix, autonomous]
+
+poll:
+  # Seconds between polling passes. Clamped to 15..3600.
+  interval_seconds: 60

@@ -1,6 +1,7 @@
+import { resolve } from 'node:path';
+
 import {
   authenticate,
-  mayTargetRepository,
   type BetterAuthSessionApi,
   type ControlPlaneAccess,
   type RpcContext,
@@ -21,6 +22,11 @@ import {
  * only for procedures that require an identity, so an anonymous read never queries the
  * authentication store.
  *
+ * Which checkout a run may target is asked of `repositories` per request rather than fixed at
+ * boot: the allow-list is a table an operator edits from the dashboard, so a repository added a
+ * moment ago has to be answerable without a restart. The path is resolved first, so `/srv/app` and
+ * `/srv/app/../app` cannot be two different answers.
+ *
  * Takes `store` rather than importing `taskStore` itself, so this stays testable without pulling
  * in the ViteHub KV binding `../utils/store.js` resolves at runtime.
  */
@@ -28,6 +34,7 @@ export function buildRpcContext(
   request: Request,
   access: ControlPlaneAccess | undefined,
   store: TaskStore,
+  repositories: { allows: (checkoutPath: string) => Promise<boolean> },
   auth?: BetterAuthSessionApi,
 ): RpcContext {
   const principal = authenticate(request.headers.get('authorization') ?? undefined, access);
@@ -35,6 +42,6 @@ export function buildRpcContext(
     store,
     ...(principal ? { principal } : {}),
     ...(auth ? { auth } : {}),
-    mayTargetRepository: (repository) => mayTargetRepository(repository, access),
+    mayTargetRepository: (repository) => repositories.allows(resolve(repository)),
   };
 }

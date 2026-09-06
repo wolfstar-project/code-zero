@@ -26,3 +26,6 @@ test-report.junit.xml
 
 # Skilld references (recreated by `skilld install`)
 .skilld
+code-zero.deployment.yml
+!code-zero.deployment.example.yml
+!apps/dashboard/code-zero.deployment.solo.yml

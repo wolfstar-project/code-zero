@@ -177,14 +177,11 @@ function stringList(
 ): string[] | undefined {
   const value = source?.[key];
   if (value === undefined || value === null) return undefined;
-  if (
-    !Array.isArray(value) ||
-    !value.every((entry) => typeof entry === 'string' && entry.trim() !== '')
-  ) {
+  if (!isStringArray(value) || !value.every((entry) => entry.trim() !== '')) {
     issues.push({ path: `${path}.${key}`, message: 'Expected a list of non-empty strings.' });
     return undefined;
   }
-  return value.map((entry) => (entry as string).trim());
+  return value.map((entry) => entry.trim());
 }
 
 function boundedInteger(
@@ -223,28 +220,32 @@ function modeGrants(
   if (!modes) return grants;
   for (const [name, value] of Object.entries(modes)) {
     const path = `$.control_plane.modes.${name}`;
-    if (
-      !Array.isArray(value) ||
-      value.length === 0 ||
-      !value.every((entry) => typeof entry === 'string')
-    ) {
+    if (!isStringArray(value) || value.length === 0) {
       issues.push({ path, message: 'Expected a non-empty list of execution modes.' });
       continue;
     }
     const parsed: RunMode[] = [];
     let valid = true;
-    for (const entry of value as string[]) {
+    for (const entry of value) {
       const mode = entry.trim();
-      if (!RUN_MODES.has(mode)) {
+      if (!isRunMode(mode)) {
         issues.push({ path, message: `Unknown execution mode: ${mode}` });
         valid = false;
         continue;
       }
-      parsed.push(mode as RunMode);
+      parsed.push(mode);
     }
     if (valid) grants.set(name, parsed);
   }
   return grants;
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((entry) => typeof entry === 'string');
+}
+
+function isRunMode(value: string): value is RunMode {
+  return RUN_MODES.has(value);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
