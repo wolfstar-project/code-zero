@@ -33,15 +33,17 @@ describe('errors', () => {
 
   it('never marks an error fatal or unhandled, so Nitro forwards `message` instead of replacing it', () => {
     // Nitro's own error handler — not bare h3's `sendError`, which drops `message` — serves every
-    // response in this app. It forwards `error.message` verbatim only while both flags stay
-    // false (h3's default); either one true and the client sees a generic "Server Error" instead.
+    // response in this app. It forwards `error.message` verbatim only while both flags read
+    // falsy; `EvlogError` never declares either one, so both are simply absent — as falsy as h3's
+    // own `false` default. Either one present and truthy would make the client see a generic
+    // "Server Error" instead.
     for (const error of [
       errors.notFound(),
       errors.misconfigured('GITHUB_WEBHOOK_SECRET'),
       errors.internal(new Error('boom')),
     ]) {
-      expect(error.fatal).toBe(false);
-      expect(error.unhandled).toBe(false);
+      expect('fatal' in error).toBe(false);
+      expect('unhandled' in error).toBe(false);
     }
   });
 });
