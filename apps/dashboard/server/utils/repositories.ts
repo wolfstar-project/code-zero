@@ -16,7 +16,7 @@ import { database } from './database.js';
  *
  * A contract rather than the Drizzle functions directly, so the process can run on an in-memory
  * store when it has no database — the same shape `server/auth.config.ts` takes for the session
- * store, and for the same reason: `dev:dashboard` and the Playwright preview both own the whole process
+ * store, and for the same reason: `dev:solo` and the Playwright preview both own the whole process
  * and throw its state away when they exit.
  */
 export interface RepositoryStore {

@@ -108,10 +108,10 @@ To see the dashboard before configuring anything, start it on its own instead:
 ```bash
 mise install
 aube ci
-aube run dev:dashboard   # http://localhost:3000, then sign up at /signup
+aube run dev:solo        # http://localhost:3000, then sign up at /signup
 ```
 
-`dev:dashboard` is `nuxt dev` reading [`apps/dashboard/.env.solo`](./apps/dashboard/.env.solo) in
+`dev:solo` is `nuxt dev` reading [`apps/dashboard/.env.solo`](./apps/dashboard/.env.solo) in
 place of `.env`: Better Auth runs on an in-memory store, so there is no Postgres to install and no
 migration to apply, and the account you create lives until you stop the process. Nothing else
 about the app changes — it is the same UI, the same router, and the same authentication endpoints

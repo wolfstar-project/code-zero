@@ -79,7 +79,7 @@ const options = authBetterAuthOptions({
  * which own the whole server process and throw its store away when they exit: the Playwright
  * preview server (`start:playwright:webserver`, see `playwright.config.ts`), so the e2e suite in
  * `test/e2e/test-utils.ts` can sign up and sign in its own throwaway account through the real
- * `/api/auth/**` endpoints without a live database; and `dev:dashboard` (`.env.solo`), so the
+ * `/api/auth/**` endpoints without a live database; and `dev:solo` (`.env.solo`), so the
  * dashboard starts from a fresh clone without one either. Both stay off the network and off mutable
  * external state. `AUTH_DATABASE_URL` still has to resolve to build `options` above, but nothing
  * ever queries it once `database` is overridden here.
@@ -90,7 +90,7 @@ const options = authBetterAuthOptions({
  * A `NODE_ENV === 'production'` check would therefore reject every e2e run, not just a leaked
  * flag. Keep this variable out of any shared `.env`/CI template that a real deployment also reads —
  * `.env.solo` is not one: `nuxt` loads it only when a command names it with `--dotenv`, which is
- * how `dev:dashboard` alone reaches it.
+ * how `dev:solo` alone reaches it.
  */
 export default defineServerAuth(
   process.env.AUTH_E2E_MEMORY === 'true'
