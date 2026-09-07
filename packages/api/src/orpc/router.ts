@@ -243,7 +243,10 @@ export const rpcRouter = {
         // Resolved the same way `mayTargetRepository` resolves a future `tasks.create` request
         // (`context.ts`), so `/srv/app` and `/srv/app/../app` are the same stored path rather than
         // an allow-list miss or a duplicate row for the same checkout.
-        const record = await repositories.save({ ...input, checkoutPath: resolve(input.checkoutPath) });
+        const record = await repositories.save({
+          ...input,
+          checkoutPath: resolve(input.checkoutPath),
+        });
         useLogger().audit({
           actor: principalActor(context.principal),
           action: 'repository.saved',

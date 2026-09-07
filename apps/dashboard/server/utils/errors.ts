@@ -37,7 +37,8 @@ export const errors = {
    * a partial configuration. The variable is named because it is deployment configuration, never
    * a secret's value.
    */
-  misconfigured: (variable: string) => fail({ status: 503, message: `${variable} is not configured` }),
+  misconfigured: (variable: string) =>
+    fail({ status: 503, message: `${variable} is not configured` }),
 
   /**
    * The caller is signed in, but the session does not carry the role the route requires. Distinct
