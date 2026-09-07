@@ -100,6 +100,6 @@ export default defineEventHandler(async (event) => {
   // but that also means a broadcast can land first and finish before this slower read does. This
   // snapshot is only ever older in that case, so it is dropped rather than sent: applying it would
   // overwrite the newer state the client already has with a stale one.
-  void currentOverview().then((overview) => (receivedLiveUpdate ? undefined : push(overview)));
+  void currentOverview().then((overview) => (receivedLiveUpdate ? undefined : void push(overview)));
   return stream.send();
 });
