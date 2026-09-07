@@ -171,10 +171,11 @@ describe('pollOnce', () => {
     expect(runs.started).toHaveLength(1);
   });
 
-  it('retries a commit whose review ran but whose claim could not be recorded as complete', async () => {
+  it('does not retry a commit whose review ran, even when its claim could not be recorded as complete', async () => {
     // The review itself succeeded; only the write that marks the claim complete failed, the way a
-    // transient storage error would. Nothing here distinguishes that from a failed start: either
-    // way the claim must not be left standing, or this commit is unreviewable-by-record forever.
+    // transient storage error would. Unlike a failed start, the claim is left standing here: the
+    // task for this revision already exists, so releasing it would let the next pass claim and
+    // start a second review of the same commit rather than recover from anything.
     class FlakyClaims extends MemoryClaims {
       override complete(): Promise<void> {
         return Promise.reject(new Error('storage unavailable'));
@@ -190,14 +191,15 @@ describe('pollOnce', () => {
       onError: (_repository: string, error: unknown) => failures.push(error),
     };
 
-    await pollOnce(flaky);
+    const started = await pollOnce(flaky);
+    expect(started).toBe(1);
     expect(String(failures[0])).toContain('storage unavailable');
 
-    // The claim was released despite the review having run, so the same store lets the next pass
-    // claim and retry the commit rather than treating it as claimed forever.
+    // The claim was left standing despite the failed completion write, so the next pass finds this
+    // commit already claimed and does not start a second review of it.
     const runs = collector();
     await pollOnce({ ...flaky, start: runs.start, onError: undefined });
-    expect(runs.started).toHaveLength(1);
+    expect(runs.started).toHaveLength(0);
   });
 
   it('keeps polling the other repositories when one provider fails', async () => {

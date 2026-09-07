@@ -212,55 +212,61 @@ export class GitHubPullRequests {
   }
 
   /**
-   * The repository's open pull requests, newest first, one page at a time.
+   * Every open pull request, newest first.
    *
-   * Read-only, and the only thing here that goes looking for work rather than publishing it. A
-   * page limit rather than full pagination: a caller polls repeatedly, so a repository with more
-   * open pull requests than one page is one whose oldest simply wait for the next pass — which is
-   * better than a poll that walks hundreds of pages every interval.
+   * Read-only, and the only thing here that goes looking for work rather than publishing it. Pages
+   * are walked in full rather than stopping at the first: sorted newest-first, a pull request past
+   * page one only reaches page one once something touches it again, so a caller that polled just
+   * the first page could leave an old, otherwise-untouched pull request unreviewed forever rather
+   * than merely waiting for a later pass. `MAX_PAGES` bounds the worst case for a repository with
+   * an unbounded number of open pull requests, rather than one poll walking every page that exists.
    *
    * A record GitHub returns without an integer number or a commit-shaped head sha is skipped
    * rather than raised: one malformed entry must not cost the caller the whole page.
    */
-  async listOpenPullRequests(target: RepositoryTarget, perPage = 50): Promise<OpenPullRequest[]> {
-    const query = new URLSearchParams({
-      state: 'open',
-      sort: 'updated',
-      direction: 'desc',
-      per_page: String(Math.min(Math.max(Math.trunc(perPage), 1), 100)),
-    });
-    const payload = await this.send(
-      'GET',
-      `/repos/${target.owner}/${target.repo}/pulls?${query.toString()}`,
-    );
-    if (!Array.isArray(payload)) throw new Error('GitHub did not report a list of pull requests');
+  async listOpenPullRequests(target: RepositoryTarget): Promise<OpenPullRequest[]> {
     const requests: OpenPullRequest[] = [];
-    for (const entry of payload) {
-      const number = readNumber(entry, 'number');
-      const head = readRecord(entry, 'head');
-      const headSha = readString(head, 'sha');
-      const headRef = readString(head, 'ref');
-      const baseSha = readString(readRecord(entry, 'base'), 'sha');
-      // Both commits are required: a review reads the diff between them, so a record missing
-      // either describes nothing a run could inspect.
-      if (
-        number === undefined ||
-        !headSha ||
-        !COMMIT_SHA.test(headSha) ||
-        !headRef ||
-        !baseSha ||
-        !COMMIT_SHA.test(baseSha)
-      )
-        continue;
-      requests.push({
-        number,
-        title: readString(entry, 'title') ?? '',
-        headSha,
-        headRef,
-        baseSha,
-        url: readString(entry, 'html_url') ?? '',
-        draft: readRecord(entry, 'draft') === true,
+    for (let page = 1; page <= MAX_PAGES; page += 1) {
+      const query = new URLSearchParams({
+        state: 'open',
+        sort: 'updated',
+        direction: 'desc',
+        per_page: '100',
+        page: String(page),
       });
+      const payload = await this.send(
+        'GET',
+        `/repos/${target.owner}/${target.repo}/pulls?${query.toString()}`,
+      );
+      if (!Array.isArray(payload)) throw new Error('GitHub did not report a list of pull requests');
+      for (const entry of payload) {
+        const number = readNumber(entry, 'number');
+        const head = readRecord(entry, 'head');
+        const headSha = readString(head, 'sha');
+        const headRef = readString(head, 'ref');
+        const baseSha = readString(readRecord(entry, 'base'), 'sha');
+        // Both commits are required: a review reads the diff between them, so a record missing
+        // either describes nothing a run could inspect.
+        if (
+          number === undefined ||
+          !headSha ||
+          !COMMIT_SHA.test(headSha) ||
+          !headRef ||
+          !baseSha ||
+          !COMMIT_SHA.test(baseSha)
+        )
+          continue;
+        requests.push({
+          number,
+          title: readString(entry, 'title') ?? '',
+          headSha,
+          headRef,
+          baseSha,
+          url: readString(entry, 'html_url') ?? '',
+          draft: readRecord(entry, 'draft') === true,
+        });
+      }
+      if (payload.length < 100) break;
     }
     return requests;
   }

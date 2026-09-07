@@ -92,9 +92,10 @@ export function pollClaimKey(target: WatchedRepository, pull: OpenPullRequest): 
  * of that repository's pull requests: `options.start` hands the run to a scheduler that already
  * bounds how many run at once, so serializing ahead of it here would only make one long review
  * delay the rest of the pass discovering work behind it. Every started review is still awaited
- * before this function returns, so its outcome — recording the claim as complete, or releasing it
- * for the next pass to retry — is always settled by the time the caller acts on the count this
- * returns.
+ * before this function returns, so its outcome is always settled by the time the caller acts on
+ * the count this returns: a review that never started releases its claim for the next pass to
+ * retry, while one that did is never released on a later failure — only starting is retried,
+ * because retrying a review that already ran would duplicate it rather than recover it.
  *
  * Returns how many reviews it started — a claim taken and `options.start` resolved without
  * throwing — which is what the caller logs; everything else about them is on the task records the
@@ -149,14 +150,21 @@ export async function pollOnce(options: PollOptions): Promise<number> {
                 },
                 source: `poll:${label}#${String(pull.number)}`,
               });
-              started += 1;
+            } catch (error) {
+              // The review never ran, so releasing is what lets the next pass retry this commit
+              // instead of finding it claimed forever.
+              await options.claims.release(key).catch(() => undefined);
+              options.onError?.(label, error);
+              return;
+            }
+            started += 1;
+            try {
               await options.claims.complete(key, { started: true });
             } catch (error) {
-              // Released rather than completed — regardless of whether it was the start or this
-              // completion write that failed — so the next pass retries this commit. Leaving the
-              // claim standing on either failure would make one transient error mean the commit is
-              // never reviewed at all.
-              await options.claims.release(key).catch(() => undefined);
+              // The review already ran — releasing here, unlike above, would let the next pass
+              // claim and start a second review of a commit that has already been reviewed once.
+              // The claim is left standing (claimed, not completed) so this failure only means its
+              // outcome went unrecorded, not that the work repeats.
               options.onError?.(label, error);
             }
           })(),
