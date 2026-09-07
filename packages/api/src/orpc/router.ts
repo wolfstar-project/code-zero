@@ -1,3 +1,5 @@
+import { resolve } from 'node:path';
+
 import { redactSecrets } from '@code-zero/shared';
 import { providerKinds } from '@code-zero/source-control';
 // `openapi(meta)` builds the same metadata plugin `.route()` sugars over (see
@@ -238,7 +240,10 @@ export const rpcRouter = {
       .input(repositoryInput)
       .handler(async ({ input, context }) => {
         const repositories = requireRepositoryAdmin(context);
-        const record = await repositories.save(input);
+        // Resolved the same way `mayTargetRepository` resolves a future `tasks.create` request
+        // (`context.ts`), so `/srv/app` and `/srv/app/../app` are the same stored path rather than
+        // an allow-list miss or a duplicate row for the same checkout.
+        const record = await repositories.save({ ...input, checkoutPath: resolve(input.checkoutPath) });
         useLogger().audit({
           actor: principalActor(context.principal),
           action: 'repository.saved',
