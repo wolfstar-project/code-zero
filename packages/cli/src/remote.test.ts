@@ -54,7 +54,7 @@ function rpc(body: unknown, status = 200): Response {
 
 describe('runRemotely', () => {
   it('presents the stored session as a bearer token on the RPC transport', async () => {
-    const { send, requests } = transport(rpc({ id: 'cz_1', state: 'completed' }));
+    const { send, requests } = transport(rpc({ id: 'cz_1', state: 'completed', plan: [] }));
 
     const outcome = await runRemotely(REQUEST, {
       fetch: send,
@@ -62,7 +62,7 @@ describe('runRemotely', () => {
       now: () => NOW,
     });
 
-    expect(outcome).toEqual({ ok: true, result: { id: 'cz_1', state: 'completed' } });
+    expect(outcome).toEqual({ ok: true, result: { id: 'cz_1', state: 'completed', plan: [] } });
     expect(requests[0]?.url).toBe(`${ORIGIN}/rpc/tasks/create`);
     expect(requests[0]?.headers.get('authorization')).toBe('Bearer session-token-value');
     // Only the RPC transport resolves a session, and its CSRF guard reads this header.
@@ -70,7 +70,7 @@ describe('runRemotely', () => {
   });
 
   it('sends the run the operator asked for, and no feedback for a proactive one', async () => {
-    const { send, requests } = transport(rpc({ id: 'cz_1', state: 'completed' }));
+    const { send, requests } = transport(rpc({ id: 'cz_1', state: 'completed', plan: [] }));
 
     await runRemotely(REQUEST, { fetch: send, credentials: credentials({}), now: () => NOW });
 
@@ -84,7 +84,7 @@ describe('runRemotely', () => {
   });
 
   it('carries the feedback when the run is triggered by one', async () => {
-    const { send, requests } = transport(rpc({ id: 'cz_1', state: 'completed' }));
+    const { send, requests } = transport(rpc({ id: 'cz_1', state: 'completed', plan: [] }));
 
     await runRemotely(
       { ...REQUEST, trigger: 'feedback', feedback: 'Possible null dereference' },
@@ -95,7 +95,7 @@ describe('runRemotely', () => {
   });
 
   it('sends nothing at all when this machine holds no session for the deployment', async () => {
-    const { send, requests } = transport(rpc({ id: 'cz_1', state: 'completed' }));
+    const { send, requests } = transport(rpc({ id: 'cz_1', state: 'completed', plan: [] }));
 
     const outcome = await runRemotely(REQUEST, { fetch: send, credentials: credentials() });
 
@@ -104,7 +104,7 @@ describe('runRemotely', () => {
   });
 
   it('recognises an expired session offline, rather than spending a round trip on it', async () => {
-    const { send, requests } = transport(rpc({ id: 'cz_1', state: 'completed' }));
+    const { send, requests } = transport(rpc({ id: 'cz_1', state: 'completed', plan: [] }));
 
     const outcome = await runRemotely(REQUEST, {
       fetch: send,
@@ -117,7 +117,7 @@ describe('runRemotely', () => {
   });
 
   it('treats an unparseable expiry as expired rather than as valid', async () => {
-    const { send } = transport(rpc({ id: 'cz_1', state: 'completed' }));
+    const { send } = transport(rpc({ id: 'cz_1', state: 'completed', plan: [] }));
 
     const outcome = await runRemotely(REQUEST, {
       fetch: send,
@@ -162,6 +162,21 @@ describe('runRemotely', () => {
 
   it('refuses an answer that is not a result, which must never reach the exit-code table', async () => {
     const { send } = transport(rpc({ queued: true }));
+
+    const outcome = await runRemotely(REQUEST, {
+      fetch: send,
+      credentials: credentials({}),
+      now: () => NOW,
+    });
+
+    expect(outcome).toMatchObject({ ok: false, failure: { kind: 'refused' } });
+  });
+
+  it('refuses a non-terminal answer, which the exit-code table has no entry for', async () => {
+    // `id`/`state` alone pass the loosest possible shape check; a real, in-progress `/rpc`
+    // response looks exactly like this before the run finishes. Accepting it here would report
+    // exit code 0 for a task that has not actually finished yet.
+    const { send } = transport(rpc({ id: 'cz_1', state: 'queued' }));
 
     const outcome = await runRemotely(REQUEST, {
       fetch: send,

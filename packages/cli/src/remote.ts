@@ -1,4 +1,4 @@
-import type { RunMode, TaskResult } from '@code-zero/shared';
+import type { RunMode, TaskResult, TerminalState } from '@code-zero/shared';
 
 import { readCredentials, type StoredCredential } from './credentials.js';
 
@@ -111,12 +111,28 @@ function unwrap(payload: unknown): unknown {
   return isRecord(payload) && 'json' in payload ? payload.json : payload;
 }
 
+const TERMINAL_STATES = new Set(['completed', 'needs-human', 'failed']);
+
+function isTerminalState(state: string): state is TerminalState {
+  return TERMINAL_STATES.has(state);
+}
+
 /**
  * Checked, not asserted: this is a remote answer, and the caller maps `state` onto an exit code CI
- * reads. A shape that is not a result must not be able to exit `0`.
+ * reads and renders `plan` for a human to read. A queued or in-progress answer has neither — `/rpc`
+ * only resolves once the run reaches one of these three states — so accepting one here would let a
+ * non-terminal response report exit code `0` (no entry in the caller's exit-code table means no
+ * exit code) and throw while rendering a plan that was never populated. A shape short either field
+ * must not be able to reach the caller as a result.
  */
 function isTaskResult(value: unknown): value is TaskResult {
-  return isRecord(value) && typeof value.id === 'string' && typeof value.state === 'string';
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.state === 'string' &&
+    isTerminalState(value.state) &&
+    Array.isArray(value.plan)
+  );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
