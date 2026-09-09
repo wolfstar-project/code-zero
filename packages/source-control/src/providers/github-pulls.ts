@@ -66,6 +66,9 @@ export interface GitHubPullRequestsOptions {
 const MAX_TITLE = 256;
 const MAX_BODY = 60_000;
 const COMMIT_SHA = /^[0-9a-f]{7,64}$/i;
+// Caps one poll's worst case for a repository with an unbounded number of open pull requests at
+// 2,000 (100 per page) rather than walking every page that exists.
+const MAX_PAGES = 20;
 // Standard base64 with optional padding; anything else is a caller bug, refused before any request.
 const BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 
