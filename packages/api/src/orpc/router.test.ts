@@ -500,6 +500,21 @@ describe('rpc audit trail', () => {
     expect(page.events.map((entry) => entry.id)).toEqual(['audit_2', 'audit_1']);
   });
 
+  it('reads the trail back for an account holding admin among several comma-separated roles', async () => {
+    // Better Auth stores multiple roles as one comma-separated string; an account provisioned
+    // this way holds the admin role exactly as much as one provisioned with "admin" alone.
+    await auditLog.append(auditRecord('audit_1', '2026-08-09T10:00:00.000Z'));
+
+    await expect(
+      instrumented(() =>
+        client({
+          auth: betterAuth({ email: 'ops@example.test', role: 'support,admin' }),
+          reqHeaders: new Headers(),
+        }).audit.list({}),
+      ),
+    ).resolves.toMatchObject({ events: [{ id: 'audit_1' }] });
+  });
+
   it('refuses a signed-in reader who is not an administrator', async () => {
     await expect(
       instrumented(() =>
