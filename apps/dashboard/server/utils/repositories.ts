@@ -1,3 +1,5 @@
+import { resolve } from 'node:path';
+
 import {
   deleteRepository,
   isAllowedCheckout,
@@ -83,7 +85,11 @@ function memoryRepositoryStore(seed: string | undefined): RepositoryStore {
     if (!checkoutPath) continue;
     const [owner, name] = (slug ?? '').split('/', 2).map((part) => part.trim());
     put({
-      checkoutPath,
+      // Resolved the same way `mayTargetRepository` resolves the path a task creation names
+      // (`context.ts`) and `repositories.save` resolves an operator-supplied one (`router.ts`):
+      // a relative or trailing-slash entry here must still string-equal what a task creation
+      // compares it against, or every task creation against it is refused as not allow-listed.
+      checkoutPath: resolve(checkoutPath),
       ...(owner && name ? { owner, name, pollEnabled: true } : {}),
     });
   }
