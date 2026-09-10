@@ -122,20 +122,28 @@ export async function saveRepository(
     mode: input.mode ?? 'observe',
     pollEnabled: input.pollEnabled ?? false,
   };
+  // Every field here is optional on `input` (see `RepositoryInput`), so an update names only the
+  // fields it means to change — a caller correcting a repository's `checkoutPath` alone must not
+  // also reset its mode to `observe` or turn its polling off. Only a field `input` actually named
+  // is written on conflict; one left out keeps the row's current value instead of `values`' default.
+  const set: {
+    provider?: string;
+    owner?: string | null;
+    name?: string | null;
+    mode?: RepositoryMode;
+    pollEnabled?: boolean;
+    updatedAt: Date;
+  } = { updatedAt: new Date() };
+  if (input.provider !== undefined) set.provider = values.provider;
+  if (input.owner !== undefined) set.owner = values.owner;
+  if (input.name !== undefined) set.name = values.name;
+  if (input.mode !== undefined) set.mode = values.mode;
+  if (input.pollEnabled !== undefined) set.pollEnabled = values.pollEnabled;
+
   const [row] = await database
     .insert(repository)
     .values(values)
-    .onConflictDoUpdate({
-      target: repository.checkoutPath,
-      set: {
-        provider: values.provider,
-        owner: values.owner,
-        name: values.name,
-        mode: values.mode,
-        pollEnabled: values.pollEnabled,
-        updatedAt: new Date(),
-      },
-    })
+    .onConflictDoUpdate({ target: repository.checkoutPath, set })
     .returning();
   if (!row) throw new Error('The repository could not be saved');
   return toRecord(row);
