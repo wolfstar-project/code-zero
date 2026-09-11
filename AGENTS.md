@@ -9,7 +9,7 @@ Code Zero is an open-source autonomous engineer that finds, fixes, and verifies 
 **Key information:**
 
 - Node version: `24.19.0` (`>=24.2` supported; see `mise.toml` and `engines`)
-- Package manager: `aube@1.38.0` (pinned in `package.json` via `packageManager`)
+- Package manager: `aube@1.41.0` (pinned in `package.json` via `packageManager`)
 - TypeScript: `^5.9.2`, overridden to `typescript-native-bridge` so checks run on tsgo
 - Main branch: `main`
 
