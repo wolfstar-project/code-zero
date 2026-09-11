@@ -54,10 +54,16 @@ function postgresRepositoryStore(): RepositoryStore {
  * Entries are `owner/name=/path` or bare `/path`; the first form is watched, the second is only
  * allow-listed. A malformed entry is dropped, the same way the poller's own configuration was.
  */
-function memoryRepositoryStore(seed: string | undefined): RepositoryStore {
+export function memoryRepositoryStore(seed: string | undefined): RepositoryStore {
   const records = new Map<string, RepositoryRecord>();
   let sequence = 0;
 
+  // Mirrors `saveRepository`'s upsert (`packages/database`): every field on `RepositoryInput` is
+  // optional, so a save that names only `checkoutPath` corrects that path and leaves the rest of
+  // the record alone. A field the input omits keeps the existing record's value — and falls back to
+  // the same default as the column only when there is no existing record — so a watched
+  // `owner/name` repository cannot be silently demoted to an unwatched one with no coordinates by a
+  // save that never mentioned them.
   const put = (input: RepositoryInput): RepositoryRecord => {
     const existing = [...records.values()].find(
       (record) => record.checkoutPath === input.checkoutPath,
@@ -65,12 +71,15 @@ function memoryRepositoryStore(seed: string | undefined): RepositoryStore {
     sequence += 1;
     const record: RepositoryRecord = {
       id: existing?.id ?? `repo_${String(sequence)}`,
-      provider: input.provider?.trim() || 'github',
-      owner: input.owner?.trim() || null,
-      name: input.name?.trim() || null,
+      provider:
+        input.provider === undefined
+          ? (existing?.provider ?? 'github')
+          : input.provider.trim() || 'github',
+      owner: input.owner === undefined ? (existing?.owner ?? null) : input.owner?.trim() || null,
+      name: input.name === undefined ? (existing?.name ?? null) : input.name?.trim() || null,
       checkoutPath: input.checkoutPath,
-      mode: input.mode ?? 'observe',
-      pollEnabled: input.pollEnabled ?? false,
+      mode: input.mode ?? existing?.mode ?? 'observe',
+      pollEnabled: input.pollEnabled ?? existing?.pollEnabled ?? false,
     };
     records.set(record.id, record);
     return record;
