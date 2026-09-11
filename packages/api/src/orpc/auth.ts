@@ -65,9 +65,17 @@ const DEFAULT_ADMIN_ROLE = 'admin';
  * Better Auth's base `User` carries no `role`; the deployment adds it as an additional field (see
  * `@code-zero/auth`'s `authBetterAuthOptions`). Read defensively rather than asserted, so a
  * deployment that drops the field grants the non-writable modes instead of throwing.
+ *
+ * Better Auth stores multiple roles as one comma-separated string, so membership is checked
+ * rather than equality: an account provisioned with, say, `"support,admin"` holds the admin role
+ * exactly as much as one provisioned with `"admin"` alone.
  */
 function isAdministrator(user: BetterAuthSessionPayload['user'], adminRole: string): boolean {
-  return typeof user.role === 'string' && user.role === adminRole;
+  if (typeof user.role !== 'string') return false;
+  return user.role
+    .split(',')
+    .map((role) => role.trim())
+    .includes(adminRole);
 }
 
 /**

@@ -1,13 +1,14 @@
 // Imported explicitly rather than relying on Nuxt auto-imports, so the dependency stays visible at
 // the call site; `nuxt typecheck` resolves either form.
 import type { AuditEvent, AuditLogPage } from '@code-zero/api';
+import { ORPCError } from '@orpc/client';
 import { ref } from 'vue';
 
 /** What the page needs to tell an unauthorized reader apart from a broken one. */
 export type AuditLogError = 'forbidden' | 'unauthorized' | 'generic';
 
 /**
- * The audit log, read one page at a time from `GET /api/audit-logs`.
+ * The audit log, read one page at a time through the router's `audit.list` procedure.
  *
  * Client-side only, deliberately. The endpoint authenticates the browser's session cookie, and
  * fetching it during SSR would mean forwarding that cookie from the server render — a wider
@@ -18,7 +19,16 @@ export type AuditLogError = 'forbidden' | 'unauthorized' | 'generic';
  * State is local rather than `useState`: two tabs of the audit log should each hold their own
  * scroll-back rather than share a cursor.
  */
-export function useAuditLogs(pageSize = 25) {
+/**
+ * Reads one page of the trail; `$orpc.audit.list` from the page that owns the client.
+ *
+ * Taken as an argument rather than reached for through `useNuxtApp()`, so this composable depends
+ * on the router's shape and not on the Nuxt app instance — which is also what lets the unit suite
+ * drive it without standing up a runtime to inject one.
+ */
+export type AuditLogReader = (query: { limit?: number; cursor?: string }) => Promise<AuditLogPage>;
+
+export function useAuditLogs(read: AuditLogReader, pageSize = 25) {
   const events = ref<AuditEvent[]>([]);
   const nextCursor = ref<string | null>(null);
   const pending = ref(false);
@@ -29,9 +39,7 @@ export function useAuditLogs(pageSize = 25) {
     pending.value = true;
     error.value = null;
     try {
-      const page = await $fetch<AuditLogPage>('/api/audit-logs', {
-        query: { limit: pageSize, ...(cursor ? { cursor } : {}) },
-      });
+      const page = await read({ limit: pageSize, ...(cursor ? { cursor } : {}) });
       events.value = cursor ? [...events.value, ...page.events] : page.events;
       nextCursor.value = page.nextCursor;
     } catch (caught) {
@@ -58,15 +66,16 @@ export function useAuditLogs(pageSize = 25) {
 }
 
 /**
- * The status decides the message, never the server's own error text: it is untrusted input, and
- * the page renders what this returns.
+ * The error code decides the message, never the server's own error text: it is untrusted input,
+ * and the page renders what this returns.
+ *
+ * oRPC rejects with an `ORPCError` carrying the procedure's own code, so the two refusals the
+ * router distinguishes — no session, and a session without the admin role — stay distinguishable
+ * here without reading an HTTP status the transport chose.
  */
 function classify(caught: unknown): AuditLogError {
-  const status =
-    caught && typeof caught === 'object' && 'statusCode' in caught
-      ? (caught as { statusCode?: unknown }).statusCode
-      : undefined;
-  if (status === 403) return 'forbidden';
-  if (status === 401) return 'unauthorized';
+  if (!(caught instanceof ORPCError)) return 'generic';
+  if (caught.code === 'FORBIDDEN') return 'forbidden';
+  if (caught.code === 'UNAUTHORIZED') return 'unauthorized';
   return 'generic';
 }

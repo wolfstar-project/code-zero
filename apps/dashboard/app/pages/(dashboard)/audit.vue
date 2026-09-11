@@ -54,8 +54,12 @@ import { useHotkeys } from '@tanstack/vue-hotkeys';
 
 import { useShortcutsDialog } from '../../../modules/shared/composables/useAppShortcuts';
 
-const { rows, pending, error, authError, authEnabled, hasMore, refresh, loadMore } =
-  useAuditTrail();
+// The typed client lives on the Nuxt app; the composables take the one call they need rather than
+// the app instance, so they stay drivable from a plain unit test.
+const { $orpc } = useNuxtApp();
+const { rows, pending, error, authError, authEnabled, hasMore, refresh, loadMore } = useAuditTrail(
+  (query) => $orpc.audit.list(query),
+);
 const dialogOpen = useShortcutsDialog();
 
 // Client-side only: both trails authenticate the browser's session, and this page is not

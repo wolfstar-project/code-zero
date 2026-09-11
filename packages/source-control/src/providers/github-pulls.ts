@@ -37,6 +37,25 @@ export interface OpenPullRequestOptions {
   base: string;
 }
 
+/**
+ * An open pull request, reduced to what deciding whether to review it needs.
+ *
+ * Deliberately not the provider's payload: a caller reasons about the head commit and the
+ * identifiers, and passing GitHub's object through would put an SDK shape into the runtime's
+ * vocabulary.
+ */
+export interface OpenPullRequest {
+  number: number;
+  title: string;
+  /** The commit under review. A new one is what makes a pull request worth looking at again. */
+  headSha: string;
+  headRef: string;
+  /** The commit the change is measured against; a review reads the diff between the two. */
+  baseSha: string;
+  url: string;
+  draft: boolean;
+}
+
 export interface GitHubPullRequestsOptions {
   token: string;
   baseUrl?: string;
@@ -47,6 +66,9 @@ export interface GitHubPullRequestsOptions {
 const MAX_TITLE = 256;
 const MAX_BODY = 60_000;
 const COMMIT_SHA = /^[0-9a-f]{7,64}$/i;
+// Caps one poll's worst case for a repository with an unbounded number of open pull requests at
+// 2,000 (100 per page) rather than walking every page that exists.
+const MAX_PAGES = 20;
 // Standard base64 with optional padding; anything else is a caller bug, refused before any request.
 const BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 
@@ -190,6 +212,66 @@ export class GitHubPullRequests {
     const url = readString(body, 'html_url');
     if (number === undefined || !url) throw new Error('GitHub did not return the pull request');
     return { number, url };
+  }
+
+  /**
+   * Every open pull request, newest first.
+   *
+   * Read-only, and the only thing here that goes looking for work rather than publishing it. Pages
+   * are walked in full rather than stopping at the first: sorted newest-first, a pull request past
+   * page one only reaches page one once something touches it again, so a caller that polled just
+   * the first page could leave an old, otherwise-untouched pull request unreviewed forever rather
+   * than merely waiting for a later pass. `MAX_PAGES` bounds the worst case for a repository with
+   * an unbounded number of open pull requests, rather than one poll walking every page that exists.
+   *
+   * A record GitHub returns without an integer number or a commit-shaped head sha is skipped
+   * rather than raised: one malformed entry must not cost the caller the whole page.
+   */
+  async listOpenPullRequests(target: RepositoryTarget): Promise<OpenPullRequest[]> {
+    const requests: OpenPullRequest[] = [];
+    for (let page = 1; page <= MAX_PAGES; page += 1) {
+      const query = new URLSearchParams({
+        state: 'open',
+        sort: 'updated',
+        direction: 'desc',
+        per_page: '100',
+        page: String(page),
+      });
+      const payload = await this.send(
+        'GET',
+        `/repos/${target.owner}/${target.repo}/pulls?${query.toString()}`,
+      );
+      if (!Array.isArray(payload)) throw new Error('GitHub did not report a list of pull requests');
+      for (const entry of payload) {
+        const number = readNumber(entry, 'number');
+        const head = readRecord(entry, 'head');
+        const headSha = readString(head, 'sha');
+        const headRef = readString(head, 'ref');
+        const baseSha = readString(readRecord(entry, 'base'), 'sha');
+        // Both commits are required: a review reads the diff between them, so a record missing
+        // either describes nothing a run could inspect.
+        if (
+          number === undefined ||
+          !headSha ||
+          !COMMIT_SHA.test(headSha) ||
+          !headRef ||
+          !baseSha ||
+          !COMMIT_SHA.test(baseSha)
+        )
+          continue;
+        requests.push({
+          number,
+          title: readString(entry, 'title') ?? '',
+          headSha,
+          headRef,
+          baseSha,
+          url: readString(entry, 'html_url') ?? '',
+          draft: readRecord(entry, 'draft') === true,
+        });
+      }
+      if (payload.length < 100) break;
+    }
+    return requests;
   }
 
   private async send(

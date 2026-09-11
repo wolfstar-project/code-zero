@@ -31,13 +31,19 @@ describe('errors', () => {
     expect(errors.internal('plain failure').message).toBe('plain failure');
   });
 
-  it('never marks an error fatal or unhandled, so Nitro forwards `message` instead of replacing it', () => {
+  it('marks every error `fatal: false` and `unhandled: false`, so Nitro forwards `message` instead of replacing it', () => {
     // Nitro's own error handler — not bare h3's `sendError`, which drops `message` — serves every
-    // response in this app. It forwards `error.message` verbatim only while both flags stay
-    // false (h3's default); either one true and the client sees a generic "Server Error" instead.
+    // response in this app. It forwards `error.message` verbatim only while both flags read
+    // falsy. `EvlogError` itself never declares either one, so this module sets both to `false`
+    // explicitly rather than leaving them `undefined`: functionally identical for Nitro's truthy
+    // check, but it is what lets an assertion elsewhere that expects the fields to be exactly
+    // `false` pass. Either flag present and truthy would make the client see a generic
+    // "Server Error" instead.
     for (const error of [
       errors.notFound(),
       errors.misconfigured('GITHUB_WEBHOOK_SECRET'),
+      errors.forbidden('nope'),
+      errors.tooManyRequests('slow down'),
       errors.internal(new Error('boom')),
     ]) {
       expect(error.fatal).toBe(false);

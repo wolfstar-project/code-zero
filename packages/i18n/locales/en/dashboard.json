@@ -4,21 +4,16 @@
     "header": {
       "eyebrow": "Code Zero / Operations",
       "title": "Control Plane",
-      "mode": "Local interface"
+      "mode": "Local interface",
+      "live": "Live",
+      "stale": "Reconnecting",
+      "liveAria": "Live updates connected",
+      "staleAria": "Live updates interrupted; the board may be out of date"
     },
     "nav": {
       "aria": "Primary",
       "control": "Control Plane",
-      "tasks": "Tasks",
-      "runners": "Runner Pool",
-      "models": "Models & Usage",
-      "approvals": "Approvals",
-      "findings": "Findings",
-      "repositories": "Repositories",
-      "policies": "Rules & Policies",
-      "integrations": "Integrations",
       "audit": "Audit Log",
-      "settings": "Settings",
       "collapse": "Collapse",
       "expand": "Expand"
     },
@@ -64,7 +59,18 @@
       "no": "NO",
       "summary": "Run summary",
       "emptyTitle": "No task selected",
-      "emptyBody": "Select a queue record to inspect evidence and usage."
+      "emptyBody": "Select a queue record to inspect evidence and usage.",
+      "approval": {
+        "title": "Waiting on you",
+        "body": "This run stopped for a human decision. Approving records who decided; it does not restart the run.",
+        "comment": "Comment (optional)",
+        "approve": "Approve",
+        "reject": "Reject",
+        "decided": "Decision",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "failed": "The decision was not recorded. Nothing changed."
+      }
     },
     "audit": {
       "header": {
@@ -120,6 +126,27 @@
       "next": "Select the next task",
       "previous": "Select the previous task",
       "more": "Load older audit entries"
+    },
+    "newTask": {
+      "title": "New task",
+      "repository": "Repository checkout path",
+      "repositoryHint": "/srv/checkouts/acme-app",
+      "mode": "Mode",
+      "trigger": "Trigger",
+      "feedback": "Review feedback",
+      "submit": "Queue task",
+      "note": "The run starts once the control plane has capacity.",
+      "failed": "The task was not created. Check the path, the mode, and what your credentials allow.",
+      "modes": {
+        "observe": "Observe — inspect and report",
+        "suggest": "Suggest — propose a change",
+        "fix": "Fix — apply a change",
+        "autonomous": "Autonomous"
+      },
+      "triggers": {
+        "proactive": "Proactive diff review",
+        "feedback": "Review feedback"
+      }
     }
   }
 }

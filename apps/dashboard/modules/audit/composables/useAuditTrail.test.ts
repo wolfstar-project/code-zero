@@ -13,6 +13,12 @@ const authRefresh = vi.fn<() => Promise<void>>(async () => {});
 const authLoadMore = vi.fn<() => Promise<void>>(async () => {});
 let authHasMore = false;
 
+/**
+ * The control-plane reader the composable takes, so this spec hands it one rather than standing up
+ * the Nuxt app the real client hangs off.
+ */
+const list = vi.fn<() => Promise<AuditLogPage>>(() => Promise.resolve(controlPlanePage()));
+
 vi.mock('./useAuthAuditLogs.js', () => ({
   useAuthAuditLogs: () => ({
     enabled: true,
@@ -34,11 +40,10 @@ function controlPlanePage(nextCursor: string | null = null): AuditLogPage {
       {
         id: 'audit_1',
         occurredAt: '2026-08-09T10:00:00.000Z',
-        actor: { kind: 'principal', name: 'release-manager' },
+        actor: { type: 'api', id: 'release-manager' },
         action: 'task.created',
         outcome: 'success',
-        subject: { type: 'task', id: 'cz_1' },
-        metadata: { repository: 'acme/app', mode: 'observe' },
+        target: { type: 'task', id: 'cz_1', repository: 'acme/app', mode: 'observe' },
       },
     ],
     nextCursor,
@@ -61,7 +66,7 @@ beforeEach(() => {
   authHasMore = false;
   authRefresh.mockClear();
   authLoadMore.mockClear();
-  vi.stubGlobal('$fetch', () => Promise.resolve(controlPlanePage()));
+  list.mockImplementation(() => Promise.resolve(controlPlanePage()));
 });
 
 afterEach(() => {
@@ -70,7 +75,7 @@ afterEach(() => {
 
 describe('useAuditTrail', () => {
   it('renders a control-plane record with its subject and metadata flattened', async () => {
-    const trail = useAuditTrail();
+    const trail = useAuditTrail(list);
 
     await trail.refresh();
 
@@ -80,7 +85,7 @@ describe('useAuditTrail', () => {
         occurredAt: '2026-08-09T10:00:00.000Z',
         source: 'control-plane',
         actorName: 'release-manager',
-        actorKind: 'principal',
+        actorKind: 'api',
         action: 'task.created',
         subject: 'task:cz_1',
         outcome: 'success',
@@ -91,7 +96,7 @@ describe('useAuditTrail', () => {
 
   it('carries both trails in one list', async () => {
     authRows.value = [AUTH_ROW];
-    const trail = useAuditTrail();
+    const trail = useAuditTrail(list);
 
     await trail.refresh();
 
@@ -100,9 +105,9 @@ describe('useAuditTrail', () => {
   });
 
   it('asks both trails for their next page, so neither is exhausted first', async () => {
-    vi.stubGlobal('$fetch', () => Promise.resolve(controlPlanePage('cursor_1')));
+    list.mockImplementation(() => Promise.resolve(controlPlanePage('cursor_1')));
     authHasMore = true;
-    const trail = useAuditTrail();
+    const trail = useAuditTrail(list);
 
     await trail.refresh();
     expect(trail.hasMore.value).toBe(true);
@@ -114,7 +119,7 @@ describe('useAuditTrail', () => {
 
   it('reports more to read while either trail still has a page', async () => {
     authHasMore = true;
-    const trail = useAuditTrail();
+    const trail = useAuditTrail(list);
 
     await trail.refresh();
 

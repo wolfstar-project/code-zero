@@ -103,6 +103,27 @@ aube run dev
 The root `.env` configures the CLI. Each app loads its own file: the dashboard uses
 `apps/dashboard/.env`, while the docs app optionally uses `apps/docs/.env` for `NUXT_APP_BASE_URL`.
 
+To see the dashboard before configuring anything, start it on its own instead:
+
+```bash
+mise install
+aube ci
+aube run dev:solo        # http://localhost:3000, then sign up at /signup
+```
+
+`dev:solo` is `nuxt dev` reading [`apps/dashboard/.env.solo`](./apps/dashboard/.env.solo) in
+place of `.env`: Better Auth runs on an in-memory store, so there is no Postgres to install and no
+migration to apply, and the account you create lives until you stop the process. Nothing else
+about the app changes — it is the same UI, the same router, and the same authentication endpoints
+a deployment serves. Tasks still need a checkout to target, so add one to
+`CODE_ZERO_SOLO_REPOSITORIES` in that file; `observe` runs no model, so a task can be
+created and inspected without a provider credential. Use `aube run dev` and `apps/dashboard/.env`
+for anything that has to persist.
+
+`dev:docs` and `dev:marketing` start those two apps on their own the same way `mail:preview`
+already does for `apps/mail-preview` — a plain `turbo run dev` filtered to one app, with no
+alternate env file.
+
 `aube run <script>` and `aube test` check install freshness first, so a separate install step is rarely needed. aube reads and writes the existing `pnpm-lock.yaml` and `pnpm-workspace.yaml` in place — the lockfile stays in pnpm's v9 format for anyone who still runs pnpm.
 
 ---
@@ -118,9 +139,12 @@ zero logout [--url X]       forget a stored session
 zero review (--feedback X | --proactive)  inspect without editing
 zero fix (--feedback X | --proactive)     validate, edit, and verify (policy permitting)
 zero run (--feedback X | --proactive)     run using the configured mode
+zero run --remote [--url <origin>]        run it on a deployment instead of here
 ```
 
 The CLI parses arguments with [`@bomb.sh/args`](https://github.com/bomb-sh/args) and renders with [`@clack/prompts`](https://github.com/bombshell-dev/clack). Use `--proactive` to inspect the working-tree diff without reviewer feedback. When neither trigger is provided in a terminal, it asks for the task interactively; use `--feedback` or `--proactive` with `--json` for scripts and CI.
+
+`--remote` hands the run to a deployment's control plane instead of executing it in this checkout, so it lands in the same task history the dashboard reads and appears on the board while it runs. It uses the session `zero login` stored, presented as a bearer token, so the run is attributed to the person who signed in rather than to a shared operator token — which means the deployment needs `AUTH_ENABLE_DEVICE_AUTHORIZATION=true`, the same flag `zero login` already requires. The deployment is chosen with `--url` or `CODE_ZERO_URL`; the flag is deliberate rather than inferred from that variable, which already selects which deployment `login` and `logout` act on. The repository sent is this checkout's path, and the deployment's own configured repositories decide whether it may be targeted. Exit codes are the same table a local run uses, so CI reads either the same way.
 
 `zero login` runs the [RFC 8628](https://datatracker.ietf.org/doc/html/rfc8628) device flow: it prints a short code, you approve it at the deployment's `/device` page in a browser you are already signed into, and the CLI stores the resulting session token in `$XDG_CONFIG_HOME/code-zero/credentials.json` (owner-readable only). The same command serves a cloud-managed deployment and a self-hosted one — pick which with `--url`, or set `CODE_ZERO_URL`; without either it targets `http://localhost:3000`. Tokens are kept per origin, so signing into one deployment never evicts another, and `zero logout` without `--url` forgets all of them. The deployment must have `AUTH_ENABLE_DEVICE_AUTHORIZATION=true`; it is off by default. That flag also registers Better Auth's `bearer` plugin, which is what lets the stored token be presented as `Authorization: Bearer <token>` — without it the flow would mint a session that only a cookie could carry. `zero doctor` lists which deployments have a stored session and whether it has expired, never the token itself.
 
@@ -130,13 +154,13 @@ The CLI parses arguments with [`@bomb.sh/args`](https://github.com/bomb-sh/args)
 
 `aube run dev` starts the single deployable app on `http://localhost:3000` (override with `PORT`). It is the only adapter that composes a runner for hosted work, and the same Nuxt app serves the UI, the control plane, and authentication from one origin:
 
-| Surface        | Purpose                                                                                               |
-| -------------- | ----------------------------------------------------------------------------------------------------- |
-| `/rpc/**`      | Typed oRPC router: `health`, `dashboard.overview`, `tasks.list/get/create`, `approvals.decide`        |
-| `/api/v1/**`   | The same router over OpenAPI/REST; interactive docs at `/api/v1/docs`, spec at `/api/v1/openapi.json` |
-| `/api/auth/**` | The Better Auth handler (mounted by `@onmax/nuxt-better-auth` from `server/auth.config.ts`)           |
+| Surface        | Purpose                                                                                                      |
+| -------------- | ------------------------------------------------------------------------------------------------------------ |
+| `/rpc/**`      | Typed oRPC router: `health`, `dashboard.overview`, `tasks.list/get/create`, `approvals.decide`, `audit.list` |
+| `/api/v1/**`   | The same router over OpenAPI/REST; interactive docs at `/api/v1/docs`, spec at `/api/v1/openapi.json`        |
+| `/api/auth/**` | The Better Auth handler (mounted by `@onmax/nuxt-better-auth` from `server/auth.config.ts`)                  |
 
-`/rpc/**` and `/api/v1/**` are the same `rpcRouter` from [`packages/api`](./packages/api) served over two wire protocols, so authorization behaves identically either way. Reads are open for the dashboard; mutations (`tasks.create`, `approvals.decide`) fail closed. `CODE_ZERO_CONTROL_PLANE_TOKENS` holds comma-separated `name:token` bearer credentials, and `CODE_ZERO_CONTROL_PLANE_REPOSITORIES` allow-lists the repository paths `tasks.create` may target; without them every mutation is rejected. `CODE_ZERO_CONTROL_PLANE_MODES` holds comma-separated `name:mode|mode` grants for the execution modes each principal may request; without a grant a principal may only request the non-writable `observe` and `suggest` modes, so `fix` and `autonomous` require an explicit operator grant. The approval actor is the authenticated principal's name, never a wire-supplied value. This bearer-token scheme authorizes the control-plane API and is independent of the Better Auth session that protects the dashboard UI.
+`/rpc/**` and `/api/v1/**` are the same `rpcRouter` from [`packages/api`](./packages/api) served over two wire protocols, so authorization behaves identically either way. Reads are open for the dashboard; mutations (`tasks.create`, `approvals.decide`) fail closed. `CODE_ZERO_CONTROL_PLANE_TOKENS` holds comma-separated `name:token` bearer credentials — the one half of this policy that is a secret, and so the one half still in the environment. Which execution modes each principal may request is `control_plane.modes` in `code-zero.deployment.yml`; without a grant a principal may only request the non-writable `observe` and `suggest` modes, so `fix` and `autonomous` require an explicit operator grant. Which checkouts `tasks.create` may target is neither a secret nor fixed for the life of the process, so it is the `repository` table an operator edits from the dashboard; with none configured every task creation is refused. The approval actor is the authenticated principal's name, never a wire-supplied value. This bearer-token scheme authorizes the control-plane API and is independent of the Better Auth session that protects the dashboard UI.
 
 Typed clients infer their shape from the router rather than redeclaring request and response types:
 

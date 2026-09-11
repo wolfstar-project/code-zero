@@ -1,30 +1,31 @@
 import { randomUUID } from 'node:crypto';
 
 import { now, redactSecrets, secretValuesFromEnvironment } from '@code-zero/shared';
+import { auditOnly, drainPlugin, enricherPlugin, auditEnricher } from 'evlog';
+import type { AuditFields, DrainFn, EvlogPlugin } from 'evlog';
 
 import type { KeyValueStorage } from './control-plane.js';
-import { requestLoggerStorage } from './orpc/logging.js';
 
 /**
- * Who performed an audited action.
+ * Who performed an audited action, in evlog's vocabulary.
  *
- * `principal` is an operator token presented by a machine caller; `user` is the
- * session-authenticated dashboard user. The router derives which one from the authenticated
- * principal's own kind, so a reader never has to guess whether an actor was a human or a token —
- * they are revoked through different channels, and the trail has to say which one to go turn off.
+ * `api` is an operator token presented by a machine caller; `user` is the session-authenticated
+ * dashboard user. The router derives which one from the authenticated principal's own kind, so a
+ * reader never has to guess whether an actor was a human or a token — they are revoked through
+ * different channels, and the trail has to say which one to go turn off.
  */
-export type AuditActorKind = 'principal' | 'user' | 'webhook' | 'system';
-
-export interface AuditActor {
-  kind: AuditActorKind;
-  name: string;
-}
+export type AuditActor = AuditFields['actor'];
 
 /** Whether the audited attempt went through, was refused by policy, or failed while running. */
-export type AuditOutcome = 'success' | 'denied' | 'failure';
+export type AuditOutcome = AuditFields['outcome'];
 
 /**
  * One audited action, appended once and never rewritten.
+ *
+ * The persisted shape is evlog's own {@link AuditFields} plus the two fields a durable log needs
+ * that a wide event does not carry: the storage identity and when it happened. Recording goes
+ * through `log.audit()`, so this package neither defines a second audit vocabulary nor a second
+ * way to write one — what the trail stores is what the wide event carried.
  *
  * The actor is denormalized onto the record rather than referenced, following the same reasoning
  * as `invite_use` in `@code-zero/database`: an audit record states who did what at a moment that
@@ -32,36 +33,14 @@ export type AuditOutcome = 'success' | 'denied' | 'failure';
  * names is deleted. There is no `updatedAt` for the same reason — a mutable timestamp would
  * suggest the record can be corrected, and a correctable audit trail is not one.
  */
-export interface AuditEvent {
+export interface AuditEvent extends AuditFields {
+  /**
+   * `idempotencyKey` when `log.audit()` derived one, so a delivery retried across drains lands on
+   * the key it already wrote rather than appending a second copy of the same action.
+   */
   id: string;
   /** ISO-8601, so keys built from it sort chronologically as plain strings. */
   occurredAt: string;
-  /**
-   * Never accepted from the wire. Transports derive it from the authenticated caller, the same
-   * rule `operations.ts` states for approval actors: a caller that can name itself can frame
-   * somebody else.
-   */
-  actor: AuditActor;
-  /** Dotted past-tense action, e.g. `task.created`; the attempted form for a denial. */
-  action: string;
-  subject?: { type: string; id: string };
-  outcome: AuditOutcome;
-  /**
-   * Flat string map by design. Nested or non-string values would make the records awkward to
-   * render in one table and, worse, would let a value through that redaction does not reach.
-   */
-  metadata?: Record<string, string>;
-}
-
-/** What call sites supply; the recorder mints the identity and the timestamp. */
-export type AuditEntryInput = Omit<AuditEvent, 'id' | 'occurredAt'>;
-
-export interface AuditRecorder {
-  /**
-   * Records one action. Never rejects: see {@link createAuditRecorder} for why an audit write
-   * failure must not turn an already-committed mutation into an error response.
-   */
-  record(entry: AuditEntryInput): Promise<void>;
 }
 
 export interface AuditLogPage {
@@ -131,7 +110,7 @@ export class PersistentAuditLogStore implements AuditLogStore {
     const page = keys.slice(start, start + limit);
     const records = await Promise.all(page.map((key) => this.storage.getItem(key)));
     return {
-      events: records.filter(isAuditEvent),
+      events: records.map(migrateLegacyActor).filter(isAuditEvent),
       nextCursor: start + limit < keys.length ? (page.at(-1) ?? null) : null,
     };
   }
@@ -165,57 +144,79 @@ export class MemoryAuditLogStore implements AuditLogStore {
   }
 }
 
-export interface AuditRecorderOptions {
+export interface AuditLogPipelineOptions {
+  /** Where drained audit records are appended. */
   store: AuditLogStore;
   /** Injectable clock and identity, so tests assert exact records instead of ignoring them. */
   now?: () => string;
   id?: () => string;
-  /** Observes a failed durable write; the wide event carries it either way. */
+  /** Observes a failed durable write; the wide event carries the action either way. */
   onError?: (error: unknown) => void;
 }
 
 /**
- * Builds the recorder transports inject into {@link RpcContext}.
+ * The evlog plugins that turn `log.audit()` into a durable, readable trail.
  *
- * Every recorded action is also set on the request's evlog wide event, so one request line
- * carries the action alongside the principal and the route — the log answers "what did this
- * request change" without a join against the durable log. `getStore()` reads the
- * AsyncLocalStorage directly rather than the throwing `useLogger()`, for the same reason the
- * `authenticated` middleware does: it is `undefined` outside an active request, which is exactly
- * the case for procedures exercised through `createRouterClient` without the transport plugin.
+ * Handed to `EvlogHandlerPlugin`'s `plugins` option by each transport, rather than to its `drain`
+ * option: a plugin drain runs *alongside* the handler's own drain, so the request line a
+ * deployment already ships to stdout or an aggregator is untouched by adding this.
  *
- * The durable write fails open. By the time a call site records, its mutation has already
- * committed; rejecting here would report failure for work that actually happened, which is a
- * worse lie than a missing audit line. The loss is not silent — it lands on the wide event and
- * on {@link AuditRecorderOptions.onError}.
+ * Two plugins, in the order they run:
+ *
+ * 1. {@link auditEnricher} fills `audit.context` (requestId, traceId, ip, user agent) from the
+ *    request the action happened on. A trail that says who did what is worth more when it also
+ *    says from where, and none of it is something a call site should have to pass by hand.
+ * 2. {@link auditOnly} filters every wide event that carries no `audit` field, so ordinary request
+ *    lines never reach the trail, and awaits the append so the record is flushed before the
+ *    request resolves — an audited mutation that answered 200 must not lose its record to a
+ *    process that exited first.
+ *
+ * The durable write still fails open. By the time a drain runs, the mutation it describes has
+ * already committed and the response is already decided; throwing here would turn a completed
+ * action into a crash rather than un-doing anything. The loss is not silent — it reaches
+ * {@link AuditLogPipelineOptions.onError}.
  */
-export function createAuditRecorder(options: AuditRecorderOptions): AuditRecorder {
+export function auditLogPlugins(options: AuditLogPipelineOptions): EvlogPlugin[] {
+  return [
+    enricherPlugin('code-zero-audit-context', auditEnricher()),
+    drainPlugin('code-zero-audit-log', auditOnly(auditLogDrain(options), { await: true })),
+  ];
+}
+
+/**
+ * The drain that appends one wide event's audit fields to the log.
+ *
+ * Exported for tests and for a composition root that wires its own pipeline; ordinary callers take
+ * {@link auditLogPlugins}, which is this wrapped in the filter and the enricher it expects.
+ */
+export function auditLogDrain(options: AuditLogPipelineOptions): DrainFn {
   const timestamp = options.now ?? now;
   const identifier = options.id ?? (() => `audit_${randomUUID()}`);
-  return {
-    async record(entry: AuditEntryInput): Promise<void> {
-      const event: AuditEvent = { id: identifier(), occurredAt: timestamp(), ...entry };
-      requestLoggerStorage?.getStore()?.set({
-        audit: {
-          action: event.action,
-          outcome: event.outcome,
-          ...(event.subject ? { subject: `${event.subject.type}:${event.subject.id}` } : {}),
-        },
-      });
+  return async ({ event }) => {
+    // `auditOnly` already filters these out, but a drain that assumes its wrapper is a drain that
+    // writes junk the first time someone composes it differently.
+    const fields = event.audit;
+    if (!fields) return;
+    const record: AuditEvent = {
+      ...fields,
+      // A retried delivery re-derives the same idempotency key, and the store refuses to overwrite
+      // an existing one, so the retry is a no-op rather than a duplicate line in the trail.
+      id: fields.idempotencyKey ?? identifier(),
+      // The wide event's own timestamp, so the trail agrees with the request line it came from.
+      occurredAt: typeof event.timestamp === 'string' ? event.timestamp : timestamp(),
+    };
+    try {
+      await options.store.append(record);
+    } catch (error) {
+      // The observer is a courtesy, not a second chance to fail: a throwing `onError` would reject
+      // the drain and, with `await: true`, surface as a failure on a request whose mutation had
+      // already committed — the exact outcome failing open exists to prevent.
       try {
-        await options.store.append(event);
-      } catch (error) {
-        requestLoggerStorage?.getStore()?.set({ auditWriteError: String(error) });
-        // The observer is a courtesy, not a second chance to fail: a throwing `onError` would
-        // reject this call and turn an already-committed mutation into an error response, which
-        // is the exact outcome failing open exists to prevent.
-        try {
-          options.onError?.(error);
-        } catch {
-          requestLoggerStorage?.getStore()?.set({ auditErrorHandlerFailed: true });
-        }
+        options.onError?.(error);
+      } catch {
+        // Nothing left to report it to.
       }
-    },
+    }
   };
 }
 
@@ -237,17 +238,52 @@ function sanitizeEvent(event: AuditEvent, secrets: readonly string[]): AuditEven
   return value;
 }
 
-const ACTOR_KINDS = new Set<string>(['principal', 'user', 'webhook', 'system']);
+const ACTOR_TYPES = new Set<string>(['user', 'system', 'api', 'agent']);
 const OUTCOMES = new Set<string>(['success', 'denied', 'failure']);
+
+/**
+ * The actor kind this trail recorded before it moved onto evlog's `{ type, id }` vocabulary,
+ * mapped to the closest type in the new one. `principal` was the machine-token actor the router
+ * now calls `api`; `user` is unchanged; `webhook` and `system` were never actually written by any
+ * caller in this codebase, but are handled all the same since the type they came from allowed them.
+ */
+const LEGACY_ACTOR_KINDS: Record<string, string> = {
+  principal: 'api',
+  user: 'user',
+  webhook: 'system',
+  system: 'system',
+};
+
+/**
+ * Reshapes a record written before the actor moved onto evlog's `{ type, id }` vocabulary into
+ * that shape, so a deployment upgrading past that change keeps reading its own history.
+ *
+ * Applied only when reading: `append` still refuses anything but the current shape, so nothing
+ * new is ever written in the old one. Without this, `isAuditEvent` below would reject every
+ * pre-existing record — `{ kind, name }` has neither field its `isAuditActor` check looks for —
+ * and an append-only trail silently losing history it already has is worse than one that takes a
+ * moment longer to read it.
+ */
+function migrateLegacyActor(value: unknown): unknown {
+  if (!isRecord(value)) return value;
+  const actor = value.actor;
+  if (!isRecord(actor) || typeof actor.type === 'string') return value;
+  const { kind, name } = actor;
+  if (typeof kind !== 'string' || typeof name !== 'string') return value;
+  const type = LEGACY_ACTOR_KINDS[kind];
+  if (!type) return value;
+  return { ...value, actor: { type, id: name } };
+}
 
 /**
  * The full shape, not just the field names.
  *
  * `list` returns whatever survives this predicate as an {@link AuditEvent}, so a check that only
  * asks whether `outcome` is a string would hand a reader an `outcome` no renderer has a branch
- * for. The unions and the optional objects are validated exactly, and `metadata` is held to the
- * flat string map its contract promises — a nested value there is also one redaction never
- * reached.
+ * for. The unions and the nested objects are validated exactly. Everything evlog may add beyond
+ * them — `changes`, `context`, the signing fields — is left unvalidated on purpose: it is
+ * evlog's schema to evolve, and a predicate that rejected a field this version has not heard of
+ * would drop records rather than render them.
  */
 function isAuditEvent(value: unknown): value is AuditEvent {
   if (!isRecord(value)) return false;
@@ -258,28 +294,22 @@ function isAuditEvent(value: unknown): value is AuditEvent {
     typeof value.outcome === 'string' &&
     OUTCOMES.has(value.outcome) &&
     isAuditActor(value.actor) &&
-    isAuditSubject(value.subject) &&
-    isAuditMetadata(value.metadata)
+    isAuditTarget(value.target)
   );
 }
 
 function isAuditActor(value: unknown): boolean {
   return (
     isRecord(value) &&
-    typeof value.kind === 'string' &&
-    ACTOR_KINDS.has(value.kind) &&
-    typeof value.name === 'string'
+    typeof value.type === 'string' &&
+    ACTOR_TYPES.has(value.type) &&
+    typeof value.id === 'string'
   );
 }
 
-function isAuditSubject(value: unknown): boolean {
+function isAuditTarget(value: unknown): boolean {
   if (value === undefined) return true;
   return isRecord(value) && typeof value.type === 'string' && typeof value.id === 'string';
-}
-
-function isAuditMetadata(value: unknown): boolean {
-  if (value === undefined) return true;
-  return isRecord(value) && Object.values(value).every((entry) => typeof entry === 'string');
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

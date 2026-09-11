@@ -8,6 +8,17 @@ export {
   type DatabaseOptions,
 } from './client.js';
 export {
+  deleteRepository,
+  isAllowedCheckout,
+  listRepositories,
+  saveRepository,
+  watchedRepositories,
+  type RepositoryInput,
+  type RepositoryMode,
+  type RepositoryRecord,
+  type WatchedRepositoryRecord,
+} from './repositories.js';
+export {
   account,
   deviceCode,
   invitation,
@@ -15,6 +26,7 @@ export {
   inviteUse,
   member,
   organization,
+  repository,
   schema,
   session,
   timestampColumns,

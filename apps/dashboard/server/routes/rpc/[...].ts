@@ -1,4 +1,4 @@
-import { accessFromEnvironment, requestLoggerStorage, rpcRouter } from '@code-zero/api';
+import { requestLoggerStorage, rpcRouter } from '@code-zero/api';
 import { EvlogHandlerPlugin } from '@orpc/evlog';
 import { RPCHandler } from '@orpc/server/fetch';
 import {
@@ -18,11 +18,9 @@ const handler = new RPCHandler(rpcRouter, {
     // cross-site form submission cannot forge — no client-side plugin is needed to satisfy it, see
     // `app/plugins/orpc.client.ts` and `orpc.server.ts`.
     new SimpleCsrfProtectionHandlerPlugin(),
-    new EvlogHandlerPlugin({ storage: requestLoggerStorage }),
+    new EvlogHandlerPlugin({ storage: requestLoggerStorage, plugins: auditPlugins }),
   ],
 });
-// Fails closed: without configured tokens every mutation is rejected while reads stay open.
-const access = accessFromEnvironment();
 
 /**
  * Typed oRPC surface under `/rpc/**`.
@@ -43,8 +41,14 @@ export default defineEventHandler(async (event) => {
     const { matched, response } = await handler.handle(request, {
       prefix: '/rpc',
       context: {
-        ...buildRpcContext(request, access, taskStore, serverAuth(event)),
-        audit: auditRecorder,
+        ...buildRpcContext(
+          request,
+          await controlPlaneAccess(),
+          taskStore,
+          repositoryStore,
+          serverAuth(event),
+        ),
+        auditLog: auditLogStore,
       },
     });
     if (matched) return response;

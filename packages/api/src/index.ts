@@ -11,6 +11,7 @@ export {
   openIssuePullRequest,
   publishEvidence,
   publishIssueValidation,
+  reviewDeliveryKey,
   runTask,
   statusTokenFromEnvironment,
   taskInput,
@@ -29,8 +30,6 @@ export {
 export {
   accessFromEnvironment,
   authenticate,
-  controlPlaneOriginsFromEnvironment,
-  mayTargetRepository,
   sessionPrincipal,
   type ControlPlaneAccess,
   type Principal,
@@ -55,19 +54,17 @@ export {
   type TaskStore,
 } from './control-plane.js';
 export {
-  createAuditRecorder,
+  auditLogDrain,
+  auditLogPlugins,
   MemoryAuditLogStore,
   PersistentAuditLogStore,
   type AuditActor,
-  type AuditActorKind,
-  type AuditEntryInput,
   type AuditEvent,
   type AuditLogPage,
+  type AuditLogPipelineOptions,
   type AuditLogQuery,
   type AuditLogStore,
   type AuditOutcome,
-  type AuditRecorder,
-  type AuditRecorderOptions,
 } from './audit.js';
 export { dashboardOverview, type DashboardOverview } from './dashboard.js';
 export {
@@ -78,4 +75,10 @@ export {
 } from './orpc/auth.js';
 export { requestLoggerStorage, useLogger } from './orpc/logging.js';
 export { rpcRouter, type RpcContext, type RpcRouter } from './orpc/router.js';
+export type {
+  RepositoryAdmin,
+  RepositoryInput,
+  RepositoryMode,
+  RepositoryRecord,
+} from './repositories.js';
 export { FileKeyValueStorage } from './storage.js';

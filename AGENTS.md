@@ -9,7 +9,7 @@ Code Zero is an open-source autonomous engineer that finds, fixes, and verifies 
 **Key information:**
 
 - Node version: `24.19.0` (`>=24.2` supported; see `mise.toml` and `engines`)
-- Package manager: `aube@1.38.0` (pinned in `package.json` via `packageManager`)
+- Package manager: `aube@1.41.0` (pinned in `package.json` via `packageManager`)
 - TypeScript: `^5.9.2`, overridden to `typescript-native-bridge` so checks run on tsgo
 - Main branch: `main`
 
@@ -85,6 +85,9 @@ cp apps/dashboard/.env.example apps/dashboard/.env
 
 ```bash
 aube run dev             # watch workspace development tasks
+aube run dev:solo        # dashboard alone, no database (apps/dashboard/.env.solo)
+aube run dev:docs        # docs site alone
+aube run dev:marketing   # marketing site alone
 aube run zero doctor     # inspect the local environment
 aube test                # deterministic Vitest suites
 aube run test:browser    # dashboard and marketing browser suites

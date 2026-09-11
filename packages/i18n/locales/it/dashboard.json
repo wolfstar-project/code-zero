@@ -4,21 +4,16 @@
     "header": {
       "eyebrow": "Code Zero / Operazioni",
       "title": "Piano di controllo",
-      "mode": "Interfaccia locale"
+      "mode": "Interfaccia locale",
+      "live": "In diretta",
+      "stale": "Riconnessione",
+      "liveAria": "Aggiornamenti in tempo reale connessi",
+      "staleAria": "Aggiornamenti in tempo reale interrotti; la board potrebbe non essere aggiornata"
     },
     "nav": {
       "aria": "Primaria",
       "control": "Piano di controllo",
-      "tasks": "Task",
-      "runners": "Pool runner",
-      "models": "Modelli e utilizzo",
-      "approvals": "Approvazioni",
-      "findings": "Rilevazioni",
-      "repositories": "Repository",
-      "policies": "Regole e criteri",
-      "integrations": "Integrazioni",
       "audit": "Registro di audit",
-      "settings": "Impostazioni",
       "collapse": "Comprimi",
       "expand": "Espandi"
     },
@@ -64,7 +59,18 @@
       "no": "NO",
       "summary": "Riepilogo esecuzione",
       "emptyTitle": "Nessun task selezionato",
-      "emptyBody": "Seleziona un record della coda per ispezionare evidenze e utilizzo."
+      "emptyBody": "Seleziona un record della coda per ispezionare evidenze e utilizzo.",
+      "approval": {
+        "title": "In attesa di te",
+        "body": "Questa esecuzione si è fermata per una decisione umana. Approvare registra chi ha deciso; non riavvia l'esecuzione.",
+        "comment": "Commento (facoltativo)",
+        "approve": "Approva",
+        "reject": "Rifiuta",
+        "decided": "Decisione",
+        "approved": "Approvata",
+        "rejected": "Rifiutata",
+        "failed": "La decisione non è stata registrata. Nulla è cambiato."
+      }
     },
     "audit": {
       "header": {
@@ -120,6 +126,27 @@
       "next": "Seleziona il task successivo",
       "previous": "Seleziona il task precedente",
       "more": "Carica voci di audit meno recenti"
+    },
+    "newTask": {
+      "title": "Nuovo task",
+      "repository": "Percorso del checkout",
+      "repositoryHint": "/srv/checkouts/acme-app",
+      "mode": "Modalità",
+      "trigger": "Innesco",
+      "feedback": "Commento di revisione",
+      "submit": "Metti in coda",
+      "note": "L'esecuzione parte quando il control plane ha capacità.",
+      "failed": "Task non creato. Controlla il percorso, la modalità e cosa consentono le tue credenziali.",
+      "modes": {
+        "observe": "Observe — ispeziona e riporta",
+        "suggest": "Suggest — propone una modifica",
+        "fix": "Fix — applica una modifica",
+        "autonomous": "Autonomous"
+      },
+      "triggers": {
+        "proactive": "Revisione proattiva del diff",
+        "feedback": "Commento di revisione"
+      }
     }
   }
 }

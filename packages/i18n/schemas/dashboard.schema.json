@@ -18,6 +18,18 @@
             },
             "mode": {
               "type": "string"
+            },
+            "live": {
+              "type": "string"
+            },
+            "stale": {
+              "type": "string"
+            },
+            "liveAria": {
+              "type": "string"
+            },
+            "staleAria": {
+              "type": "string"
             }
           },
           "additionalProperties": false
@@ -31,34 +43,7 @@
             "control": {
               "type": "string"
             },
-            "tasks": {
-              "type": "string"
-            },
-            "runners": {
-              "type": "string"
-            },
-            "models": {
-              "type": "string"
-            },
-            "approvals": {
-              "type": "string"
-            },
-            "findings": {
-              "type": "string"
-            },
-            "repositories": {
-              "type": "string"
-            },
-            "policies": {
-              "type": "string"
-            },
-            "integrations": {
-              "type": "string"
-            },
             "audit": {
-              "type": "string"
-            },
-            "settings": {
               "type": "string"
             },
             "collapse": {
@@ -198,6 +183,39 @@
             },
             "emptyBody": {
               "type": "string"
+            },
+            "approval": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "body": {
+                  "type": "string"
+                },
+                "comment": {
+                  "type": "string"
+                },
+                "approve": {
+                  "type": "string"
+                },
+                "reject": {
+                  "type": "string"
+                },
+                "decided": {
+                  "type": "string"
+                },
+                "approved": {
+                  "type": "string"
+                },
+                "rejected": {
+                  "type": "string"
+                },
+                "failed": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
             }
           },
           "additionalProperties": false
@@ -363,6 +381,69 @@
             },
             "more": {
               "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "newTask": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string"
+            },
+            "repository": {
+              "type": "string"
+            },
+            "repositoryHint": {
+              "type": "string"
+            },
+            "mode": {
+              "type": "string"
+            },
+            "trigger": {
+              "type": "string"
+            },
+            "feedback": {
+              "type": "string"
+            },
+            "submit": {
+              "type": "string"
+            },
+            "note": {
+              "type": "string"
+            },
+            "failed": {
+              "type": "string"
+            },
+            "modes": {
+              "type": "object",
+              "properties": {
+                "observe": {
+                  "type": "string"
+                },
+                "suggest": {
+                  "type": "string"
+                },
+                "fix": {
+                  "type": "string"
+                },
+                "autonomous": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "triggers": {
+              "type": "object",
+              "properties": {
+                "proactive": {
+                  "type": "string"
+                },
+                "feedback": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
             }
           },
           "additionalProperties": false

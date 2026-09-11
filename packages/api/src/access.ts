@@ -1,5 +1,4 @@
 import { timingSafeEqual } from 'node:crypto';
-import { resolve } from 'node:path';
 
 import type { RunMode } from '@code-zero/shared';
 
@@ -19,30 +18,32 @@ export interface Principal {
   kind: PrincipalKind;
   /** Execution modes this principal may request from `tasks.create`. */
   modes: readonly RunMode[];
+  /**
+   * Whether the caller may read surfaces reserved for an app-wide administrator, `audit.list`
+   * being the one today.
+   *
+   * Carried explicitly rather than inferred from {@link Principal.modes}: the two grants answer
+   * different questions — what a caller may run, and what a caller may see — and a reader of this
+   * type should not have to learn that holding `autonomous` happens to imply the second.
+   * Operator tokens are never administrators: the trail records who used them, so letting a token
+   * read it back would let one audit itself.
+   */
+  admin: boolean;
 }
 
 /**
- * Static access policy for the control-plane transport.
+ * Who may call the control plane as a machine, and what each of them may run.
  *
- * Mutating procedures fail closed: without configured principals no mutation is accepted, and task
- * creation additionally requires the target repository path to be allow-listed by the operator and
- * the requested execution mode to be granted to the authenticated principal.
+ * Identity only. Which checkout a run may target is a separate grant the composition root answers
+ * from the deployment's own store (`RpcContext.mayTargetRepository`), because that list changes
+ * while the process runs and this one does not: a token is a credential, a repository is data.
  */
 export interface ControlPlaneAccess {
   /** Bearer token to authenticated principal. */
   principals: ReadonlyMap<string, Principal>;
-  /** Repository paths that `tasks.create` may target. */
-  repositories: readonly string[];
 }
 
 const BEARER_PREFIX = 'Bearer ';
-
-const RUN_MODES: ReadonlySet<string> = new Set([
-  'observe',
-  'suggest',
-  'fix',
-  'autonomous',
-] satisfies RunMode[]);
 
 /** Granted when a principal has no explicit mode entry; neither mode can produce a writable runner. */
 const DEFAULT_MODES: readonly RunMode[] = ['observe', 'suggest'];
@@ -50,29 +51,26 @@ const DEFAULT_MODES: readonly RunMode[] = ['observe', 'suggest'];
 /** Every execution mode, including the two that produce a writable runner. */
 const ADMIN_MODES: readonly RunMode[] = ['observe', 'suggest', 'fix', 'autonomous'];
 
-function isRunMode(value: string): value is RunMode {
-  return RUN_MODES.has(value);
-}
-
 /**
- * Parse the access policy from the environment.
+ * Resolve the operator tokens a machine caller may present.
  *
- * `CODE_ZERO_CONTROL_PLANE_TOKENS` holds comma-separated `name:token` pairs,
- * `CODE_ZERO_CONTROL_PLANE_REPOSITORIES` holds comma-separated repository paths, and
- * `CODE_ZERO_CONTROL_PLANE_MODES` holds comma-separated `name:mode|mode` grants. Principals
- * without a grant may only request the non-writable `observe` and `suggest` modes. Returns
- * `undefined` when no tokens are configured, which keeps every mutation rejected.
+ * The token is a credential, so it stays in the environment beside the database password and the
+ * signing secret rather than moving into the deployment's configuration file or its store: a
+ * secret belongs where the deployment already keeps secrets. The grants that go with it —
+ * which execution modes each principal may request — are policy, and come from the deployment
+ * configuration instead.
+ *
+ * Returns `undefined` when no token is configured, which keeps a deployment that authenticates
+ * only browser sessions from accepting any machine caller at all.
  */
 export function accessFromEnvironment(
   tokens = process.env.CODE_ZERO_CONTROL_PLANE_TOKENS,
-  repositories = process.env.CODE_ZERO_CONTROL_PLANE_REPOSITORIES,
-  modes = process.env.CODE_ZERO_CONTROL_PLANE_MODES,
+  grants: ReadonlyMap<string, readonly RunMode[]> = new Map(),
 ): ControlPlaneAccess | undefined {
   if (tokens === undefined || tokens.trim() === '') return undefined;
-  const grants = parseModeGrants(modes);
   const principals = new Map<string, Principal>();
   const names = new Set<string>();
-  for (const entry of tokens.split(',')) {
+  for (const entry of (tokens ?? '').split(',')) {
     const trimmed = entry.trim();
     if (trimmed === '') continue;
     const separator = trimmed.indexOf(':');
@@ -81,65 +79,20 @@ export function accessFromEnvironment(
     if (name === '' || token === '')
       throw new Error('CODE_ZERO_CONTROL_PLANE_TOKENS entries must be name:token pairs');
     names.add(name);
-    principals.set(token, { name, kind: 'token', modes: grants.get(name) ?? DEFAULT_MODES });
+    principals.set(token, {
+      name,
+      kind: 'token',
+      modes: grants.get(name) ?? DEFAULT_MODES,
+      // An operator token is a machine credential the trail records the use of; reading the trail
+      // back is a person's surface, reached with a session.
+      admin: false,
+    });
   }
   if (principals.size === 0) return undefined;
   for (const name of grants.keys())
     if (!names.has(name))
-      throw new Error(
-        `CODE_ZERO_CONTROL_PLANE_MODES grants modes to an unknown principal: ${name}`,
-      );
-  return {
-    principals,
-    repositories: (repositories ?? '')
-      .split(',')
-      .map((path) => path.trim())
-      .filter((path) => path !== ''),
-  };
-}
-
-/** Parse `name:mode|mode` grants, refusing unknown modes rather than silently widening or narrowing. */
-function parseModeGrants(modes: string | undefined): Map<string, readonly RunMode[]> {
-  const grants = new Map<string, readonly RunMode[]>();
-  if (modes === undefined || modes.trim() === '') return grants;
-  for (const entry of modes.split(',')) {
-    const trimmed = entry.trim();
-    if (trimmed === '') continue;
-    const separator = trimmed.indexOf(':');
-    const name = separator > 0 ? trimmed.slice(0, separator).trim() : '';
-    const granted = separator > 0 ? trimmed.slice(separator + 1).trim() : '';
-    if (name === '' || granted === '')
-      throw new Error('CODE_ZERO_CONTROL_PLANE_MODES entries must be name:mode|mode pairs');
-    const parsed: RunMode[] = [];
-    for (const candidate of granted.split('|')) {
-      const mode = candidate.trim();
-      if (mode === '') continue;
-      if (!isRunMode(mode))
-        throw new Error(`CODE_ZERO_CONTROL_PLANE_MODES grants an unknown mode: ${mode}`);
-      parsed.push(mode);
-    }
-    if (parsed.length === 0)
-      throw new Error('CODE_ZERO_CONTROL_PLANE_MODES entries must be name:mode|mode pairs');
-    grants.set(name, parsed);
-  }
-  return grants;
-}
-
-/**
- * Parse the REST/OpenAPI transport's CORS allow-list from the environment.
- *
- * `CODE_ZERO_CONTROL_PLANE_ORIGINS` holds comma-separated origins. Defaults to none: `tasks.list`,
- * `tasks.get`, and `health` are unauthenticated by design, but a browser's ability to read their
- * responses cross-origin is a separate grant that has to be configured explicitly rather than
- * defaulting open.
- */
-export function controlPlaneOriginsFromEnvironment(
-  origins = process.env.CODE_ZERO_CONTROL_PLANE_ORIGINS,
-): readonly string[] {
-  return (origins ?? '')
-    .split(',')
-    .map((origin) => origin.trim())
-    .filter((origin) => origin !== '');
+      throw new Error(`control_plane.modes grants modes to an unknown principal: ${name}`);
+  return { principals };
 }
 
 /** Resolve the principal for an `Authorization` header using constant-time token comparison. */
@@ -166,18 +119,8 @@ export function authenticate(
  * same {@link Principal} every procedure already reasons about. Only an app-wide administrator may
  * request the two writable modes; every other signed-in user is held to the same non-writable
  * {@link DEFAULT_MODES} an ungranted token gets. Repository targeting is a separate grant either
- * way — see {@link mayTargetRepository}.
+ * way, answered by the composition root against the deployment's store.
  */
 export function sessionPrincipal(name: string, isAdmin: boolean): Principal {
-  return { name, kind: 'session', modes: isAdmin ? ADMIN_MODES : DEFAULT_MODES };
-}
-
-/** Whether task creation may target this repository path. Fails closed without a policy. */
-export function mayTargetRepository(
-  repository: string,
-  access: ControlPlaneAccess | undefined,
-): boolean {
-  if (!access) return false;
-  const target = resolve(repository);
-  return access.repositories.some((allowed) => resolve(allowed) === target);
+  return { name, kind: 'session', modes: isAdmin ? ADMIN_MODES : DEFAULT_MODES, admin: isAdmin };
 }

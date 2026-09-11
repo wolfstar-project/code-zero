@@ -33,6 +33,7 @@ import {
   saveCredential,
 } from './credentials.js';
 import { pollDeviceToken, requestDeviceCode } from './login.js';
+import { runRemotely } from './remote.js';
 import {
   claudeCodeProcessSpawner,
   claudeCodeRefusalReason,
@@ -88,7 +89,7 @@ async function main(): Promise<void> {
   }
 
   if (args.command === 'review' || args.command === 'fix' || args.command === 'run') {
-    await runAgent(args.command, args.feedback, args.proactive, args.json);
+    await runAgent(args.command, args.feedback, args.proactive, args.json, args.remote, args.url);
     return;
   }
 
@@ -108,7 +109,7 @@ function showHelp(): void {
       'zero logout [--url <deployment>]',
       'zero review (--feedback <text> | --proactive) [--json]',
       'zero fix (--feedback <text> | --proactive) [--json]',
-      'zero run (--feedback <text> | --proactive) [--json]',
+      'zero run (--feedback <text> | --proactive) [--remote [--url <origin>]] [--json]',
     ].join('\n'),
     'Commands',
   );
@@ -373,11 +374,62 @@ async function probeSubscriptionCli(
   };
 }
 
+/**
+ * Hand the run to a deployment's control plane instead of executing it here.
+ *
+ * The repository is this checkout's path, because the common case is a control plane running on
+ * the same machine. It is the deployment's allow-list that decides whether the path may be
+ * targeted at all, so a path this CLI happens to be sitting in cannot become one a run reaches.
+ *
+ * The exit code comes from the same table a local run uses: a remote run that needs a human still
+ * exits 2, and one that failed still exits 1, so CI reads both the same way.
+ */
+async function runOnControlPlane(
+  command: 'review' | 'fix' | 'run',
+  origin: string,
+  mode: RunMode,
+  proactive: boolean,
+  feedback: string | undefined,
+  asJson: boolean,
+): Promise<void> {
+  if (!asJson) p.intro(`Code Zero · ${command} on ${origin}`);
+
+  const outcome = await runRemotely({
+    origin,
+    repository: cwd,
+    mode,
+    trigger: proactive ? 'proactive' : 'feedback',
+    ...(feedback === undefined ? {} : { feedback }),
+  });
+
+  if (!outcome.ok) {
+    const message =
+      outcome.failure.kind === 'signed-out'
+        ? `No session for ${origin}. Run \`zero login --url ${origin}\` first.`
+        : outcome.failure.kind === 'expired'
+          ? `The session for ${origin} has expired. Run \`zero login --url ${origin}\` again.`
+          : outcome.failure.message;
+    if (asJson) console.error(message);
+    else p.log.error(message);
+    process.exitCode = 1;
+    return;
+  }
+
+  if (asJson) console.log(JSON.stringify(outcome.result, null, 2));
+  else {
+    p.log.info(`Task ${outcome.result.id} · ${origin}`);
+    report(outcome.result, mode);
+  }
+  process.exitCode = exitCodes[outcome.result.state];
+}
+
 async function runAgent(
   command: 'review' | 'fix' | 'run',
   providedFeedback: string | undefined,
   proactive: boolean,
   asJson: boolean,
+  remote = false,
+  url?: string,
 ): Promise<void> {
   const feedback = proactive
     ? undefined
@@ -386,6 +438,18 @@ async function runAgent(
 
   const config = await loadConfig(cwd);
   const mode: RunMode = command === 'review' ? 'observe' : command === 'fix' ? 'fix' : config.mode;
+
+  if (remote) {
+    await runOnControlPlane(
+      command,
+      resolveDeploymentOrigin(url),
+      mode,
+      proactive,
+      feedback,
+      asJson,
+    );
+    return;
+  }
 
   if (!asJson && providedFeedback !== undefined) p.intro(`Code Zero · ${command}`);
 

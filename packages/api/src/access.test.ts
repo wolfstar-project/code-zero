@@ -1,44 +1,51 @@
+import type { RunMode } from '@code-zero/shared';
 import { describe, expect, it } from 'vitest';
 
 import {
   accessFromEnvironment,
   authenticate,
-  controlPlaneOriginsFromEnvironment,
-  mayTargetRepository,
   sessionPrincipal,
   type ControlPlaneAccess,
 } from './access.js';
 
 const TOKEN_FORMAT_ERROR = /name:token/;
-const MODE_FORMAT_ERROR = /name:mode\|mode/;
-const UNKNOWN_MODE_ERROR = /unknown mode/;
 const UNKNOWN_PRINCIPAL_ERROR = /unknown principal/;
+
+/** The grants the deployment configuration resolves; this package only consumes them. */
+function grants(entries: Record<string, RunMode[]>): ReadonlyMap<string, readonly RunMode[]> {
+  return new Map(Object.entries(entries));
+}
 
 function access(overrides: Partial<ControlPlaneAccess> = {}): ControlPlaneAccess {
   return {
     principals: new Map([
       [
         'token-value',
-        { name: 'release-manager', kind: 'token' as const, modes: ['observe', 'suggest'] as const },
+        {
+          name: 'release-manager',
+          kind: 'token' as const,
+          modes: ['observe', 'suggest'] as const,
+          admin: false,
+        },
       ],
     ]),
-    repositories: ['/srv/checkout'],
     ...overrides,
   };
 }
 
 describe('accessFromEnvironment', () => {
-  it('fails closed when no tokens are configured', () => {
-    expect(accessFromEnvironment(undefined, '/srv/checkout')).toBeUndefined();
-    expect(accessFromEnvironment('', '/srv/checkout')).toBeUndefined();
-    expect(accessFromEnvironment(' , ', '/srv/checkout')).toBeUndefined();
+  it('fails closed when no token is configured', () => {
+    // Repository targeting no longer depends on this: a deployment that authenticates only browser
+    // sessions still creates tasks, it just accepts no machine caller.
+    expect(accessFromEnvironment(undefined)).toBeUndefined();
+    expect(accessFromEnvironment('')).toBeUndefined();
+    expect(accessFromEnvironment(' , ')).toBeUndefined();
   });
 
-  it('parses name:token pairs and the repository allow-list', () => {
-    const parsed = accessFromEnvironment('release-manager:tok1, ci:tok2', '/srv/app, ./checkout');
+  it('parses name:token pairs', () => {
+    const parsed = accessFromEnvironment('release-manager:tok1, ci:tok2');
     expect(parsed?.principals.get('tok1')?.name).toBe('release-manager');
     expect(parsed?.principals.get('tok2')?.name).toBe('ci');
-    expect(parsed?.repositories).toEqual(['/srv/app', './checkout']);
   });
 
   it('keeps tokens containing separators intact after the first colon', () => {
@@ -52,42 +59,37 @@ describe('accessFromEnvironment', () => {
     expect(() => accessFromEnvironment('name-only:')).toThrow(TOKEN_FORMAT_ERROR);
   });
 
-  it('defaults to an empty repository allow-list', () => {
-    expect(accessFromEnvironment('ops:tok', undefined)?.repositories).toEqual([]);
+  it('grants only the non-writable modes without an explicit grant', () => {
+    expect(accessFromEnvironment('ops:tok')?.principals.get('tok')?.modes).toEqual([
+      'observe',
+      'suggest',
+    ]);
   });
 
-  it('grants only the non-writable modes without an explicit mode entry', () => {
-    const parsed = accessFromEnvironment('ops:tok', undefined, undefined);
-    expect(parsed?.principals.get('tok')?.modes).toEqual(['observe', 'suggest']);
-  });
-
-  it('parses per-principal mode grants', () => {
+  it('applies the per-principal grants the deployment configuration resolved', () => {
     const parsed = accessFromEnvironment(
       'release-manager:tok1, ci:tok2',
-      undefined,
-      'release-manager:observe|fix|autonomous',
+      grants({ 'release-manager': ['observe', 'fix', 'autonomous'] }),
     );
     expect(parsed?.principals.get('tok1')?.modes).toEqual(['observe', 'fix', 'autonomous']);
     expect(parsed?.principals.get('tok2')?.modes).toEqual(['observe', 'suggest']);
   });
 
-  it('refuses unknown modes rather than silently granting or dropping them', () => {
-    expect(() => accessFromEnvironment('ops:tok', undefined, 'ops:yolo')).toThrow(
-      UNKNOWN_MODE_ERROR,
-    );
+  it('grants nothing to a principal whose configured grant resolved to no valid mode', () => {
+    // `packages/config`'s `parseDeploymentConfig` refuses a grant that named an unknown mode, but
+    // still records the principal with an empty mode list rather than omitting it — omitting it
+    // would land here as "no grant configured" and widen the principal to the non-writable
+    // defaults, which is worse than the mistake it was meant to catch.
+    const parsed = accessFromEnvironment('ci:tok', grants({ ci: [] }));
+    expect(parsed?.principals.get('tok')?.modes).toEqual([]);
   });
 
-  it('refuses mode grants for principals that hold no token', () => {
-    expect(() => accessFromEnvironment('ops:tok', undefined, 'ghost:fix')).toThrow(
+  it('refuses grants for principals that hold no token', () => {
+    // A grant nobody can use is a typo in one of the two places, and the deployment should be told
+    // which rather than quietly running with a narrower policy than it wrote down.
+    expect(() => accessFromEnvironment('ops:tok', grants({ ghost: ['fix'] }))).toThrow(
       UNKNOWN_PRINCIPAL_ERROR,
     );
-  });
-
-  it('refuses malformed mode entries', () => {
-    expect(() => accessFromEnvironment('ops:tok', undefined, 'ops')).toThrow(MODE_FORMAT_ERROR);
-    expect(() => accessFromEnvironment('ops:tok', undefined, 'ops:')).toThrow(MODE_FORMAT_ERROR);
-    expect(() => accessFromEnvironment('ops:tok', undefined, ':fix')).toThrow(MODE_FORMAT_ERROR);
-    expect(() => accessFromEnvironment('ops:tok', undefined, 'ops:|')).toThrow(MODE_FORMAT_ERROR);
   });
 });
 
@@ -96,6 +98,7 @@ describe('authenticate', () => {
     expect(authenticate('Bearer token-value', access())).toEqual({
       name: 'release-manager',
       kind: 'token',
+      admin: false,
       modes: ['observe', 'suggest'],
     });
   });
@@ -113,42 +116,12 @@ describe('authenticate', () => {
   });
 });
 
-describe('controlPlaneOriginsFromEnvironment', () => {
-  it('defaults to no trusted origins', () => {
-    expect(controlPlaneOriginsFromEnvironment(undefined)).toEqual([]);
-    expect(controlPlaneOriginsFromEnvironment('')).toEqual([]);
-    expect(controlPlaneOriginsFromEnvironment(' , ')).toEqual([]);
-  });
-
-  it('parses a comma-separated origin allow-list', () => {
-    expect(
-      controlPlaneOriginsFromEnvironment('https://dashboard.example, https://ops.example'),
-    ).toEqual(['https://dashboard.example', 'https://ops.example']);
-  });
-});
-
-describe('mayTargetRepository', () => {
-  it('authorizes only allow-listed repository paths', () => {
-    expect(mayTargetRepository('/srv/checkout', access())).toBe(true);
-    expect(mayTargetRepository('/srv/other', access())).toBe(false);
-  });
-
-  it('compares resolved paths so traversal cannot dodge the allow-list', () => {
-    expect(mayTargetRepository('/srv/checkout/../checkout', access())).toBe(true);
-    expect(mayTargetRepository('/srv/checkout/../other', access())).toBe(false);
-  });
-
-  it('fails closed without a policy or with an empty allow-list', () => {
-    expect(mayTargetRepository('/srv/checkout', undefined)).toBe(false);
-    expect(mayTargetRepository('/srv/checkout', access({ repositories: [] }))).toBe(false);
-  });
-});
-
 describe('sessionPrincipal', () => {
   it('grants an administrator every execution mode', () => {
     expect(sessionPrincipal('ops@example.test', true)).toEqual({
       name: 'ops@example.test',
       kind: 'session',
+      admin: true,
       modes: ['observe', 'suggest', 'fix', 'autonomous'],
     });
   });
@@ -157,6 +130,7 @@ describe('sessionPrincipal', () => {
     expect(sessionPrincipal('dev@example.test', false)).toEqual({
       name: 'dev@example.test',
       kind: 'session',
+      admin: false,
       modes: ['observe', 'suggest'],
     });
   });

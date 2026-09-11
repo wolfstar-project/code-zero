@@ -37,6 +37,7 @@ import {
   type ChangeRequestRef,
   type IssueTask,
   type ProviderKind,
+  type ReviewEvent,
   type WebhookHeaders,
 } from '@code-zero/source-control';
 import { z } from 'zod';
@@ -380,6 +381,56 @@ export async function ingestWebhook(
     mode = config.mode;
   }
 
+  // A proactive trigger is unrequested work started on the delivery's own say-so — the same
+  // description that fits a poller's pass over the same commit. Both claim this key before
+  // running, so whichever channel reaches a commit first is the one that reviews it and the
+  // other observes its recorded outcome instead of starting a second run. A `feedback` trigger is
+  // a person asking for this review right now, which only a webhook delivers, so it runs directly.
+  if (event.trigger === 'proactive' && options.deliveryClaims) {
+    const key = reviewDeliveryKey(event.changeRequest);
+    const claim = await options.deliveryClaims.claim(key);
+    if (!claim.claimed) {
+      if (isRecordedWebhookOutcome(claim.outcome)) return claim.outcome;
+      return {
+        status: 'ignored',
+        reason: 'This commit is already claimed by an in-flight review',
+      };
+    }
+    try {
+      const outcome = await runReviewEvent(event, mode, options);
+      // Best effort: a lost outcome write must not fail the finished run, and the standing claim
+      // marker still stops a duplicate; the redelivery is then declined instead of replayed.
+      await options.deliveryClaims.complete(key, outcome).catch(() => undefined);
+      return outcome;
+    } catch (error) {
+      // A transport-level failure recorded no outcome worth replaying; let a redelivery, or the
+      // next poll pass, retry this commit.
+      await options.deliveryClaims.release(key).catch(() => undefined);
+      throw error;
+    }
+  }
+
+  return runReviewEvent(event, mode, options);
+}
+
+/**
+ * The idempotency key for one proactive review of one change-request commit.
+ *
+ * Shared with `apps/dashboard`'s poller, which claims the identical key for the identical reason:
+ * a webhook delivery and a polling pass are two channels that can each notice the same commit
+ * needs review, and only one of them should act on it. Provider, owner, repository, change-request
+ * number, and head commit are exactly what distinguishes one reviewable commit from every other —
+ * the same tuple {@link ChangeRequestRef} already carries.
+ */
+export function reviewDeliveryKey(ref: ChangeRequestRef): string {
+  return `review:${ref.provider}:${ref.owner}/${ref.repo}#${String(ref.number)}@${ref.headSha}`;
+}
+
+async function runReviewEvent(
+  event: ReviewEvent,
+  mode: ReviewInput['mode'],
+  options: WebhookOptions,
+): Promise<WebhookOutcome> {
   const runOptions: RunTaskOptions = {
     ...(options.store ? { store: options.store } : {}),
     ...(options.scheduler ? { scheduler: options.scheduler } : {}),
@@ -391,7 +442,7 @@ export async function ingestWebhook(
   return {
     status: 'accepted',
     result,
-    provider: provider.kind,
+    provider: event.changeRequest.provider,
     changeRequest: event.changeRequest,
   };
 }

@@ -19,8 +19,7 @@
     </div>
 
     <nav :aria-label="$t('dashboard.nav.aria')" class="flex-1 overflow-y-auto px-3 py-4">
-      <component
-        :is="item.to ? NuxtLink : 'button'"
+      <NuxtLink
         v-for="item in navItems"
         :key="item.key"
         :to="item.to"
@@ -30,12 +29,10 @@
           isActive(item)
             ? 'border-accent bg-accent/8 text-ink'
             : 'border-transparent text-muted hover:bg-raised hover:text-ink',
-          item.to ? '' : 'cursor-default',
         ]"
         :aria-current="isActive(item) ? 'page' : undefined"
         :title="collapsed ? $t(item.labelKey) : undefined"
         :aria-label="collapsed ? $t(item.labelKey) : undefined"
-        :type="item.to ? undefined : 'button'"
       >
         <Icon
           :name="item.icon"
@@ -44,7 +41,7 @@
           :class="[collapsed ? '' : 'me-2.5', isActive(item) ? 'text-accent' : '']"
         />
         <span v-if="!collapsed" class="truncate">{{ $t(item.labelKey) }}</span>
-      </component>
+      </NuxtLink>
     </nav>
 
     <ClientOnly>
@@ -114,29 +111,23 @@ interface NavItem {
   key: string;
   labelKey: string;
   icon: string;
-  /** Absent for the sections that have no page yet; those stay inert buttons. */
-  to?: string;
+  to: string;
 }
 
 /**
- * Active state is derived from the current route rather than declared per entry, so a placeholder
- * cannot claim to be the current page and a real entry cannot disagree with the address bar.
+ * Every entry is a page that exists. The nav used to carry nine more as inert buttons, which
+ * promised surfaces the app does not have — an operator clicking Runners learned only that the
+ * click did nothing. A section earns an entry when it has somewhere to go.
+ *
+ * Active state is derived from the current route rather than declared per entry, so an entry
+ * cannot disagree with the address bar.
  */
 const navItems: readonly NavItem[] = [
   { key: 'control', labelKey: 'dashboard.nav.control', icon: 'lucide:layout-dashboard', to: '/' },
-  { key: 'tasks', labelKey: 'dashboard.nav.tasks', icon: 'lucide:list-checks' },
-  { key: 'runners', labelKey: 'dashboard.nav.runners', icon: 'lucide:server' },
-  { key: 'models', labelKey: 'dashboard.nav.models', icon: 'lucide:cpu' },
-  { key: 'approvals', labelKey: 'dashboard.nav.approvals', icon: 'lucide:badge-check' },
-  { key: 'findings', labelKey: 'dashboard.nav.findings', icon: 'lucide:shield-alert' },
-  { key: 'repositories', labelKey: 'dashboard.nav.repositories', icon: 'lucide:folder-git-2' },
-  { key: 'policies', labelKey: 'dashboard.nav.policies', icon: 'lucide:scale' },
-  { key: 'integrations', labelKey: 'dashboard.nav.integrations', icon: 'lucide:plug' },
   { key: 'audit', labelKey: 'dashboard.nav.audit', icon: 'lucide:scroll-text', to: '/audit' },
-  { key: 'settings', labelKey: 'dashboard.nav.settings', icon: 'lucide:settings' },
 ];
 
 function isActive(item: NavItem): boolean {
-  return item.to !== undefined && route.path === item.to;
+  return route.path === item.to;
 }
 </script>

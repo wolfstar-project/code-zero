@@ -25,6 +25,7 @@ import {
   openIssuePullRequest,
   publishEvidence,
   publishIssueValidation,
+  reviewDeliveryKey,
   runTask,
   statusTokenFromEnvironment,
   taskInput,
@@ -361,6 +362,71 @@ describe('ingestWebhook', () => {
     if (outcome.status !== 'accepted') return;
     expect(outcome.result.runner.writable).toBe(false);
     await expect(getTaskEvidence(outcome.result.id)).resolves.toContain('proactive finding');
+  });
+
+  it('replays the recorded outcome for a redelivered proactive review rather than running it twice', async () => {
+    await writeFile(
+      join(checkout, '.code-zero.yml'),
+      'version: 1\nproactive:\n  enabled: true\nmode: observe\n',
+      'utf8',
+    );
+    const deliveryClaims = new PersistentDeliveryClaimStore(memoryStorage(), []);
+    const body = JSON.stringify({
+      action: 'opened',
+      repository: { name: 'app', owner: { login: 'acme' } },
+      pull_request: { number: 7, base: { sha: 'b'.repeat(40) }, head: { sha: 'a'.repeat(40) } },
+    });
+    const first = await ingestWebhook(githubDelivery('pull_request', body), {
+      ...options(),
+      deliveryClaims,
+    });
+    const second = await ingestWebhook(githubDelivery('pull_request', body), {
+      ...options(),
+      deliveryClaims,
+    });
+
+    expect(first.status).toBe('accepted');
+    expect(second).toEqual(JSON.parse(JSON.stringify(first)));
+    expect(tasks.size).toBe(1);
+  });
+
+  it('declines a proactive review already claimed by another channel, such as a poller pass', async () => {
+    await writeFile(
+      join(checkout, '.code-zero.yml'),
+      'version: 1\nproactive:\n  enabled: true\nmode: observe\n',
+      'utf8',
+    );
+    // The same key `apps/dashboard`'s poller claims for the identical commit — this is what makes
+    // the two channels share one outcome instead of each running its own review.
+    const claimedKey = reviewDeliveryKey({
+      provider: 'github',
+      owner: 'acme',
+      repo: 'app',
+      number: 7,
+      headSha: 'a'.repeat(40),
+    });
+    const deliveryClaims: DeliveryClaimStore = {
+      claim: async (key) =>
+        key === claimedKey ? { claimed: false, outcome: null } : { claimed: true, outcome: null },
+      complete: async () => undefined,
+      release: async () => undefined,
+    };
+    const body = JSON.stringify({
+      action: 'opened',
+      repository: { name: 'app', owner: { login: 'acme' } },
+      pull_request: { number: 7, base: { sha: 'b'.repeat(40) }, head: { sha: 'a'.repeat(40) } },
+    });
+
+    const outcome = await ingestWebhook(githubDelivery('pull_request', body), {
+      ...options(),
+      deliveryClaims,
+    });
+
+    expect(outcome).toEqual({
+      status: 'ignored',
+      reason: 'This commit is already claimed by an in-flight review',
+    });
+    expect(tasks.size).toBe(0);
   });
 });
 

@@ -91,6 +91,128 @@ describe('defaultBranch', () => {
   });
 });
 
+describe('listOpenPullRequests', () => {
+  const headSha = 'c'.repeat(40);
+
+  function pull(number: number, overrides: Record<string, unknown> = {}) {
+    return {
+      number,
+      title: `Pull ${String(number)}`,
+      head: { sha: headSha, ref: `feature/${String(number)}` },
+      base: { sha: baseSha },
+      html_url: `https://github.com/acme/app/pull/${String(number)}`,
+      draft: false,
+      ...overrides,
+    };
+  }
+
+  it('reduces GitHub records to what deciding to review one needs', async () => {
+    const { pulls, requests } = adapter({ '/repos/acme/app/pulls': [pull(412)] });
+
+    await expect(pulls.listOpenPullRequests(target)).resolves.toEqual([
+      {
+        number: 412,
+        title: 'Pull 412',
+        headSha,
+        headRef: 'feature/412',
+        baseSha,
+        url: 'https://github.com/acme/app/pull/412',
+        draft: false,
+      },
+    ]);
+    expect(requests[0]?.method).toBe('GET');
+  });
+
+  it('asks only for open pull requests, most recently updated first, a full page at a time', async () => {
+    const { pulls, requests } = adapter({ '/repos/acme/app/pulls': [] });
+
+    await pulls.listOpenPullRequests(target);
+
+    expect(requests[0]).toMatchObject({ method: 'GET', path: '/repos/acme/app/pulls' });
+  });
+
+  it('walks a second page rather than leaving it undiscovered behind a full first one', async () => {
+    const first = Array.from({ length: 100 }, (_unused, index) => pull(index + 1));
+    const second = [pull(101)];
+    const sizes: { page: string | null; perPage: string | null }[] = [];
+    const pulls = new GitHubPullRequests({
+      token: 'secret-token-value',
+      fetch: async (input) => {
+        const url = new URL(
+          typeof input === 'string' ? input : 'url' in input ? input.url : input.href,
+        );
+        sizes.push({
+          page: url.searchParams.get('page'),
+          perPage: url.searchParams.get('per_page'),
+        });
+        const page = url.searchParams.get('page');
+        return new Response(JSON.stringify(page === '2' ? second : first), { status: 200 });
+      },
+    });
+
+    const requests = await pulls.listOpenPullRequests(target);
+
+    expect(sizes).toEqual([
+      { page: '1', perPage: '100' },
+      { page: '2', perPage: '100' },
+    ]);
+    expect(requests).toHaveLength(101);
+  });
+
+  it('stops paging once a page comes back short of a full one', async () => {
+    const { pulls, requests } = adapter({ '/repos/acme/app/pulls': [pull(1)] });
+
+    await pulls.listOpenPullRequests(target);
+
+    expect(requests).toHaveLength(1);
+  });
+
+  it('stops at a bounded number of pages rather than paging a repository forever', async () => {
+    let requests = 0;
+    const pulls = new GitHubPullRequests({
+      token: 'secret-token-value',
+      fetch: async () => {
+        requests += 1;
+        // Every page comes back full, so nothing but the cap itself ends the loop.
+        return new Response(
+          JSON.stringify(Array.from({ length: 100 }, (_unused, index) => pull(index + 1))),
+          { status: 200 },
+        );
+      },
+    });
+
+    await pulls.listOpenPullRequests(target);
+
+    expect(requests).toBe(20);
+  });
+
+  it('skips a malformed record instead of losing the page it came in', async () => {
+    const { pulls } = adapter({
+      '/repos/acme/app/pulls': [
+        pull(1, { head: { sha: 'not-a-sha!', ref: 'x' } }),
+        pull(2, { number: 'two' }),
+        pull(3, { head: { sha: headSha } }),
+        pull(5, { base: { sha: 'not-a-sha!' } }),
+        pull(4),
+      ],
+    });
+
+    await expect(pulls.listOpenPullRequests(target)).resolves.toMatchObject([{ number: 4 }]);
+  });
+
+  it('reports a draft, so a caller can decide not to review one', async () => {
+    const { pulls } = adapter({ '/repos/acme/app/pulls': [pull(9, { draft: true })] });
+
+    await expect(pulls.listOpenPullRequests(target)).resolves.toMatchObject([{ draft: true }]);
+  });
+
+  it('fails loudly when GitHub answers with something that is not a list', async () => {
+    const { pulls } = adapter({ '/repos/acme/app/pulls': { message: 'nope' } });
+
+    await expect(pulls.listOpenPullRequests(target)).rejects.toThrow('did not report a list');
+  });
+});
+
 describe('publishBranch', () => {
   const responses = {
     [`/repos/acme/app/git/commits/${baseSha}`]: { tree: { sha: 't'.repeat(40) } },
