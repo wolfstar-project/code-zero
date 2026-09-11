@@ -44,6 +44,8 @@ runs:
       with:
         path: ${{ steps.aube-store.outputs.path }}
         key: ${{ runner.os }}-aube-store-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-aube-store-
 
     - name: Install dependencies
       shell: bash
