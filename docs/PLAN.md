@@ -138,6 +138,15 @@ Fasi 0-5 eseguite. Cosa è cambiato rispetto al piano, e perché:
 Trovato strada facendo: l'allow-list dei repository esisteva solo se erano configurati anche i
 token operatore, quindi un deployment con sole sessioni non poteva creare nessun task. Corretto.
 
+## Aggiornamento al 2026-09-12
+
+`dev:solo` e `apps/dashboard/.env.solo` sono stati rimossi, insieme a
+`code-zero.deployment.solo.yml` e a `CODE_ZERO_SOLO_REPOSITORIES`: la dashboard richiede Postgres,
+come ogni deployment, e non esiste più un avvio senza database. L'adattatore Better Auth in memoria
+resta, ma lo accende solo il server di anteprima di Playwright (`playwright.config.ts`), e lo store
+dei repository in memoria parte vuoto. Le righe sopra che citano `dev:solo` restano come cronaca
+della Fase 0, non come istruzioni.
+
 ## Cosa resta
 
 | Cosa                                     | Perché non è stato fatto                                        |
@@ -160,7 +169,7 @@ token operatore, quindi un deployment con sole sessioni non poteva creare nessun
 
 ## Rischi
 
-- **Run lunghi dentro `nuxt dev`**: HMR riavvia Nitro e uccide il run. Mitigazione: `dev:solo` in
+- **Run lunghi dentro `nuxt dev`**: HMR riavvia Nitro e uccide il run. Mitigazione: `aube run dev` in
   `observe`, run veri solo su `.output/` o con `nuxt dev --no-fork`.
 - **KV `fs-lite` senza scrittura atomica**: `list()` legge tutte le chiavi a ogni overview. Va bene
   fino a qualche migliaio di task; poi Postgres (già in repo per l'auth).

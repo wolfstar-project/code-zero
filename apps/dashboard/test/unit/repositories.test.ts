@@ -7,8 +7,18 @@ import { memoryRepositoryStore } from '../../server/utils/repositories.js';
 const CHECKOUT = resolve('/srv/widget');
 
 describe('memoryRepositoryStore', () => {
-  it('watches a seeded `owner/name=/path` entry and only allow-lists a bare path', async () => {
-    const store = memoryRepositoryStore(`acme/widget=${CHECKOUT},/srv/other`);
+  it('starts empty, so nothing is allow-listed until it is saved', async () => {
+    const store = memoryRepositoryStore();
+
+    expect(await store.list()).toEqual([]);
+    expect(await store.allows(CHECKOUT)).toBe(false);
+  });
+
+  it('watches a saved repository with coordinates and polling on, and only allow-lists a bare path', async () => {
+    const store = memoryRepositoryStore();
+
+    await store.save({ owner: 'acme', name: 'widget', checkoutPath: CHECKOUT, pollEnabled: true });
+    await store.save({ checkoutPath: resolve('/srv/other') });
 
     expect(await store.allows(CHECKOUT)).toBe(true);
     expect(await store.allows(resolve('/srv/other'))).toBe(true);
@@ -18,7 +28,8 @@ describe('memoryRepositoryStore', () => {
   });
 
   it('keeps the fields a save leaves out, the way the Postgres upsert does', async () => {
-    const store = memoryRepositoryStore(`acme/widget=${CHECKOUT}`);
+    const store = memoryRepositoryStore();
+    await store.save({ owner: 'acme', name: 'widget', checkoutPath: CHECKOUT, pollEnabled: true });
 
     const saved = await store.save({ checkoutPath: CHECKOUT });
 
@@ -36,7 +47,8 @@ describe('memoryRepositoryStore', () => {
   });
 
   it('writes the fields a save does name, and defaults them for a repository it has never seen', async () => {
-    const store = memoryRepositoryStore(`acme/widget=${CHECKOUT}`);
+    const store = memoryRepositoryStore();
+    await store.save({ owner: 'acme', name: 'widget', checkoutPath: CHECKOUT, pollEnabled: true });
 
     const updated = await store.save({
       checkoutPath: CHECKOUT,
@@ -53,5 +65,14 @@ describe('memoryRepositoryStore', () => {
       mode: 'observe',
       pollEnabled: false,
     });
+  });
+
+  it('removes a record by id', async () => {
+    const store = memoryRepositoryStore();
+    const saved = await store.save({ checkoutPath: CHECKOUT });
+
+    expect(await store.remove(saved.id)).toBe(true);
+    expect(await store.list()).toEqual([]);
+    expect(await store.remove(saved.id)).toBe(false);
   });
 });

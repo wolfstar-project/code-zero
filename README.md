@@ -103,22 +103,18 @@ aube run dev
 The root `.env` configures the CLI. Each app loads its own file: the dashboard uses
 `apps/dashboard/.env`, while the docs app optionally uses `apps/docs/.env` for `NUXT_APP_BASE_URL`.
 
-To see the dashboard before configuring anything, start it on its own instead:
+The dashboard needs Postgres. It stores accounts, sessions, and the repositories a task may
+target, so point `DATABASE_URL` in `apps/dashboard/.env` at a database and apply the schema before
+the first start — there is no in-memory mode to fall back on:
 
 ```bash
-mise install
-aube ci
-aube run dev:solo        # http://localhost:3000, then sign up at /signup
+aube run db:migrate
+aube run dev             # http://localhost:3000, then sign up at /signup
 ```
 
-`dev:solo` is `nuxt dev` reading [`apps/dashboard/.env.solo`](./apps/dashboard/.env.solo) in
-place of `.env`: Better Auth runs on an in-memory store, so there is no Postgres to install and no
-migration to apply, and the account you create lives until you stop the process. Nothing else
-about the app changes — it is the same UI, the same router, and the same authentication endpoints
-a deployment serves. Tasks still need a checkout to target, so add one to
-`CODE_ZERO_SOLO_REPOSITORIES` in that file; `observe` runs no model, so a task can be
-created and inspected without a provider credential. Use `aube run dev` and `apps/dashboard/.env`
-for anything that has to persist.
+Set `AUTH_ENABLE_SIGNUP=true` in `apps/dashboard/.env` to create the first account, then turn it
+back off. Tasks need a checkout to target, added as a repository from the dashboard; `observe`
+runs no model, so a task can be created and inspected without a provider credential.
 
 `dev:docs` and `dev:marketing` start those two apps on their own the same way `mail:preview`
 already does for `apps/mail-preview` — a plain `turbo run dev` filtered to one app, with no

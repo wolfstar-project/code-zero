@@ -1,5 +1,3 @@
-import { resolve } from 'node:path';
-
 import {
   deleteRepository,
   isAllowedCheckout,
@@ -16,10 +14,10 @@ import { database } from './database.js';
 /**
  * The repositories this deployment may act on.
  *
- * A contract rather than the Drizzle functions directly, so the process can run on an in-memory
- * store when it has no database — the same shape `server/auth.config.ts` takes for the session
- * store, and for the same reason: `dev:solo` and the Playwright preview both own the whole process
- * and throw its state away when they exit.
+ * A contract rather than the Drizzle functions directly, so the Playwright preview server can run
+ * on an in-memory store — the same shape `server/auth.config.ts` takes for the session store, and
+ * for the same reason: that process owns its whole state and throws it away when it exits. Every
+ * other process, a deployment and `aube run dev` alike, reads Postgres.
  */
 export interface RepositoryStore {
   list(): Promise<RepositoryRecord[]>;
@@ -43,18 +41,13 @@ function postgresRepositoryStore(): RepositoryStore {
 }
 
 /**
- * The in-memory stand-in, for a process running without a database.
+ * The in-memory stand-in, for the Playwright preview server, which runs without a database.
  *
- * Seeded from `CODE_ZERO_SOLO_REPOSITORIES` because the store starts empty on every boot and the
- * procedures that would fill it require an administrator, which a freshly created throwaway
- * account is not. That variable is read here and nowhere else: it configures a fixture, not a
- * deployment, which is why the three variables this table replaced are gone rather than joined by
- * a fourth.
- *
- * Entries are `owner/name=/path` or bare `/path`; the first form is watched, the second is only
- * allow-listed. A malformed entry is dropped, the same way the poller's own configuration was.
+ * Starts empty and stays in the process: the e2e suite creates whatever it needs through the same
+ * procedures an operator uses, and nothing seeds it from the environment, because a store that
+ * outlives no process is a fixture rather than a deployment's configuration.
  */
-export function memoryRepositoryStore(seed: string | undefined): RepositoryStore {
+export function memoryRepositoryStore(): RepositoryStore {
   const records = new Map<string, RepositoryRecord>();
   let sequence = 0;
 
@@ -85,24 +78,6 @@ export function memoryRepositoryStore(seed: string | undefined): RepositoryStore
     return record;
   };
 
-  for (const entry of (seed ?? '').split(',')) {
-    const trimmed = entry.trim();
-    if (trimmed === '') continue;
-    const [slug, checkoutPath] = trimmed.includes('=')
-      ? trimmed.split('=', 2).map((part) => part.trim())
-      : [undefined, trimmed];
-    if (!checkoutPath) continue;
-    const [owner, name] = (slug ?? '').split('/', 2).map((part) => part.trim());
-    put({
-      // Resolved the same way `mayTargetRepository` resolves the path a task creation names
-      // (`context.ts`) and `repositories.save` resolves an operator-supplied one (`router.ts`):
-      // a relative or trailing-slash entry here must still string-equal what a task creation
-      // compares it against, or every task creation against it is refused as not allow-listed.
-      checkoutPath: resolve(checkoutPath),
-      ...(owner && name ? { owner, name, pollEnabled: true } : {}),
-    });
-  }
-
   return {
     list: () => Promise.resolve([...records.values()]),
     watched: () =>
@@ -123,9 +98,8 @@ export function memoryRepositoryStore(seed: string | undefined): RepositoryStore
  * The store this process uses.
  *
  * `AUTH_E2E_MEMORY` selects the in-memory one, the same flag `server/auth.config.ts` reads: it
- * marks a process whose stores live and die with it, which is true of both stores or neither.
+ * marks a process whose stores live and die with it, which is true of both stores or neither. Only
+ * `playwright.config.ts` sets it, so everything else here talks to Postgres.
  */
 export const repositoryStore: RepositoryStore =
-  process.env.AUTH_E2E_MEMORY === 'true'
-    ? memoryRepositoryStore(process.env.CODE_ZERO_SOLO_REPOSITORIES)
-    : postgresRepositoryStore();
+  process.env.AUTH_E2E_MEMORY === 'true' ? memoryRepositoryStore() : postgresRepositoryStore();
