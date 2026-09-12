@@ -1,9 +1,0 @@
-# Deployment policy for `aube run dev:solo`, named by CODE_ZERO_CONFIG in .env.solo.
-#
-# Checked in like .env.solo and for the same reason: it holds no secret. The token this grants
-# modes to is `solo:solo`, which only a server started this way accepts.
-control_plane:
-  # `observe` runs no model, so a task can be created and inspected without any provider
-  # credential; `suggest` and `fix` need one from .env.
-  modes:
-    solo: [observe, suggest, fix]

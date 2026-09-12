@@ -75,22 +75,23 @@ const options = authBetterAuthOptions({
 });
 
 /**
- * `AUTH_E2E_MEMORY` swaps the Postgres adapter for an in-memory one. Two callers set it, both of
- * which own the whole server process and throw its store away when they exit: the Playwright
- * preview server (`start:playwright:webserver`, see `playwright.config.ts`), so the e2e suite in
+ * `AUTH_E2E_MEMORY` swaps the Postgres adapter for an in-memory one. One caller sets it, and it
+ * owns the whole server process and throws its store away when it exits: the Playwright preview
+ * server (`start:playwright:webserver`, see `playwright.config.ts`), so the e2e suite in
  * `test/e2e/test-utils.ts` can sign up and sign in its own throwaway account through the real
- * `/api/auth/**` endpoints without a live database; and `dev:solo` (`.env.solo`), so the
- * dashboard starts from a fresh clone without one either. Both stay off the network and off mutable
+ * `/api/auth/**` endpoints without a live database. It stays off the network and off mutable
  * external state. `AUTH_DATABASE_URL` still has to resolve to build `options` above, but nothing
  * ever queries it once `database` is overridden here.
+ *
+ * Running the dashboard itself is not one of those callers: `aube run dev` and a deployment alike
+ * need Postgres, and there is no env file in the repository that turns this on.
  *
  * Deliberately not guarded by `NODE_ENV`: `nuxt preview` — the command this app's own e2e suite
  * runs, per `start:playwright:webserver` above — sets `NODE_ENV=production` whenever it isn't
  * already set (`@nuxt/cli`'s `preview` command), identically to a real deployment's built output.
  * A `NODE_ENV === 'production'` check would therefore reject every e2e run, not just a leaked
- * flag. Keep this variable out of any shared `.env`/CI template that a real deployment also reads —
- * `.env.solo` is not one: `nuxt` loads it only when a command names it with `--dotenv`, which is
- * how `dev:solo` alone reaches it.
+ * flag. Keep this variable out of every `.env`/CI template a real deployment also reads;
+ * `playwright.config.ts` passes it to the one server it starts and nowhere else.
  */
 export default defineServerAuth(
   process.env.AUTH_E2E_MEMORY === 'true'
