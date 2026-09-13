@@ -113,7 +113,15 @@ aube run dev             # http://localhost:3000, then sign up at /signup
 ```
 
 Set `AUTH_ENABLE_SIGNUP=true` in `apps/dashboard/.env` to create the first account, then turn it
-back off. Tasks need a checkout to target, added as a repository from the dashboard; `observe`
+back off. Self-registration grants the `user` role, not `admin`, and configuring repositories
+(`repositories.save`, reached from the dashboard) requires `admin` — the same gate `audit.list`
+uses — so promote that first account once, directly in the database:
+
+```sql
+UPDATE "user" SET role = 'admin' WHERE email = 'you@example.com';
+```
+
+From there, add a repository from the dashboard to give tasks a checkout to target; `observe`
 runs no model, so a task can be created and inspected without a provider credential.
 
 `dev:docs` and `dev:marketing` start those two apps on their own the same way `mail:preview`
