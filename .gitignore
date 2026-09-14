@@ -16,9 +16,6 @@ test-report.junit.xml
 .env
 .env.*
 !.env.example
-# Checked in like the examples above: it configures `dev:solo`, whose whole point is that it holds
-# nothing worth keeping out of the repository.
-!.env.solo
 .code-zero/
 .data/
 *.log
@@ -32,4 +29,3 @@ test-report.junit.xml
 /vscode_cli.tar.gz
 code-zero.deployment.yml
 !code-zero.deployment.example.yml
-!apps/dashboard/code-zero.deployment.solo.yml

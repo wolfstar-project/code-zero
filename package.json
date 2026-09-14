@@ -14,7 +14,6 @@
     "dev": "turbo run dev",
     "dev:docs": "turbo run dev --filter=@code-zero/docs",
     "dev:marketing": "turbo run dev --filter=@code-zero/marketing",
-    "dev:solo": "turbo run dev:solo --filter=@code-zero/dashboard",
     "format": "oxfmt -c tooling/oxc/.oxfmtrc.json --ignore-path .oxfmtignore .",
     "format:check": "oxfmt -c tooling/oxc/.oxfmtrc.json --ignore-path .oxfmtignore --check .",
     "i18n:report": "turbo run i18n:report",
