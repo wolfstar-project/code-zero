@@ -11,7 +11,7 @@ on:
     branches:
       - main
     tags:
-      - 'v*'
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
   workflow_dispatch:
 
 concurrency:
@@ -46,6 +46,12 @@ jobs:
           PLATFORM: ${{ matrix.platform }}
         run: echo "PLATFORM_PAIR=${PLATFORM//\//-}" >> "$GITHUB_ENV"
 
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # A tag builds the `release` channel only when it is exactly `v<version>` of the dashboard
+      # package, so a stray or stale tag cannot publish an image that reports a different release.
       - name: Resolve build environment
         env:
           REF_TYPE: ${{ github.ref_type }}
@@ -53,6 +59,11 @@ jobs:
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           if [[ "$REF_TYPE" == "tag" ]]; then
+            version="$(node --print "require('./apps/dashboard/package.json').version")"
+            if [[ "$REF_NAME" != "v$version" ]]; then
+              echo "::error::Tag $REF_NAME does not match apps/dashboard version v$version" >&2
+              exit 1
+            fi
             build_env=release
           elif [[ "$REF_NAME" == "$DEFAULT_BRANCH" ]]; then
             build_env=canary
@@ -60,10 +71,6 @@ jobs:
             build_env=preview
           fi
           echo "BUILD_ENV=$build_env" >> "$GITHUB_ENV"
-
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
 
       - name: Extract metadata (labels) for Docker
         id: meta

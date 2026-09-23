@@ -416,11 +416,14 @@ The root `Dockerfile` builds the dashboard with the self-hosted `node` preset an
 `.output/` bundle on `node:24-bookworm-slim`, with `git` for the runner and `tini` as PID 1. The
 `cd` workflow publishes it as a multi-arch (`linux/amd64`, `linux/arm64`) image to
 `ghcr.io/wolfstar-project/code-zero`: `latest` and `main` follow the default branch, every build is
-also tagged with its full commit SHA, and `v*` tags add `X.Y.Z` and `X.Y`.
+also tagged with its full commit SHA, and `vX.Y.Z` tags matching the dashboard version add `X.Y.Z` and `X.Y`.
 
 ```bash
 docker build -t code-zero .
-docker run --rm -p 3000:3000 --env-file apps/dashboard/.env -v code-zero-data:/app/.data code-zero
+docker run --rm -p 3000:3000 --env-file apps/dashboard/.env \
+  -v code-zero-data:/app/.data \
+  -v "$PWD/code-zero.deployment.yml:/app/code-zero.deployment.yml:ro" \
+  code-zero
 ```
 
 The server listens on `$PORT` (default `3000`), so Railway and other platforms that inject a port
@@ -432,6 +435,14 @@ environment sets. Apply migrations against `DATABASE_URL` with
 `aube run db:migrate` from a checkout before the first start. Task history lives in
 `/app/.data`; mount a volume there to keep it across restarts (on Railway, a volume mounted as
 root needs `RAILWAY_RUN_UID=0`, since the image runs as the unprivileged `node` user).
+
+The image carries only `.output/`, so the deployment policy has to be supplied: mount
+`code-zero.deployment.yml` at `/app/code-zero.deployment.yml` as above, or mount it elsewhere and
+point `CODE_ZERO_CONFIG` at it. Without it the process falls back to the closed defaults (no CORS
+origins, no `fix` or `autonomous` grants). The image ships `git` for the host runner but no
+container engine, so `runner.isolation: container` is not supported by it: tasks that require
+container isolation fail closed instead of running on the host. Deploy the `.output/` bundle on a
+host with Docker or Podman when you need that mode.
 
 ---
 
