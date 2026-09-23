@@ -1,0 +1,30 @@
+# Build context for the dashboard image (see Dockerfile). Keep it close to .gitignore so the image
+# is built from what a clean checkout contains, and never from local secrets or build output.
+.git
+.github
+.husky/_
+.vscode
+**/node_modules
+**/.turbo
+**/dist
+**/.output
+**/.nuxt
+**/.vercel
+**/.vitehub
+**/.maizzle
+**/.data
+**/.code-zero
+**/coverage
+**/playwright-report
+**/test-results
+**/*.tsbuildinfo
+**/*.log
+.skilld
+.env
+.env.*
+**/.env
+**/.env.*
+!**/.env.example
+code-zero.deployment.yml
+Dockerfile
+.dockerignore
