@@ -410,6 +410,29 @@ model:
 
 Issue-to-PR work is opt-in twice: `issues.enabled` must be true and the issue must carry the `issues.requireLabel` label, so arbitrary issue text can never start a run. Issue text is untrusted input for the runtime to validate — never instructions. The run first decides from repository evidence whether the issue actually reports a real problem, and (unless `issues.validationComment` is disabled) posts that verdict back on the issue: confirmed with its evidence, not confirmed with every rejection reason, or inconclusive for a human. A pull request is opened only when the run completed, its changes were applied, and every repository check passed. Verified changes are published to a fresh `issues.branchPrefix` branch (never force-updated, never the default branch), and the pull request body is the run's evidence: acceptance criteria, plan, checks, and lifecycle.
 
+### Container image
+
+The root `Dockerfile` builds the dashboard with the self-hosted `node` preset and ships only the
+`.output/` bundle on `node:24-bookworm-slim`, with `git` for the runner and `tini` as PID 1. The
+`cd` workflow publishes it as a multi-arch (`linux/amd64`, `linux/arm64`) image to
+`ghcr.io/wolfstar-project/code-zero`: `latest` and `main` follow the default branch, every build is
+also tagged with its full commit SHA, and `v*` tags add `X.Y.Z` and `X.Y`.
+
+```bash
+docker build -t code-zero .
+docker run --rm -p 3000:3000 --env-file apps/dashboard/.env -v code-zero-data:/app/.data code-zero
+```
+
+The server listens on `$PORT` (default `3000`), so Railway and other platforms that inject a port
+work without extra configuration: point a Railway service at the GHCR image, or let it build the
+repository's `Dockerfile` directly. Runtime configuration is the environment described above. The
+published image is built with the default auth policy, so its sign-in pages are labelled for
+sign-up and GitHub OAuth being off; the server still enforces whatever policy the runtime
+environment sets. Apply migrations against `DATABASE_URL` with
+`aube run db:migrate` from a checkout before the first start. Task history lives in
+`/app/.data`; mount a volume there to keep it across restarts (on Railway, a volume mounted as
+root needs `RAILWAY_RUN_UID=0`, since the image runs as the unprivileged `node` user).
+
 ---
 
 ## Toolchain

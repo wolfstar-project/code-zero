@@ -175,15 +175,16 @@ aube run build
 
 ## CI/CD
 
-| Workflow                     | Purpose                                                   | Trigger                         |
-| ---------------------------- | --------------------------------------------------------- | ------------------------------- |
-| `ci.yaml`                    | Lint, repository metadata, typecheck, tests, build, i18n  | PR, push to `main`, merge group |
-| `autofix.yml`                | Pushes formatting and lint fixes back to the pull request | PR, merge group                 |
-| `zizmor.yaml`                | Static analysis of GitHub Actions workflows               | PR, push to `main`, merge group |
-| `semantic-pull-requests.yml` | Validates PR titles against Conventional Commits          | PR opened, edited, synchronized |
-| `release.yaml`               | Validates release artifacts                               | Manual dispatch                 |
-| `labelsync.yml`              | Syncs repository labels                                   | Daily schedule, manual dispatch |
-| `stale.yml`                  | Marks and closes stale issues and pull requests           | Daily schedule, manual dispatch |
+| Workflow                     | Purpose                                                   | Trigger                           |
+| ---------------------------- | --------------------------------------------------------- | --------------------------------- |
+| `ci.yaml`                    | Lint, repository metadata, typecheck, tests, build, i18n  | PR, push to `main`, merge group   |
+| `cd.yml`                     | Builds and publishes the dashboard image to GHCR          | Push to `main`, `v*` tags, manual |
+| `autofix.yml`                | Pushes formatting and lint fixes back to the pull request | PR, merge group                   |
+| `zizmor.yaml`                | Static analysis of GitHub Actions workflows               | PR, push to `main`, merge group   |
+| `semantic-pull-requests.yml` | Validates PR titles against Conventional Commits          | PR opened, edited, synchronized   |
+| `release.yaml`               | Validates release artifacts                               | Manual dispatch                   |
+| `labelsync.yml`              | Syncs repository labels                                   | Daily schedule, manual dispatch   |
+| `stale.yml`                  | Marks and closes stale issues and pull requests           | Daily schedule, manual dispatch   |
 
 ## Pull requests
 
