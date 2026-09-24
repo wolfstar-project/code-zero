@@ -38,7 +38,7 @@
     "typecheck": "tsc --project tsconfig.json --pretty false --noEmit"
   },
   "dependencies": {
-    "@lunariajs/core": "https://pkg.pr.new/lunariajs/lunaria/@lunariajs/core@904b935",
+    "@lunariajs/core": "^0.2.0",
     "vue-i18n-extract": "2.0.7"
   },
   "devDependencies": {

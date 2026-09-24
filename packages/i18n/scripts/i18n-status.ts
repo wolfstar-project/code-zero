@@ -1,8 +1,10 @@
 // Translation status reporter, inspired by npmx.dev's Lunaria build script (MIT license).
-// The pinned @lunariajs/core build has no CLI, so the status is computed through its API.
+// The status is computed through @lunariajs/core's API rather than its CLI.
 import { mkdirSync, writeFileSync } from 'node:fs';
 
 import { createLunaria } from '@lunariajs/core';
+
+import { formatMissingKey } from './utils/lunaria-status.ts';
 
 // `force: true` bypasses git caching so the status stays correct after rebases and merges.
 const lunaria = await createLunaria({ force: true });
@@ -27,7 +29,9 @@ const summaries = lunaria.config.locales.map((locale) => {
     }
 
     if ('missingKeys' in localization) {
-      missingKeys.push(...localization.missingKeys.map((key) => `${localization.path}: ${key}`));
+      missingKeys.push(
+        ...localization.missingKeys.map((key) => formatMissingKey(localization.path, key)),
+      );
     }
   }
 
