@@ -4,6 +4,8 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 
 import { createLunaria } from '@lunariajs/core';
 
+import { formatMissingKey } from './utils/lunaria-status.ts';
+
 // `force: true` bypasses git caching so the status stays correct after rebases and merges.
 const lunaria = await createLunaria({ force: true });
 const status = await lunaria.getFullStatus();
@@ -28,7 +30,7 @@ const summaries = lunaria.config.locales.map((locale) => {
 
     if ('missingKeys' in localization) {
       missingKeys.push(
-        ...localization.missingKeys.map((key) => `${localization.path}: ${key.join('.')}`),
+        ...localization.missingKeys.map((key) => formatMissingKey(localization.path, key)),
       );
     }
   }
