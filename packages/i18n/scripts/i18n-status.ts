@@ -1,5 +1,5 @@
 // Translation status reporter, inspired by npmx.dev's Lunaria build script (MIT license).
-// The pinned @lunariajs/core build has no CLI, so the status is computed through its API.
+// The status is computed through @lunariajs/core's API rather than its CLI.
 import { mkdirSync, writeFileSync } from 'node:fs';
 
 import { createLunaria } from '@lunariajs/core';
@@ -27,7 +27,9 @@ const summaries = lunaria.config.locales.map((locale) => {
     }
 
     if ('missingKeys' in localization) {
-      missingKeys.push(...localization.missingKeys.map((key) => `${localization.path}: ${key}`));
+      missingKeys.push(
+        ...localization.missingKeys.map((key) => `${localization.path}: ${key.join('.')}`),
+      );
     }
   }
 
