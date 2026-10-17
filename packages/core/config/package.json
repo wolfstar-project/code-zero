@@ -1,5 +1,5 @@
 {
-  "name": "@code-zero/shared",
+  "name": "@code-zero/config",
   "version": "0.4.0",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -21,10 +21,17 @@
   "scripts": {
     "build": "tsdown",
     "clean": "tsc -b --clean",
-    "lint": "oxlint --config ../../tooling/oxc/packages.oxlintrc.json --type-aware --type-check src",
-    "lint:fix": "oxlint --fix --config ../../tooling/oxc/packages.oxlintrc.json --type-aware --type-check src",
+    "lint": "oxlint --config ../../../tooling/oxc/packages.oxlintrc.json --type-aware --type-check src",
+    "lint:fix": "oxlint --fix --config ../../../tooling/oxc/packages.oxlintrc.json --type-aware --type-check src",
     "test": "vitest run src --passWithNoTests",
     "typecheck": "tsc --project tsconfig.json --pretty false --noEmit"
+  },
+  "dependencies": {
+    "@code-zero/shared": "workspace:*",
+    "destr": "^2.0.5",
+    "magic-regexp": "^0.11.0",
+    "package-manager-detector": "^1.8.0",
+    "yaml": "^2.8.1"
   },
   "devDependencies": {
     "oxlint": "^1.44.0",

@@ -114,7 +114,7 @@ export function createSubscriptionSession(): SubscriptionSession {
 /**
  * Spawns the Claude Code CLI process on the vendor SDK's behalf.
  *
- * `packages/models` never calls `child_process` itself: this is the vendor SDK's own
+ * `packages/core/models` never calls `child_process` itself: this is the vendor SDK's own
  * `spawnClaudeCodeProcess` hook, structurally typed against Node's `ChildProcess` rather than
  * against the vendor's re-exported type names (`ai-sdk-provider-claude-code` does not publicly
  * export `SpawnOptions`/`SpawnedProcess`, and `ChildProcess` already satisfies the vendor's shape
@@ -165,7 +165,7 @@ export function isSubscriptionProviderEnabled(
 /**
  * The command that proves the CLI is installed and runnable.
  *
- * Returned rather than executed: `packages/models` never spawns anything itself, so a composition
+ * Returned rather than executed: `packages/core/models` never spawns anything itself, so a composition
  * root runs this through the runner boundary like every other command.
  */
 export function subscriptionProbeCommand(
@@ -403,7 +403,7 @@ function adaptSpawnedProcess(spawnProcess: ClaudeCodeProcessSpawner) {
  *
  * Unlike `claudeCodeLanguageModel`, this never receives a spawner: `ai-sdk-provider-codex-cli`
  * exposes no `spawnClaudeCodeProcess`-equivalent hook, so its `child_process.spawn` call cannot be
- * routed through `packages/runner` regardless of the deployment's runner isolation. A containerized
+ * routed through `packages/core/runner` regardless of the deployment's runner isolation. A containerized
  * runner still runs this CLI's process directly on the control-plane host — the read-only sandbox,
  * disabled approvals, and disabled MCP servers below are the containment for that gap, not a
  * substitute for the process isolation this cannot provide. Documented for operators in README

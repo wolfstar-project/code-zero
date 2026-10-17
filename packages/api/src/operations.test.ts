@@ -219,7 +219,7 @@ describe('runTask', () => {
       // nothing to degrade to and the run fails outright rather than spawning the CLI unisolated
       // on the host. `modelFromEnvironment` proves the companion guarantee — that a configured
       // fallback IS honored here instead of being skipped — at the unit level in
-      // packages/models/src/index.test.ts ("preserves a configured fallback when a composition
+      // packages/core/models/src/index.test.ts ("preserves a configured fallback when a composition
       // root refuses the transport"), since exercising a real fallback provider end to end here
       // would require a live model call.
       expect(result.state).toBe('failed');

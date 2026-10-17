@@ -77,5 +77,5 @@ Keep dependency direction explicit while changing the monorepo.
 - Cross-package imports from another package's `src/` directory.
 - A capability package importing another capability package. When `runner` needs policy, it declares the fields it needs structurally instead of importing `config`. `auth` depending on `database` is the one sanctioned exception: persistence is a layer beneath policy, and the dependency runs only in that direction.
 - A table declared, a connection opened, or a migration written outside `packages/database`.
-- Direct filesystem or `child_process` access outside `packages/runner`, including in the agent's discovery step.
+- Direct filesystem or `child_process` access outside `packages/core/runner`, including in the agent's discovery step.
 - A second place that decides whether a run may write, or whether a run is verified. Both have exactly one home.

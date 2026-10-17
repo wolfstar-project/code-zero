@@ -1,5 +1,5 @@
 {
-  "name": "@code-zero/agent",
+  "name": "@code-zero/runner",
   "version": "0.4.0",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -21,16 +21,15 @@
   "scripts": {
     "build": "tsdown",
     "clean": "tsc -b --clean",
-    "lint": "oxlint --config ../../tooling/oxc/packages.oxlintrc.json --type-aware --type-check src",
-    "lint:fix": "oxlint --fix --config ../../tooling/oxc/packages.oxlintrc.json --type-aware --type-check src",
+    "lint": "oxlint --config ../../../tooling/oxc/packages.oxlintrc.json --type-aware --type-check src",
+    "lint:fix": "oxlint --fix --config ../../../tooling/oxc/packages.oxlintrc.json --type-aware --type-check src",
     "test": "vitest run src --passWithNoTests",
     "typecheck": "tsc --project tsconfig.json --pretty false --noEmit"
   },
   "dependencies": {
-    "@code-zero/config": "workspace:*",
-    "@code-zero/models": "workspace:*",
-    "@code-zero/runner": "workspace:*",
-    "@code-zero/shared": "workspace:*"
+    "@code-zero/shared": "workspace:*",
+    "@vite-hub/shell": "^0.0.3",
+    "magic-regexp": "^0.11.0"
   },
   "devDependencies": {
     "oxlint": "^1.44.0",

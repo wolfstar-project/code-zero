@@ -11,7 +11,7 @@ Safety properties are behavior, not documentation. Back every change with determ
 
 - `observe` is the default and cannot mutate a target checkout. `suggest` cannot either.
 - `fix` requires an explicit mode and repository policy permission. Ask `mayModifyRepository`; do not re-derive the rule.
-- Only `packages/runner` executes commands or changes target files at runtime.
+- Only `packages/core/runner` executes commands or changes target files at runtime.
 - A runner created read-only refuses every write. Enforce the boundary mechanically, not by convention.
 - Working directories must remain inside the validated checkout, including after symlinks are resolved.
 - Nothing reads or writes inside `.git`.

@@ -3,11 +3,11 @@
   "compilerOptions": { "rootDir": "src", "outDir": "dist" },
   "include": ["src/**/*.ts"],
   "references": [
-    { "path": "../agent" },
-    { "path": "../config" },
-    { "path": "../models" },
-    { "path": "../runner" },
-    { "path": "../shared" },
+    { "path": "../core/agent" },
+    { "path": "../core/config" },
+    { "path": "../core/models" },
+    { "path": "../core/runner" },
+    { "path": "../core/shared" },
     { "path": "../source-control" }
   ]
 }

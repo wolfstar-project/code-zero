@@ -9,13 +9,13 @@ because it exists to be crawled, prerendering every route rather than serving a 
 
 ## Boundaries
 
-| Rule                             | Why                                                                                               |
-| -------------------------------- | ------------------------------------------------------------------------------------------------- |
-| No runtime-package imports       | Nothing here may reach `packages/agent`, `packages/runner`, or any other runtime package.         |
-| No persistence, no auth handlers | Sign-in links out to the dashboard origin; this app never sees a session.                         |
-| No secrets                       | Everything in `config/` is public by construction and ships in the client bundle.                 |
-| Nitro is for rendering only      | The only server routes are the ones `@nuxtjs/seo` generates (`/robots.txt`, sitemaps).            |
-| Contact form has no backend      | `ContactForm` builds a `mailto:` link client-side; nothing is submitted to or stored by this app. |
+| Rule                             | Why                                                                                                 |
+| -------------------------------- | --------------------------------------------------------------------------------------------------- |
+| No runtime-package imports       | Nothing here may reach `packages/core/agent`, `packages/core/runner`, or any other runtime package. |
+| No persistence, no auth handlers | Sign-in links out to the dashboard origin; this app never sees a session.                           |
+| No secrets                       | Everything in `config/` is public by construction and ships in the client bundle.                   |
+| Nitro is for rendering only      | The only server routes are the ones `@nuxtjs/seo` generates (`/robots.txt`, sitemaps).              |
+| Contact form has no backend      | `ContactForm` builds a `mailto:` link client-side; nothing is submitted to or stored by this app.   |
 
 `@nuxt/content` keeps a local SQLite index of `content/` at build/dev time to serve queries — that
 is a build-time content cache, not application persistence: it holds no user data and no

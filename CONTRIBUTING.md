@@ -35,12 +35,12 @@ aube test
 
 | Change                                               | Location                  |
 | ---------------------------------------------------- | ------------------------- |
-| Agent lifecycle and decisions                        | `packages/agent`          |
-| Commands and repository mutation                     | `packages/runner`         |
-| LLM providers                                        | `packages/models`         |
+| Agent lifecycle and decisions                        | `packages/core/agent`     |
+| Commands and repository mutation                     | `packages/core/runner`    |
+| LLM providers                                        | `packages/core/models`    |
 | Source-control provider adapters                     | `packages/source-control` |
-| Configuration and policy                             | `packages/config`         |
-| Shared contracts                                     | `packages/shared`         |
+| Configuration and policy                             | `packages/core/config`    |
+| Shared contracts                                     | `packages/core/shared`    |
 | CLI parsing and presentation                         | `packages/cli`            |
 | Database schema and migrations                       | `packages/database`       |
 | Authentication policy                                | `packages/auth`           |

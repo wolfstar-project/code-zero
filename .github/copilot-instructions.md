@@ -4,7 +4,7 @@ Read `/AGENTS.md` before editing and load the relevant skill from `/.agents/skil
 
 - Use aube and the root scripts. It keeps `pnpm-lock.yaml` and `pnpm-workspace.yaml` in place.
 - Preserve the package dependency direction documented in `/docs/architecture.md`.
-- Keep runtime command execution and target-repository mutation inside `packages/runner`.
+- Keep runtime command execution and target-repository mutation inside `packages/core/runner`.
 - Keep `observe` mode read-only.
 - Add deterministic tests for behavior, state transitions, and safety-sensitive changes.
 - Keep `apps/dashboard` frontend-only, use `@bomb.sh/args` plus `@clack/prompts` in the CLI, tsdown for package builds, and Oxlint/Oxfmt for code quality.

@@ -1,6 +1,7 @@
 packages:
   - apps/*
   - packages/*
+  - packages/core/*
 
 # Drop-in `typescript` replacement whose checker runs on tsgo in-process.
 # Must be an exact version: the fork only publishes prerelease versions, which

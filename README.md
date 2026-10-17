@@ -32,7 +32,7 @@ Feedback is never treated as truth merely because it came from a human or an AI 
 - **Confidence and impact gates** &ndash; automatic fixes require confidence, an allowed change-risk class, repository permission, and verification.
 - **Issues become reviewable pull requests** &ndash; a labeled, repository-scoped issue can be investigated, implemented on an isolated branch, verified, and published as a pull request that carries its acceptance criteria and evidence; never as a direct commit.
 - **`observe` by default** &ndash; the safe mode inspects and reports, and never writes to a target repository.
-- **One execution boundary** &ndash; `packages/runner` is the only code allowed to run commands or mutate a checkout.
+- **One execution boundary** &ndash; `packages/core/runner` is the only code allowed to run commands or mutate a checkout.
 - **Adapters at the edges** &ndash; the runtime stays independent of HTTP, source-control platforms, terminal UI, and model providers.
 
 ---
@@ -56,12 +56,12 @@ Nuxt dashboard ─── UI, oRPC + OpenAPI routes, and Better Auth, one app ─
 
 | Package                                                | Responsibility                                                                             |
 | ------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
-| [`packages/agent`](./packages/agent)                   | Orchestration and state transitions                                                        |
-| [`packages/runner`](./packages/runner)                 | The only boundary that executes commands or mutates a checkout                             |
-| [`packages/models`](./packages/models)                 | Model-provider abstractions                                                                |
+| [`packages/core/agent`](./packages/core/agent)         | Orchestration and state transitions                                                        |
+| [`packages/core/runner`](./packages/core/runner)       | The only boundary that executes commands or mutates a checkout                             |
+| [`packages/core/models`](./packages/core/models)       | Model-provider abstractions                                                                |
 | [`packages/source-control`](./packages/source-control) | Provider-neutral source-control contracts and adapters (GitHub, GitLab, Bitbucket, Gitea)  |
-| [`packages/config`](./packages/config)                 | Configuration parsing and policy                                                           |
-| [`packages/shared`](./packages/shared)                 | Stable cross-package contracts                                                             |
+| [`packages/core/config`](./packages/core/config)       | Configuration parsing and policy                                                           |
+| [`packages/core/shared`](./packages/core/shared)       | Stable cross-package contracts                                                             |
 | [`packages/cli`](./packages/cli)                       | Argument parsing and terminal presentation                                                 |
 | [`packages/database`](./packages/database)             | Schema, Drizzle client, and checked-in migrations; the only package that talks to Postgres |
 | [`packages/auth`](./packages/auth)                     | Authentication policy and the Better Auth options factory                                  |
@@ -280,7 +280,7 @@ Known limits, all of which follow from the session being local:
 - **Host-bound.** The run must execute where `claude login` / `codex login` was completed, and the
   Code Zero process must be allowed to spawn subprocesses.
 - **`codex-cli`'s process is not runner-routed.** `claude-code`'s CLI process is spawned through
-  `packages/runner`'s `spawnManagedProcess`, the same boundary as every repository check; a
+  `packages/core/runner`'s `spawnManagedProcess`, the same boundary as every repository check; a
   composition root wires this in (`modelFromEnvironment`'s `ClaudeCodeProcessSpawner` parameter).
   `ai-sdk-provider-codex-cli` exposes no equivalent hook, so Codex's process is always spawned by
   the vendor SDK directly. Its read-only sandbox, disabled approvals, and disabled MCP servers are
@@ -463,7 +463,7 @@ GitHub Actions run typecheck, build/export validation, Oxlint, Oxfmt, tests, and
 
 ## Security model
 
-The included `LocalRunner` is intended for trusted local development. Production deployments must place it inside Docker, a microVM, or another ephemeral sandbox with CPU, memory, filesystem, and network policies. Only `packages/runner` may invoke shell commands.
+The included `LocalRunner` is intended for trusted local development. Production deployments must place it inside Docker, a microVM, or another ephemeral sandbox with CPU, memory, filesystem, and network policies. Only `packages/core/runner` may invoke shell commands.
 
 Report vulnerabilities privately as described in [SECURITY.md](./SECURITY.md). Do not open a public issue.
 

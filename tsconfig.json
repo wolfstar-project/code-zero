@@ -1,13 +1,13 @@
 {
   "files": [],
   "references": [
-    { "path": "packages/shared" },
+    { "path": "packages/core/shared" },
     { "path": "packages/build-env" },
-    { "path": "packages/config" },
-    { "path": "packages/models" },
-    { "path": "packages/runner" },
+    { "path": "packages/core/config" },
+    { "path": "packages/core/models" },
+    { "path": "packages/core/runner" },
     { "path": "packages/source-control" },
-    { "path": "packages/agent" },
+    { "path": "packages/core/agent" },
     { "path": "packages/cli" },
     { "path": "packages/auth" },
     { "path": "packages/api" },

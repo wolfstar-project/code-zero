@@ -1,6 +1,6 @@
 # Model providers
 
-Code Zero supports native OpenAI, Anthropic, and Google Generative AI adapters, Vercel AI Gateway, and arbitrary OpenAI-compatible endpoints — all behind one `ModelProvider` contract in `packages/models`, sharing one structured-output, usage-accounting, timeout, and error-redaction path.
+Code Zero supports native OpenAI, Anthropic, and Google Generative AI adapters, Vercel AI Gateway, and arbitrary OpenAI-compatible endpoints — all behind one `ModelProvider` contract in `packages/core/models`, sharing one structured-output, usage-accounting, timeout, and error-redaction path.
 
 ## Select a provider
 
@@ -43,5 +43,5 @@ Usage (tokens and, when configured, cost) is accounted per run and carried in th
 ## Guarantees
 
 - Credentials are read only from the provider's documented environment variable and are never persisted with task evidence.
-- The agent runtime sees neither SDK objects nor credentials — `packages/models` keeps AI SDK types behind the adapter boundary.
+- The agent runtime sees neither SDK objects nor credentials — `packages/core/models` keeps AI SDK types behind the adapter boundary.
 - Errors are redacted before they surface, so a provider exception cannot leak a credential into logs or evidence.

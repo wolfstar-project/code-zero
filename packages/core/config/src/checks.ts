@@ -102,7 +102,7 @@ export function resolveChecks(configured: readonly string[], probe: RepositoryPr
 /**
  * Validate only the configuration-level invariant here.
  *
- * Command syntax and shell semantics are deliberately owned by `packages/runner`, where ViteHub
+ * Command syntax and shell semantics are deliberately owned by `packages/core/runner`, where ViteHub
  * Shell performs the authoritative analysis immediately before execution. Keeping that decision in
  * one layer avoids the config and runner drifting into two subtly different shell parsers.
  */

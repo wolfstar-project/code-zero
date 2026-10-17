@@ -76,7 +76,7 @@ describe('accessFromEnvironment', () => {
   });
 
   it('grants nothing to a principal whose configured grant resolved to no valid mode', () => {
-    // `packages/config`'s `parseDeploymentConfig` refuses a grant that named an unknown mode, but
+    // `packages/core/config`'s `parseDeploymentConfig` refuses a grant that named an unknown mode, but
     // still records the principal with an empty mode list rather than omitting it — omitting it
     // would land here as "no grant configured" and widen the principal to the non-writable
     // defaults, which is worse than the mistake it was meant to catch.

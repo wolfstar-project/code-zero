@@ -104,7 +104,7 @@ describe('assertExecutableCommand', () => {
   });
 
   it('rejects only empty commands and defers shell syntax to the runner', () => {
-    // Shell semantics are owned by packages/runner, where ViteHub Shell analyzes every command
+    // Shell semantics are owned by packages/core/runner, where ViteHub Shell analyzes every command
     // immediately before execution; configuration only enforces that a command exists at all.
     for (const command of [
       'pnpm test && pnpm build',
