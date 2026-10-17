@@ -11,7 +11,7 @@ import { sessionPrincipal, type Principal } from '../access.js';
  * against a concrete instance: building one needs a database adapter and the deployment's
  * authentication policy, both of which live in `@code-zero/auth`. This package holds the
  * control-plane router and must not reach persistence or policy, so the composition root
- * (`apps/dashboard/server/`) constructs the instance and passes it in through the oRPC context.
+ * (`apps/web/server/`) constructs the instance and passes it in through the oRPC context.
  *
  * @see {@link https://orpc.dev/docs/integrations/better-auth | oRPC — Better Auth integration}
  */

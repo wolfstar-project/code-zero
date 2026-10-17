@@ -3,7 +3,7 @@
 The public marketing site: the landing page, pricing, contact routes, and the legal documents.
 
 Frontend only. It owns no persistence, holds no credentials, and imports no runtime package.
-Unlike `apps/dashboard` — the single deployable app that also serves the API and authentication —
+Unlike `apps/web` — the single deployable app that also serves the API and authentication —
 this site has nothing behind it: it links to the dashboard by origin and renders on the server only
 because it exists to be crawled, prerendering every route rather than serving a live request.
 
@@ -69,7 +69,7 @@ documents carry valid frontmatter.
 
 There is no `config/app.ts`: site identity (`app.config.ts`, `useAppConfig()`) and the two
 environment-derived URLs (read directly in `nuxt.config.ts`, each used exactly once) don't share
-enough to justify a wrapper module, and `apps/dashboard` already sets the precedent of using
+enough to justify a wrapper module, and `apps/web` already sets the precedent of using
 `appConfig` directly rather than inventing one.
 
 ## Environment

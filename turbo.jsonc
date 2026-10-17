@@ -17,7 +17,7 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".output/**", "*.tsbuildinfo"],
     },
-    "@code-zero/dashboard#build": {
+    "@code-zero/web#build": {
       "dependsOn": ["^build"],
       // NITRO_PRESET and VITEHUB_HOSTING select the deployment target (config/env.ts), which
       // fixes both the Nitro preset the build emits and the KV driver it resolves. Strict env mode

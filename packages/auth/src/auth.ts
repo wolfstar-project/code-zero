@@ -282,7 +282,7 @@ function authPlugins(options: AuthDatabaseOptions): BetterAuthPlugin[] {
     // the session is resolved.
     //
     // It shares the header with the control plane's own operator tokens, which is safe because
-    // `apps/dashboard`'s `buildRpcContext` resolves those first by constant-time comparison and
+    // `apps/web`'s `buildRpcContext` resolves those first by constant-time comparison and
     // only falls through to a session lookup when none matched.
     //
     // The cost is that a leaked session token becomes replayable as a header, not only as a

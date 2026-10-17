@@ -56,7 +56,7 @@ function syncLocaleData(
         // Empty placeholder, never the English source string: copying the reference text makes an
         // untranslated key indistinguishable from a real translation for Lunaria and translators.
         // Empty leaves are stripped at build time by the consuming app (see
-        // apps/dashboard/modules/i18n-strip-empty), so the
+        // apps/web/modules/i18n-strip-empty), so the
         // runtime falls back to English.
         result[key] = '';
       }

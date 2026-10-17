@@ -396,7 +396,7 @@ describe('ingestWebhook', () => {
       'version: 1\nproactive:\n  enabled: true\nmode: observe\n',
       'utf8',
     );
-    // The same key `apps/dashboard`'s poller claims for the identical commit — this is what makes
+    // The same key `apps/web`'s poller claims for the identical commit — this is what makes
     // the two channels share one outcome instead of each running its own review.
     const claimedKey = reviewDeliveryKey({
       provider: 'github',

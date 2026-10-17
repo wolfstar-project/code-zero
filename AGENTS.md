@@ -48,7 +48,7 @@ Code Zero is an open-source autonomous engineer that finds, fixes, and verifies 
 | `packages/api`            | `@code-zero/api`            | The oRPC router and control-plane operations                     |
 | `packages/i18n`           | `@code-zero/i18n`           | Locale messages and i18n tooling                                 |
 | `packages/mail`           | `@code-zero/mail`           | Transactional mail templates                                     |
-| `apps/dashboard`          | `@code-zero/dashboard`      | The single deployable app and composition root                   |
+| `apps/web`                | `@code-zero/web`            | The single deployable app and composition root                   |
 | `apps/docs`               | `@code-zero/docs`           | Docus documentation site (not deployed with the dashboard)       |
 | `apps/marketing`          | `@code-zero/marketing`      | Frontend-only public marketing site                              |
 | `apps/mail-preview`       | `@code-zero/mail-preview`   | Dev-only Maizzle preview server for `packages/mail`              |
@@ -59,7 +59,7 @@ Code Zero is an open-source autonomous engineer that finds, fixes, and verifies 
 - Use aube for dependencies and scripts. It reads and writes `pnpm-lock.yaml` and `pnpm-workspace.yaml` in place; keep both files and do not create npm, Yarn, or Bun lockfiles.
 - `typescript` is overridden to `typescript-native-bridge` in `pnpm-workspace.yaml`, so `tsc` and every Compiler API consumer type-check on tsgo. Keep the pin exact and reinstall after changing it.
 - Use Turborepo through the root scripts; do not duplicate orchestration in package scripts.
-- Use tsdown through each tsdown-built package's `tsdown.config.ts` and the shared `scripts/tsdown.config.ts`. `apps/dashboard` uses the Nuxt build pipeline, registering `vite-hub/nuxt` from `apps/dashboard/nuxt.config.ts` to compose ViteHub into Nuxt's own Nitro build.
+- Use tsdown through each tsdown-built package's `tsdown.config.ts` and the shared `scripts/tsdown.config.ts`. `apps/web` uses the Nuxt build pipeline, registering `vite-hub/nuxt` from `apps/web/nuxt.config.ts` to compose ViteHub into Nuxt's own Nitro build.
 - Use Oxlint with type-aware checks and Oxfmt. Do not add ESLint or Prettier.
 - Do not edit `dist/`, `.turbo/`, or generated declaration files.
 
@@ -74,7 +74,7 @@ aube ci
 
 # Seed local environment files
 cp .env.example .env
-cp apps/dashboard/.env.example apps/dashboard/.env
+cp apps/web/.env.example apps/web/.env
 ```
 
 `aube run <script>` and `aube test` check install freshness first and install only when `node_modules` is stale, so a separate install step is rarely needed.
@@ -117,7 +117,7 @@ Every runtime package exposes `build`, `clean`, `lint`, `lint:fix`, `test`, and 
 aube run test --filter=@code-zero/runner
 
 # Build a package and its dependencies
-aube run build --filter=@code-zero/dashboard
+aube run build --filter=@code-zero/web
 
 # Type-check one package
 aube run typecheck --filter=@code-zero/api
@@ -140,10 +140,10 @@ Use the smallest relevant check while iterating, then run the complete set befor
 - `packages/api`: the oRPC router and control-plane operations. The only package that composes the runtime, source-control, models, and config adapters into one API surface. Holds no HTTP host of its own.
 - `apps/docs`: the Docus documentation site. Not deployed with the dashboard. The canonical architecture and provider references remain in `docs/*.md` (the site includes them verbatim); edit those files, not copies.
 - `apps/mail-preview`: dev-only Maizzle preview server for `packages/mail` templates. Not deployed; nothing may import it.
-- `apps/dashboard`: the single deployable app and composition root. A Nuxt app whose `server/` directory hosts `packages/api`'s router over `/rpc/**` (typed RPC) and `/api/v1/**` (OpenAPI/REST, with docs at `/api/v1/docs`), and mounts Better Auth in-process at `/api/auth/**` via `server/auth.config.ts`. The only process that opens the database, and it does so through `packages/database`.
+- `apps/web`: the single deployable app and composition root. A Nuxt app whose `server/` directory hosts `packages/api`'s router over `/rpc/**` (typed RPC) and `/api/v1/**` (OpenAPI/REST, with docs at `/api/v1/docs`), and mounts Better Auth in-process at `/api/auth/**` via `server/auth.config.ts`. The only process that opens the database, and it does so through `packages/database`.
 - `apps/marketing`: frontend-only Nuxt public marketing site. No persistence, no credentials, no session, no runtime-package imports; nothing imports it. Server-rendered and prerendered because it must be crawlable, so the only Nitro routes are the ones `@nuxtjs/seo` generates. Copy lives in `packages/i18n` (`locales/<locale>/marketing.json`), never in the app.
 
-The runtime must remain independent from HTTP, source-control platforms, terminal UI, and specific model providers. Adapters depend on the runtime; the runtime must not depend on adapters. Authentication is an adapter concern: neither `packages/database` nor `packages/auth` may import a runtime package or execute repository work; `apps/dashboard`'s `server/auth.config.ts` composes `packages/auth`'s policy into the Better Auth options the Nuxt module builds an instance from, and is the only place in the repository that reaches the database.
+The runtime must remain independent from HTTP, source-control platforms, terminal UI, and specific model providers. Adapters depend on the runtime; the runtime must not depend on adapters. Authentication is an adapter concern: neither `packages/database` nor `packages/auth` may import a runtime package or execute repository work; `apps/web`'s `server/auth.config.ts` composes `packages/auth`'s policy into the Better Auth options the Nuxt module builds an instance from, and is the only place in the repository that reaches the database.
 
 Persistence and policy are separate boundaries. `packages/database` owns tables, connections, and migrations and knows nothing about authentication; `packages/auth` decides what is allowed and reads the store through it. The dependency runs one way — a schema change never needs to know who signs in, and `packages/database` must not import `packages/auth`.
 

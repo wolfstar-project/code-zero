@@ -9,7 +9,7 @@ packages:
 overrides:
   typescript: npm:typescript-native-bridge@6.0.3-bridge.12.tsgo.7.0.2
   # Both nuxt-site-config-kit (transitive via @nuxtjs/seo -> nuxt-site-config, apps/marketing and
-  # apps/dashboard) and @redstardev/unplugin-version-injector pin an older @nuxt/schema than the
+  # apps/web) and @redstardev/unplugin-version-injector pin an older @nuxt/schema than the
   # nuxt@4.5.2 this repo actually runs. Two @nuxt/schema instances means two nominally different
   # `DefineNuxtConfig` types, so `defineNuxtConfig(...)` type-checks as "not callable" wherever the
   # older one wins resolution.

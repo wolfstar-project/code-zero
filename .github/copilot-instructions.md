@@ -7,6 +7,6 @@ Read `/AGENTS.md` before editing and load the relevant skill from `/.agents/skil
 - Keep runtime command execution and target-repository mutation inside `packages/core/runner`.
 - Keep `observe` mode read-only.
 - Add deterministic tests for behavior, state transitions, and safety-sensitive changes.
-- Keep `apps/dashboard` frontend-only, use `@bomb.sh/args` plus `@clack/prompts` in the CLI, tsdown for package builds, and Oxlint/Oxfmt for code quality.
+- Keep `apps/web` frontend-only, use `@bomb.sh/args` plus `@clack/prompts` in the CLI, tsdown for package builds, and Oxlint/Oxfmt for code quality.
 - Do not introduce Hono, ESLint, Prettier, npm, Yarn, or Bun without an accepted architectural proposal.
 - Run `aube run check:repo`, `aube run lint:ci`, `aube run typecheck`, `aube test`, and `aube run build` before handing off a complete change.

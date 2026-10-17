@@ -22,7 +22,7 @@ cd code-zero
 mise install            # or: npm install -g --ignore-scripts=false @endevco/aube
 aube ci
 cp .env.example .env
-cp apps/dashboard/.env.example apps/dashboard/.env
+cp apps/web/.env.example apps/web/.env
 aube run check:repo
 aube test
 ```
@@ -45,7 +45,7 @@ aube test
 | Database schema and migrations                       | `packages/database`       |
 | Authentication policy                                | `packages/auth`           |
 | oRPC router and control-plane operations             | `packages/api`            |
-| UI, HTTP host (RPC, OpenAPI, auth, dashboard routes) | `apps/dashboard`          |
+| UI, HTTP host (RPC, OpenAPI, auth, dashboard routes) | `apps/web`                |
 
 Read [AGENTS.md](AGENTS.md) and the matching files in `.agents/skills/` before making architectural or safety-sensitive changes.
 

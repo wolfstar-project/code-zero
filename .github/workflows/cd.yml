@@ -59,9 +59,9 @@ jobs:
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           if [[ "$REF_TYPE" == "tag" ]]; then
-            version="$(node --print "require('./apps/dashboard/package.json').version")"
+            version="$(node --print "require('./apps/web/package.json').version")"
             if [[ "$REF_NAME" != "v$version" ]]; then
-              echo "::error::Tag $REF_NAME does not match apps/dashboard version v$version" >&2
+              echo "::error::Tag $REF_NAME does not match apps/web version v$version" >&2
               exit 1
             fi
             build_env=release

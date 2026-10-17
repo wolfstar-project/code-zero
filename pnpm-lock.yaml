@@ -82,7 +82,135 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@26.2.0)(happy-dom@20.11.2)(vite@8.2.1(@types/node@26.2.0)(@vitejs/devtools@0.4.12)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.0))
 
-  apps/dashboard:
+  apps/docs:
+    dependencies:
+      better-sqlite3:
+        specifier: 12.x
+        version: 12.11.1
+      docus:
+        specifier: ^5.12.3
+        version: 5.12.3(better-sqlite3@12.11.1)(nuxt@4.5.2(@types/node@24.13.3)(rolldown@1.2.4))
+      nuxt:
+        specifier: ^4.5.2
+        version: 4.5.2(@types/node@24.13.3)(rolldown@1.2.4)
+      rolldown:
+        specifier: ~1.2.1
+        version: 1.2.4
+
+  apps/mail-preview:
+    dependencies:
+      '@code-zero/mail':
+        specifier: workspace:*
+        version: 0.3.0
+    devDependencies:
+      '@maizzle/framework':
+        specifier: ^6.0.13
+        version: 6.1.0(shiki@4.4.3)(tailwind-merge@3.6.0)(vue@3.5.41)
+      '@maizzle/tailwindcss':
+        specifier: ^1.5.6
+        version: 1.5.6
+      shiki:
+        specifier: ^1 || ^2 || ^3 || ^4
+        version: 4.4.3
+      tailwind-merge:
+        specifier: ^2 || ^3
+        version: 3.6.0
+      vue:
+        specifier: ^3
+        version: 3.5.41
+
+  apps/marketing:
+    dependencies:
+      '@code-zero/build-env':
+        specifier: workspace:*
+        version: 0.4.0
+      '@code-zero/i18n':
+        specifier: workspace:*
+        version: 0.3.0
+      nuxt:
+        specifier: ^4.5.2
+        version: 4.5.2(@types/node@24.13.3)(rolldown@1.2.4)
+      rolldown:
+        specifier: ~1.2.1
+        version: 1.2.4
+      vue:
+        specifier: ^3.5.40
+        version: 3.5.41
+      vue-i18n:
+        specifier: ^11.4.8
+        version: 11.4.8(vue@3.5.41)
+    devDependencies:
+      '@golar/vue':
+        specifier: ^0.1.10
+        version: 0.1.10
+      '@iconify-json/lucide':
+        specifier: ^1.2.123
+        version: 1.2.123
+      '@nuxt/content':
+        specifier: ^3.15.2
+        version: 3.15.2(@electric-sql/pglite@0.4.3)(@libsql/client@0.17.4)(@valibot/to-json-schema@1.7.1(valibot@1.4.2))(better-sqlite3@12.11.1)(valibot@1.4.2)
+      '@nuxt/icon':
+        specifier: ^2.5.0
+        version: 2.5.0(magic-string@0.30.21)(magicast@0.5.4)(rolldown@1.2.4)(vite@8.2.1(@types/node@24.13.3)(@vitejs/devtools@0.4.12)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.0))(vue@3.5.41)
+      '@nuxt/test-utils':
+        specifier: 4.1.0
+        version: 4.1.0(@playwright/test@1.62.1)(@vue/test-utils@2.4.11(@vue/compiler-dom@3.5.41)(@vue/server-renderer@3.5.41)(vue@3.5.41))(happy-dom@20.11.2)(playwright-core@1.62.1)(vitest@4.1.10(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(happy-dom@20.11.2)(vite@8.2.1(@types/node@24.13.3)(@vitejs/devtools@0.4.12)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.0)))
+      '@nuxtjs/color-mode':
+        specifier: 4.0.1
+        version: 4.0.1(magic-string@0.30.21)(magicast@0.5.4)(rolldown@1.2.4)
+      '@nuxtjs/i18n':
+        specifier: ^10.6.0
+        version: 10.6.0(@azure/identity@4.13.1)(@azure/storage-blob@12.33.0)(@netlify/blobs@10.7.13)(@vercel/blob@2.8.0)(@vercel/functions@3.9.3(@aws-sdk/credential-provider-web-identity@3.972.49)(ws@8.21.3))(aws4fetch@1.0.20)(db0@0.3.4(@electric-sql/pglite@0.4.3)(@libsql/client@0.17.4)(better-sqlite3@12.11.1)(drizzle-orm@0.45.2(@electric-sql/pglite@0.4.3)(@libsql/client@0.17.4)(@opentelemetry/api@1.9.1)(@prisma/client@5.22.0(prisma@7.9.1(better-sqlite3@12.11.1)))(@types/pg@8.23.0)(better-sqlite3@12.11.1)(kysely@0.29.5)(mysql2@3.15.3)(pg@8.23.0)(postgres@3.4.9)(prisma@7.9.1(better-sqlite3@12.11.1))(sql.js@1.14.2))(mysql2@3.15.3))(esbuild@0.28.2)(ioredis@5.11.1)(magicast@0.5.4)(rolldown@1.2.4)(rollup@4.62.4)(uploadthing@7.7.4(express@5.2.1)(h3@1.15.11)(tailwindcss@4.3.3))(vite@8.2.1(@types/node@24.13.3)(@vitejs/devtools@0.4.12)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.0))(vue@3.5.41)(webpack@5.109.2)
+      '@nuxtjs/seo':
+        specifier: ^5.3.12
+        version: 5.3.12(nuxt@4.5.2(@types/node@24.13.3)(rolldown@1.2.4))
+      '@playwright/test':
+        specifier: ^1.62.0
+        version: 1.62.1
+      '@unocss/nuxt':
+        specifier: ^66.7.5
+        version: 66.7.5(magic-string@0.30.21)(magicast@0.5.4)(rolldown@1.2.4)(vite@8.2.1(@types/node@24.13.3)(@vitejs/devtools@0.4.12)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.0))(webpack@5.109.2)
+      '@unocss/preset-wind4':
+        specifier: ^66.7.5
+        version: 66.7.5
+      '@vite-pwa/assets-generator':
+        specifier: ^1.0.2
+        version: 1.0.2
+      '@vite-pwa/nuxt':
+        specifier: ^1.1.1
+        version: 1.1.1(@vite-pwa/assets-generator@1.0.2)
+      '@vue/compiler-dom':
+        specifier: 3.x
+        version: 3.5.41
+      '@vue/test-utils':
+        specifier: ^2.4.6
+        version: 2.4.11(@vue/compiler-dom@3.5.41)(@vue/server-renderer@3.5.41)(vue@3.5.41)
+      golar:
+        specifier: ^0.1.10
+        version: 0.1.10
+      happy-dom:
+        specifier: ^20.0.11
+        version: 20.11.2
+      oxlint:
+        specifier: ^1.44.0
+        version: 1.78.0(oxlint-tsgolint@7.0.2001)
+      oxlint-tsgolint:
+        specifier: ^7.0.2001
+        version: 7.0.2001
+      typescript:
+        specifier: ^5.9.2
+        version: typescript-native-bridge@6.0.3-bridge.12.tsgo.7.0.2
+      unocss:
+        specifier: ^66.7.5
+        version: 66.7.5(@unocss/webpack@66.7.5(webpack@5.109.2))
+      vite:
+        specifier: ^8.2.1
+        version: 8.2.1(@types/node@24.13.3)(@vitejs/devtools@0.4.12)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.0)
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(happy-dom@20.11.2)(vite@8.2.1(@types/node@24.13.3)(@vitejs/devtools@0.4.12)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.0))
+
+  apps/web:
     dependencies:
       '@better-auth/core':
         specifier: '>=1.4.0'
@@ -208,134 +336,6 @@ importers:
       '@unocss/preset-wind4':
         specifier: ^66.7.5
         version: 66.7.5
-      '@vue/compiler-dom':
-        specifier: 3.x
-        version: 3.5.41
-      '@vue/test-utils':
-        specifier: ^2.4.6
-        version: 2.4.11(@vue/compiler-dom@3.5.41)(@vue/server-renderer@3.5.41)(vue@3.5.41)
-      golar:
-        specifier: ^0.1.10
-        version: 0.1.10
-      happy-dom:
-        specifier: ^20.0.11
-        version: 20.11.2
-      oxlint:
-        specifier: ^1.44.0
-        version: 1.78.0(oxlint-tsgolint@7.0.2001)
-      oxlint-tsgolint:
-        specifier: ^7.0.2001
-        version: 7.0.2001
-      typescript:
-        specifier: ^5.9.2
-        version: typescript-native-bridge@6.0.3-bridge.12.tsgo.7.0.2
-      unocss:
-        specifier: ^66.7.5
-        version: 66.7.5(@unocss/webpack@66.7.5(webpack@5.109.2))
-      vite:
-        specifier: ^8.2.1
-        version: 8.2.1(@types/node@24.13.3)(@vitejs/devtools@0.4.12)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.0)
-      vitest:
-        specifier: ^4.1.10
-        version: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(happy-dom@20.11.2)(vite@8.2.1(@types/node@24.13.3)(@vitejs/devtools@0.4.12)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.0))
-
-  apps/docs:
-    dependencies:
-      better-sqlite3:
-        specifier: 12.x
-        version: 12.11.1
-      docus:
-        specifier: ^5.12.3
-        version: 5.12.3(better-sqlite3@12.11.1)(nuxt@4.5.2(@types/node@24.13.3)(rolldown@1.2.4))
-      nuxt:
-        specifier: ^4.5.2
-        version: 4.5.2(@types/node@24.13.3)(rolldown@1.2.4)
-      rolldown:
-        specifier: ~1.2.1
-        version: 1.2.4
-
-  apps/mail-preview:
-    dependencies:
-      '@code-zero/mail':
-        specifier: workspace:*
-        version: 0.3.0
-    devDependencies:
-      '@maizzle/framework':
-        specifier: ^6.0.13
-        version: 6.1.0(shiki@4.4.3)(tailwind-merge@3.6.0)(vue@3.5.41)
-      '@maizzle/tailwindcss':
-        specifier: ^1.5.6
-        version: 1.5.6
-      shiki:
-        specifier: ^1 || ^2 || ^3 || ^4
-        version: 4.4.3
-      tailwind-merge:
-        specifier: ^2 || ^3
-        version: 3.6.0
-      vue:
-        specifier: ^3
-        version: 3.5.41
-
-  apps/marketing:
-    dependencies:
-      '@code-zero/build-env':
-        specifier: workspace:*
-        version: 0.4.0
-      '@code-zero/i18n':
-        specifier: workspace:*
-        version: 0.3.0
-      nuxt:
-        specifier: ^4.5.2
-        version: 4.5.2(@types/node@24.13.3)(rolldown@1.2.4)
-      rolldown:
-        specifier: ~1.2.1
-        version: 1.2.4
-      vue:
-        specifier: ^3.5.40
-        version: 3.5.41
-      vue-i18n:
-        specifier: ^11.4.8
-        version: 11.4.8(vue@3.5.41)
-    devDependencies:
-      '@golar/vue':
-        specifier: ^0.1.10
-        version: 0.1.10
-      '@iconify-json/lucide':
-        specifier: ^1.2.123
-        version: 1.2.123
-      '@nuxt/content':
-        specifier: ^3.15.2
-        version: 3.15.2(@electric-sql/pglite@0.4.3)(@libsql/client@0.17.4)(@valibot/to-json-schema@1.7.1(valibot@1.4.2))(better-sqlite3@12.11.1)(valibot@1.4.2)
-      '@nuxt/icon':
-        specifier: ^2.5.0
-        version: 2.5.0(magic-string@0.30.21)(magicast@0.5.4)(rolldown@1.2.4)(vite@8.2.1(@types/node@24.13.3)(@vitejs/devtools@0.4.12)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.0))(vue@3.5.41)
-      '@nuxt/test-utils':
-        specifier: 4.1.0
-        version: 4.1.0(@playwright/test@1.62.1)(@vue/test-utils@2.4.11(@vue/compiler-dom@3.5.41)(@vue/server-renderer@3.5.41)(vue@3.5.41))(happy-dom@20.11.2)(playwright-core@1.62.1)(vitest@4.1.10(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(happy-dom@20.11.2)(vite@8.2.1(@types/node@24.13.3)(@vitejs/devtools@0.4.12)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.0)))
-      '@nuxtjs/color-mode':
-        specifier: 4.0.1
-        version: 4.0.1(magic-string@0.30.21)(magicast@0.5.4)(rolldown@1.2.4)
-      '@nuxtjs/i18n':
-        specifier: ^10.6.0
-        version: 10.6.0(@azure/identity@4.13.1)(@azure/storage-blob@12.33.0)(@netlify/blobs@10.7.13)(@vercel/blob@2.8.0)(@vercel/functions@3.9.3(@aws-sdk/credential-provider-web-identity@3.972.49)(ws@8.21.3))(aws4fetch@1.0.20)(db0@0.3.4(@electric-sql/pglite@0.4.3)(@libsql/client@0.17.4)(better-sqlite3@12.11.1)(drizzle-orm@0.45.2(@electric-sql/pglite@0.4.3)(@libsql/client@0.17.4)(@opentelemetry/api@1.9.1)(@prisma/client@5.22.0(prisma@7.9.1(better-sqlite3@12.11.1)))(@types/pg@8.23.0)(better-sqlite3@12.11.1)(kysely@0.29.5)(mysql2@3.15.3)(pg@8.23.0)(postgres@3.4.9)(prisma@7.9.1(better-sqlite3@12.11.1))(sql.js@1.14.2))(mysql2@3.15.3))(esbuild@0.28.2)(ioredis@5.11.1)(magicast@0.5.4)(rolldown@1.2.4)(rollup@4.62.4)(uploadthing@7.7.4(express@5.2.1)(h3@1.15.11)(tailwindcss@4.3.3))(vite@8.2.1(@types/node@24.13.3)(@vitejs/devtools@0.4.12)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.0))(vue@3.5.41)(webpack@5.109.2)
-      '@nuxtjs/seo':
-        specifier: ^5.3.12
-        version: 5.3.12(nuxt@4.5.2(@types/node@24.13.3)(rolldown@1.2.4))
-      '@playwright/test':
-        specifier: ^1.62.0
-        version: 1.62.1
-      '@unocss/nuxt':
-        specifier: ^66.7.5
-        version: 66.7.5(magic-string@0.30.21)(magicast@0.5.4)(rolldown@1.2.4)(vite@8.2.1(@types/node@24.13.3)(@vitejs/devtools@0.4.12)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.0))(webpack@5.109.2)
-      '@unocss/preset-wind4':
-        specifier: ^66.7.5
-        version: 66.7.5
-      '@vite-pwa/assets-generator':
-        specifier: ^1.0.2
-        version: 1.0.2
-      '@vite-pwa/nuxt':
-        specifier: ^1.1.1
-        version: 1.1.1(@vite-pwa/assets-generator@1.0.2)
       '@vue/compiler-dom':
         specifier: 3.x
         version: 3.5.41
@@ -32553,7 +32553,7 @@ snapshots:
       magic-string: 1.2.0
       oxc-parser: 0.139.0
       rolldown: 1.2.4
-      unplugin: 3.3.0(esbuild@0.28.2)(rolldown@1.2.4)(rollup@4.62.4)(vite@8.2.1(@types/node@24.13.3)(@vitejs/devtools@0.4.12)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.0))(webpack@5.109.2)
+      unplugin: 3.3.0(esbuild@0.28.2)(rolldown@1.2.4)(rollup@4.62.4)(vite@8.2.1(@types/node@24.13.3)(@vitejs/devtools@0.4.12)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.0))(webpack@5.109.2)
 
   undici-types@7.18.2: {}
 

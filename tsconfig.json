@@ -11,7 +11,7 @@
     { "path": "packages/cli" },
     { "path": "packages/auth" },
     { "path": "packages/api" },
-    { "path": "apps/dashboard" },
+    { "path": "apps/web" },
     { "path": "apps/marketing" }
   ]
 }

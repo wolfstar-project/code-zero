@@ -1,11 +1,11 @@
 ---
 name: orpc-server
-description: Use when changing apps/dashboard server routes, oRPC contracts, handlers, middleware, transport setup, or typed clients.
+description: Use when changing apps/web server routes, oRPC contracts, handlers, middleware, transport setup, or typed clients.
 ---
 
 # oRPC server
 
-`packages/api` owns the router and its runtime delegation; `apps/dashboard`'s `server/` directory is the transport adapter and composition root that serves it, alongside the app's own Nuxt frontend.
+`packages/api` owns the router and its runtime delegation; `apps/web`'s `server/` directory is the transport adapter and composition root that serves it, alongside the app's own Nuxt frontend.
 
 ## Rules
 
@@ -14,7 +14,7 @@ description: Use when changing apps/dashboard server routes, oRPC contracts, han
   `control-plane.ts`, `access.ts`, and `dashboard.ts`. `packages/api` holds no HTTP host of its
   own — it only exports `rpcRouter`, `requestLoggerStorage`, and the plain functions those depend
   on. It does not depend on `packages/auth`.
-- The HTTP host is Nuxt's own Nitro server. Routes live in `apps/dashboard/server/`:
+- The HTTP host is Nuxt's own Nitro server. Routes live in `apps/web/server/`:
   - `routes/rpc/[...].ts` mounts `rpcRouter` over `RPCHandler` (the typed RPC transport).
   - `api/v1/[...].ts` mounts the same `rpcRouter` over `OpenAPIHandler` (REST + docs at `/api/v1/docs`).
   - `auth.config.ts` (at the `server/` root) configures `@onmax/nuxt-better-auth`, which mounts
@@ -28,9 +28,9 @@ description: Use when changing apps/dashboard server routes, oRPC contracts, han
   plain-Node unit test loads directly (`server/utils/errors.ts` imports `createError` from `h3` for
   exactly that reason). `app/**/*.ts` is unchanged and still uses explicit imports.
   `typecheck` is one `nuxt typecheck` pass
-  (Golar, configured in `apps/dashboard/golar.config.ts`) covering `app/`, `modules/`, `server/`,
+  (Golar, configured in `apps/web/golar.config.ts`) covering `app/`, `modules/`, `server/`,
   and `test/` — there is no separate `tsc --project` or `vue-tsc` invocation.
-- `apps/dashboard` pins `nuxt` to the stable v4 channel (`^4.5.2` in `package.json`), whose
+- `apps/web` pins `nuxt` to the stable v4 channel (`^4.5.2` in `package.json`), whose
   `@nuxt/nitro-server` depends on `nitropack` v2 + classic h3 (`h3@^1.15.11`, also a direct
   dependency), not the standalone Nitro v3 package. Route handlers use classic h3's API:
   `import { defineEventHandler, toWebRequest } from 'h3';`. Call `toWebRequest(event)` to get a
@@ -52,9 +52,9 @@ description: Use when changing apps/dashboard server routes, oRPC contracts, han
 - Procedures call the agent runtime through typed APIs. They do not execute shell commands or
   mutate checkouts directly.
 - Persist through the `KeyValueStorage` contract, adapted over the ViteHub KV Runtime Helper in
-  `apps/dashboard/server/utils/store.ts`, so KV drivers stay interchangeable; never store review
+  `apps/web/server/utils/store.ts`, so KV drivers stay interchangeable; never store review
   input or checkout paths. ViteHub is composed into Nuxt's own Nitro build from
-  `apps/dashboard/nuxt.config.ts`, which registers `vite-hub/nuxt` as an ordinary module entry
+  `apps/web/nuxt.config.ts`, which registers `vite-hub/nuxt` as an ordinary module entry
   (`['vite-hub/nuxt', { preset, kv: true }]`) with the deployment preset from `config/env.ts`. Prove KV changes with a real `nuxt build` and a request against a route that reads
   the store, not just `nuxt prepare` or a type check.
 - Transport failures are `H3Error`s from the catalogue in `server/utils/errors.ts`
@@ -86,5 +86,5 @@ description: Use when changing apps/dashboard server routes, oRPC contracts, han
 3. Keep the handler thin: validate, authorize, delegate, translate.
 4. Add router tests with `createRouterClient`, without opening a real network port.
 5. Update the README client example when the public router shape changes.
-6. Run `aube run test --filter @code-zero/api`, then `--filter @code-zero/dashboard`, typecheck,
+6. Run `aube run test --filter @code-zero/api`, then `--filter @code-zero/web`, typecheck,
    and build. For KV or transport-mounting changes, also run a real `nuxt build` and hit the route.

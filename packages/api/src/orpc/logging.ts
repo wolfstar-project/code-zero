@@ -14,7 +14,7 @@ import type { RequestLogger } from 'evlog';
 const loggerStorage = createLoggerStorage();
 
 /**
- * Handed to `EvlogHandlerPlugin` by each transport in `apps/dashboard/server/`.
+ * Handed to `EvlogHandlerPlugin` by each transport in `apps/web/server/`.
  *
  * Explicitly typed: without an annotation, tsdown's declaration bundler cannot portably name the
  * inferred type across the `evlog` package boundary.

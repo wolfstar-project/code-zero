@@ -51,7 +51,7 @@ Keep dependency direction explicit while changing the monorepo.
 - `api`: the oRPC router and control-plane operations (task persistence, scheduling). Composes the
   runtime, GitHub, models, and config packages; nothing composes into it, and it does not depend on
   `auth`. Holds no HTTP host of its own.
-- `apps/dashboard`: the single deployable app and composition root. A Nuxt app that constructs a
+- `apps/web`: the single deployable app and composition root. A Nuxt app that constructs a
   runner and, from its `server/` directory, serves `packages/api`'s router over `/rpc/**` (RPC) and
   `/api/v1/**` (OpenAPI), and mounts Better Auth in-process at `/api/auth/**` via
   `server/auth.config.ts` (`@onmax/nuxt-better-auth`, full mode, SSR-aware). The only process that

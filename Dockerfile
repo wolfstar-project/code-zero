@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-# Container image for the single deployable app, `apps/dashboard`.
+# Container image for the single deployable app, `apps/web`.
 #
 # The build stage installs the workspace with the pinned aube version and builds the dashboard
 # (and the workspace packages it depends on) through Turborepo, with the self-hosted `node`
@@ -41,7 +41,7 @@ WORKDIR /workspace
 COPY . .
 
 RUN aube ci \
-    && aube exec turbo run build --filter=@code-zero/dashboard
+    && aube exec turbo run build --filter=@code-zero/web
 
 FROM node:${NODE_VERSION}-bookworm-slim AS runtime
 
@@ -57,7 +57,7 @@ ENV NODE_ENV=production \
 
 WORKDIR /app
 
-COPY --from=build --chown=node:node /workspace/apps/dashboard/.output ./.output
+COPY --from=build --chown=node:node /workspace/apps/web/.output ./.output
 
 # `fs-lite` KV keeps task history under `.data/kv` relative to the working directory. Mount a
 # volume at /app/.data to keep it across restarts. No `VOLUME` instruction on purpose: Railway

@@ -416,7 +416,7 @@ export async function ingestWebhook(
 /**
  * The idempotency key for one proactive review of one change-request commit.
  *
- * Shared with `apps/dashboard`'s poller, which claims the identical key for the identical reason:
+ * Shared with `apps/web`'s poller, which claims the identical key for the identical reason:
  * a webhook delivery and a polling pass are two channels that can each notice the same commit
  * needs review, and only one of them should act on it. Provider, owner, repository, change-request
  * number, and head commit are exactly what distinguishes one reviewable commit from every other —

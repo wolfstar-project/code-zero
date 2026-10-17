@@ -11,7 +11,7 @@
 /** The identifier the deployment sees for this client. Not a secret; the device flow is public. */
 export const DEVICE_CLIENT_ID = 'code-zero-cli';
 
-/** Where the auth server is mounted within a deployment, fixed by `apps/dashboard`. */
+/** Where the auth server is mounted within a deployment, fixed by `apps/web`. */
 const AUTH_BASE_PATH = '/api/auth';
 
 /** What the deployment hands back for a device to display and poll with. */

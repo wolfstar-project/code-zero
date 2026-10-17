@@ -66,7 +66,7 @@ Nuxt dashboard ─── UI, oRPC + OpenAPI routes, and Better Auth, one app ─
 | [`packages/database`](./packages/database)             | Schema, Drizzle client, and checked-in migrations; the only package that talks to Postgres |
 | [`packages/auth`](./packages/auth)                     | Authentication policy and the Better Auth options factory                                  |
 | [`packages/api`](./packages/api)                       | oRPC router and control-plane operations                                                   |
-| [`apps/dashboard`](./apps/dashboard)                   | The single deployable app: UI, `/rpc/**` + `/api/v1/**`, and `/api/auth/**`                |
+| [`apps/web`](./apps/web)                               | The single deployable app: UI, `/rpc/**` + `/api/v1/**`, and `/api/auth/**`                |
 | [`apps/marketing`](./apps/marketing)                   | Nuxt public marketing site; frontend only, no persistence                                  |
 
 Adapters depend on the runtime; the runtime never depends on adapters. See [docs/architecture.md](./docs/architecture.md) for the full dependency rules.
@@ -77,7 +77,7 @@ Each app's `aube --filter <name> run dev` binds a fixed port, so they can all ru
 
 | App                                        | Port   | `aube --filter` name      |
 | ------------------------------------------ | ------ | ------------------------- |
-| [`apps/dashboard`](./apps/dashboard)       | `3000` | `@code-zero/dashboard`    |
+| [`apps/web`](./apps/web)                   | `3000` | `@code-zero/web`          |
 | [`apps/marketing`](./apps/marketing)       | `3001` | `@code-zero/marketing`    |
 | [`apps/docs`](./apps/docs)                 | `3002` | `@code-zero/docs`         |
 | [`apps/mail-preview`](./apps/mail-preview) | `3005` | `@code-zero/mail-preview` |
@@ -92,7 +92,7 @@ Requirements: Node.js 24.2+ and [aube](https://aube.jdx.dev), the package manage
 mise install            # or: npm install -g --ignore-scripts=false @endevco/aube
 aube ci
 cp .env.example .env
-cp apps/dashboard/.env.example apps/dashboard/.env
+cp apps/web/.env.example apps/web/.env
 aube test
 aube run zero doctor
 aube run zero review --feedback "Possible null dereference in src/user.ts"
@@ -101,10 +101,10 @@ aube run dev
 ```
 
 The root `.env` configures the CLI. Each app loads its own file: the dashboard uses
-`apps/dashboard/.env`, while the docs app optionally uses `apps/docs/.env` for `NUXT_APP_BASE_URL`.
+`apps/web/.env`, while the docs app optionally uses `apps/docs/.env` for `NUXT_APP_BASE_URL`.
 
 The dashboard needs Postgres. It stores accounts, sessions, and the repositories a task may
-target, so point `DATABASE_URL` in `apps/dashboard/.env` at a database and apply the schema before
+target, so point `DATABASE_URL` in `apps/web/.env` at a database and apply the schema before
 the first start — there is no in-memory mode to fall back on:
 
 ```bash
@@ -112,7 +112,7 @@ aube run db:migrate
 aube run dev             # http://localhost:3000, then sign up at /signup
 ```
 
-Set `AUTH_ENABLE_SIGNUP=true` in `apps/dashboard/.env` to create the first account, then turn it
+Set `AUTH_ENABLE_SIGNUP=true` in `apps/web/.env` to create the first account, then turn it
 back off. Self-registration grants the `user` role, not `admin`, and configuring repositories
 (`repositories.save`, reached from the dashboard) requires `admin` — the same gate `audit.list`
 uses — so promote that first account once, directly in the database:
@@ -187,9 +187,9 @@ await client.approvals.decide({ taskId: tasks[0]!.id, decision: 'approved' });
 
 Non-TypeScript or external callers can use plain HTTP against `/api/v1/**` instead — for example `curl http://localhost:3000/api/v1/tasks` — with the same bearer-token rules; the interactive reference at `/api/v1/docs` documents every route from the generated OpenAPI spec.
 
-The transport is Nuxt's own Nitro server: routes live in `apps/dashboard/server/`, and `nuxt build` emits a self-contained `.output/` bundle started with `node .output/server/index.mjs`. Task history persists through a `KeyValueStorage` contract backed by the ViteHub KV Runtime Helper (registered from `apps/dashboard/nuxt.config.ts`): filesystem-backed `fs-lite` by default, with Cloudflare KV, Deno KV, or Upstash dropping in as driver configuration without touching application code. Records are redacted before they are written and never contain review input or checkout paths. `TaskScheduler` bounds work globally and per repository, so a burst queues instead of fanning out unbounded runs.
+The transport is Nuxt's own Nitro server: routes live in `apps/web/server/`, and `nuxt build` emits a self-contained `.output/` bundle started with `node .output/server/index.mjs`. Task history persists through a `KeyValueStorage` contract backed by the ViteHub KV Runtime Helper (registered from `apps/web/nuxt.config.ts`): filesystem-backed `fs-lite` by default, with Cloudflare KV, Deno KV, or Upstash dropping in as driver configuration without touching application code. Records are redacted before they are written and never contain review input or checkout paths. `TaskScheduler` bounds work globally and per repository, so a burst queues instead of fanning out unbounded runs.
 
-Authentication is mounted in-process at `/api/auth/**` by `apps/dashboard/server/auth.config.ts`, the one route in the app that resolves `packages/auth`'s environment options — including the connection string, through [`packages/database`](./packages/database) — and therefore the only place in the repository that opens a connection to Postgres. `packages/database` declares the tables with [Drizzle](https://orm.drizzle.team) rather than Better Auth's own migration tool, so the session store's schema lives in this repository as reviewable, checked-in SQL. The dashboard renders with SSR: the session cookie is same-origin, so the server resolves it directly and a signed-out visitor never flashes protected content before redirecting.
+Authentication is mounted in-process at `/api/auth/**` by `apps/web/server/auth.config.ts`, the one route in the app that resolves `packages/auth`'s environment options — including the connection string, through [`packages/database`](./packages/database) — and therefore the only place in the repository that opens a connection to Postgres. `packages/database` declares the tables with [Drizzle](https://orm.drizzle.team) rather than Better Auth's own migration tool, so the session store's schema lives in this repository as reviewable, checked-in SQL. The dashboard renders with SSR: the session cookie is same-origin, so the server resolves it directly and a signed-out visitor never flashes protected content before redirecting.
 
 Point `DATABASE_URL` at a Postgres database, then apply the schema once before the first run
 (`db:generate` only needs to run again after editing `packages/database/src/schema/`):
@@ -229,7 +229,7 @@ source; it reads git history, so it needs the dictionaries committed.
 Playwright suite against `server/auth.config.ts` running with an in-memory Better Auth adapter and
 signup enabled (`AUTH_E2E_MEMORY=true`, set only for that preview server), so the suite creates and
 signs in its own throwaway account through the real `/api/auth/**` endpoints instead of a live
-database. Use `aube --filter @code-zero/dashboard run test:browser:ui` for Playwright UI mode.
+database. Use `aube --filter @code-zero/web run test:browser:ui` for Playwright UI mode.
 
 Hosted execution is available through the provider-neutral `RunnerPool`: every lease has a maximum lifetime, quota checks run before provisioning, expired sandboxes are stopped, and the agent receives only the ordinary `Runner` contract. See [the sandbox provider evaluation](./docs/sandbox-providers.md).
 
@@ -420,7 +420,7 @@ also tagged with its full commit SHA, and `vX.Y.Z` tags matching the dashboard v
 
 ```bash
 docker build -t code-zero .
-docker run --rm -p 3000:3000 --env-file apps/dashboard/.env \
+docker run --rm -p 3000:3000 --env-file apps/web/.env \
   -v code-zero-data:/app/.data \
   -v "$PWD/code-zero.deployment.yml:/app/code-zero.deployment.yml:ro" \
   code-zero
