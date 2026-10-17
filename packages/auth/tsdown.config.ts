@@ -11,6 +11,6 @@ export default definePackageConfig({
     entrypoints: ['.', './config'],
     enabled: true,
     level: 'error',
-    profile: 'node16',
+    profile: 'esm-only',
   },
 });
