@@ -72,6 +72,9 @@
       // project root rather than under app/, matching apps/marketing), so knip
       // cannot see who references them either.
       "entry": [
+        // Loaded by `@unocss/nuxt` by filesystem convention. Knip's UnoCSS plugin only enables
+        // itself when `unocss` is a direct dependency, and the apps reach it through `@code-zero/ui`.
+        "uno.config.ts",
         "app/app.vue",
         // Loaded by `@onmax/nuxt-better-auth` from its configured `clientConfig` path.
         "app/auth.config.ts",
@@ -110,6 +113,8 @@
       // convention). All of them are discovered by Nuxt/Nuxt Content from those locations, not
       // imported by anything.
       "entry": [
+        // Loaded by `@unocss/nuxt` by filesystem convention; see apps/web above.
+        "uno.config.ts",
         "app/app.vue",
         "app/error.vue",
         "app/pages/**/*.vue",

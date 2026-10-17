@@ -140,6 +140,9 @@ importers:
         specifier: ^11.4.8
         version: 11.4.8(vue@3.5.41)
     devDependencies:
+      '@code-zero/ui':
+        specifier: workspace:*
+        version: 0.4.0
       '@golar/vue':
         specifier: ^0.1.10
         version: 0.1.10
@@ -170,9 +173,6 @@ importers:
       '@unocss/nuxt':
         specifier: ^66.7.5
         version: 66.7.5(magic-string@0.30.21)(magicast@0.5.4)(rolldown@1.2.4)(vite@8.2.1(@types/node@24.13.3)(@vitejs/devtools@0.4.12)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.0))(webpack@5.109.2)
-      '@unocss/preset-wind4':
-        specifier: ^66.7.5
-        version: 66.7.5
       '@vite-pwa/assets-generator':
         specifier: ^1.0.2
         version: 1.0.2
@@ -200,9 +200,6 @@ importers:
       typescript:
         specifier: ^5.9.2
         version: typescript-native-bridge@6.0.3-bridge.12.tsgo.7.0.2
-      unocss:
-        specifier: ^66.7.5
-        version: 66.7.5(@unocss/webpack@66.7.5(webpack@5.109.2))
       vite:
         specifier: ^8.2.1
         version: 8.2.1(@types/node@24.13.3)(@vitejs/devtools@0.4.12)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.0)
@@ -309,6 +306,9 @@ importers:
         specifier: '>=4.1.12'
         version: 4.4.3
     devDependencies:
+      '@code-zero/ui':
+        specifier: workspace:*
+        version: 0.4.0
       '@golar/vue':
         specifier: ^0.1.10
         version: 0.1.10
@@ -333,9 +333,6 @@ importers:
       '@unocss/nuxt':
         specifier: ^66.7.5
         version: 66.7.5(magic-string@0.30.21)(magicast@0.5.4)(rolldown@1.2.4)(vite@8.2.1(@types/node@24.13.3)(@vitejs/devtools@0.4.12)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.0))(webpack@5.109.2)
-      '@unocss/preset-wind4':
-        specifier: ^66.7.5
-        version: 66.7.5
       '@vue/compiler-dom':
         specifier: 3.x
         version: 3.5.41
@@ -357,9 +354,6 @@ importers:
       typescript:
         specifier: ^5.9.2
         version: typescript-native-bridge@6.0.3-bridge.12.tsgo.7.0.2
-      unocss:
-        specifier: ^66.7.5
-        version: 66.7.5(@unocss/webpack@66.7.5(webpack@5.109.2))
       vite:
         specifier: ^8.2.1
         version: 8.2.1(@types/node@24.13.3)(@vitejs/devtools@0.4.12)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.0)
@@ -826,6 +820,34 @@ importers:
       '@code-zero/shared':
         specifier: workspace:*
         version: 0.4.0
+    devDependencies:
+      oxlint:
+        specifier: ^1.44.0
+        version: 1.78.0(oxlint-tsgolint@7.0.2001)
+      oxlint-tsgolint:
+        specifier: ^7.0.2001
+        version: 7.0.2001
+      tsdown:
+        specifier: ^0.22.14
+        version: 0.22.14(@arethetypeswrong/core@0.18.5)(@vitejs/devtools@0.4.12(vite@8.2.1))(publint@0.3.23)(tsx@4.23.12)
+      typescript:
+        specifier: ^5.9.2
+        version: typescript-native-bridge@6.0.3-bridge.12.tsgo.7.0.2
+      vite:
+        specifier: ^6.0.0 || ^7.0.0 || ^8.0.0
+        version: 8.2.1(@types/node@24.13.3)(@vitejs/devtools@0.4.12)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.0)
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(happy-dom@20.11.2)(vite@8.2.1(@types/node@24.13.3)(@vitejs/devtools@0.4.12)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.0))
+
+  packages/ui:
+    dependencies:
+      '@unocss/preset-wind4':
+        specifier: ^66.7.5
+        version: 66.7.5
+      unocss:
+        specifier: ^66.7.5
+        version: 66.7.5(@unocss/webpack@66.7.5(webpack@5.109.2))
     devDependencies:
       oxlint:
         specifier: ^1.44.0

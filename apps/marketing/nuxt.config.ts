@@ -49,7 +49,7 @@ export default defineNuxtConfig({
     '@nuxtjs/color-mode',
     '@vite-pwa/nuxt',
   ],
-  css: ['~/assets/css/main.css'],
+  css: ['@code-zero/ui/tokens.css', '~/assets/css/main.css'],
 
   $test: {
     debug: {

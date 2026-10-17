@@ -1,5 +1,10 @@
 // Ported from npmx.dev (https://github.com/npmx-dev/npmx.dev, MIT license).
+import type { Theme } from '@unocss/preset-wind4/theme';
 import type { Preset } from 'unocss';
+
+// Rule matchers, compiled once at module load rather than per preset instance.
+const ARBITRARY_PX_TEXT = /^text-\[(\d+(\.\d+)?)(px)?\]$/;
+const ARBITRARY_EM_TEXT = /^text-\[(\d+(\.\d+)?)em\]$/;
 
 type CollectorChecker = (warning: string, rule: string) => void;
 
@@ -28,14 +33,14 @@ function reportTextSizeWarning(match: string, suggestion: string, checker?: Coll
   }
 }
 
-export function presetA11y(checker?: CollectorChecker): Preset {
+export function presetA11y(checker?: CollectorChecker): Preset<Theme> {
   return {
     name: 'a11y-preset',
     // text-[N] (arbitrary where N is a size in px or em): recommend the theme's text-<size>
     // classes or rem values instead of hardcoded pixel values.
     rules: [
       [
-        /^text-\[(\d+(\.\d+)?)(px)?\]$/,
+        ARBITRARY_PX_TEXT,
         ([match = '', numStr], context) => {
           const num = Number(numStr);
           const fullClass = context.rawSelector || match;
@@ -54,7 +59,7 @@ export function presetA11y(checker?: CollectorChecker): Preset {
         { autocomplete: 'text-[<num>]' },
       ],
       [
-        /^text-\[(\d+(\.\d+)?)em\]$/,
+        ARBITRARY_EM_TEXT,
         ([match = '', numStr], context) => {
           const num = Number(numStr);
           const fullClass = context.rawSelector || match;

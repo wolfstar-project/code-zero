@@ -81,7 +81,7 @@ export default defineNuxtConfig({
     '@nuxt/test-utils',
     '@nuxtjs/color-mode',
   ],
-  css: ['~/assets/css/main.css'],
+  css: ['@code-zero/ui/tokens.css', '~/assets/css/main.css'],
 
   $test: {
     debug: {
