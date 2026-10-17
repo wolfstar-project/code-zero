@@ -202,3 +202,122 @@ skills:
     generator: external
     path: skills/nuxt
     ref: main
+  better-auth-best-practices:
+    repo: better-auth/skills
+    source: github
+    syncedAt: 2026-10-17
+    generator: external
+    path: better-auth/best-practices
+    ref: 20c9e88a5c007461a703f1c213572b073196113e
+  better-auth-security:
+    repo: better-auth/skills
+    source: github
+    syncedAt: 2026-10-17
+    generator: external
+    path: security
+    ref: 20c9e88a5c007461a703f1c213572b073196113e
+  nuxt-better-auth:
+    repo: onmax/nuxt-skills
+    source: github
+    syncedAt: 2026-10-17
+    generator: external
+    path: skills/nuxt-better-auth
+    ref: 257ab0c8cedfa32f0c024aae930468e4ca50759f
+  vue:
+    repo: antfu/skills
+    source: github
+    syncedAt: 2026-10-17
+    generator: external
+    path: skills/vue
+    ref: feb0f3aba6566426f12230e7fc7a10d97c1293bb
+  unocss:
+    repo: antfu/skills
+    source: github
+    syncedAt: 2026-10-17
+    generator: external
+    path: skills/unocss
+    ref: feb0f3aba6566426f12230e7fc7a10d97c1293bb
+  vitest:
+    repo: antfu/skills
+    source: github
+    syncedAt: 2026-10-17
+    generator: external
+    path: skills/vitest
+    ref: feb0f3aba6566426f12230e7fc7a10d97c1293bb
+  vue-testing-best-practices:
+    repo: vuejs-ai/skills
+    source: github
+    syncedAt: 2026-10-17
+    generator: external
+    path: skills/vue-testing-best-practices
+    ref: c9d355ff23f654309dd02006be671859df0a134c
+  postgres-drizzle:
+    repo: ccheney/robust-skills
+    source: github
+    syncedAt: 2026-10-17
+    generator: external
+    path: skills/postgres-drizzle
+    ref: 0eea7b060d12e3520556a73b15fbfa79480987d1
+  postgres:
+    repo: planetscale/database-skills
+    source: github
+    syncedAt: 2026-10-17
+    generator: external
+    path: skills/postgres
+    ref: f6ed002d03084cb39c01d1d58904d47a36f5322a
+  stripe-best-practices:
+    repo: stripe/ai
+    source: github
+    syncedAt: 2026-10-17
+    generator: external
+    path: skills/stripe-best-practices
+    ref: c1f5b0826f3f33d7e1cc7eff5e5e6cd42749808b
+  taste-skill:
+    repo: leonxlnx/taste-skill
+    source: github
+    syncedAt: 2026-10-17
+    generator: external
+    path: skills/taste-skill
+    ref: f624f37a8c650b9cc550253104925efe4c8de246
+  modern-css:
+    repo: ccheney/robust-skills
+    source: github
+    syncedAt: 2026-10-17
+    generator: external
+    path: skills/modern-css
+    ref: 0eea7b060d12e3520556a73b15fbfa79480987d1
+  requesting-code-review:
+    repo: obra/superpowers
+    source: github
+    syncedAt: 2026-10-17
+    generator: external
+    path: skills/requesting-code-review
+    ref: bb92a77741419a4ab5f06e711a283343f1ada0c3
+  github-actions-generator:
+    repo: akin-ozer/cc-devops-skills
+    source: github
+    syncedAt: 2026-10-17
+    generator: external
+    path: devops-skills-plugin/skills/github-actions-generator
+    ref: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+  dockerfile-validator:
+    repo: akin-ozer/cc-devops-skills
+    source: github
+    syncedAt: 2026-10-17
+    generator: external
+    path: devops-skills-plugin/skills/dockerfile-validator
+    ref: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+  cloudflare:
+    repo: cloudflare/skills
+    source: github
+    syncedAt: 2026-10-17
+    generator: external
+    path: skills/cloudflare
+    ref: 86505e44f87d801aa1864a3c4109e9a8ae5c409f
+  install-anti-slop:
+    repo: dmmulroy/anti-slop
+    source: github
+    syncedAt: 2026-10-17
+    generator: external
+    path: skills/install-anti-slop
+    ref: 13909c9e07590f5a85d93c62712259fe14a883f7
