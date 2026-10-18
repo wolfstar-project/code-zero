@@ -25,10 +25,10 @@
     "typecheck": "tsc --project tsconfig.json --pretty false --noEmit"
   },
   "dependencies": {
-    "@better-auth/infra": "^0.4.0",
+    "@better-auth/infra": "^0.4.20",
     "@code-zero/database": "workspace:*",
-    "@octopi-ai/better-enrollment": "^0.4.0",
-    "better-auth": "^1.6.26",
+    "@octopi-ai/better-enrollment": "^0.5.2",
+    "better-auth": "^1.7.10",
     "zod": "^4.4.3"
   },
   "devDependencies": {
