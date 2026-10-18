@@ -90,6 +90,8 @@ function requireRepositoryAdmin(context: RpcContext): RepositoryAdmin {
 
 const procedure = os.$context<RpcContext>();
 
+const API_KEY_APPROVAL_REFUSAL = 'An organization API key may not decide approvals';
+
 /**
  * Mutations require an authenticated principal; reads stay open for the dashboard.
  *
@@ -335,9 +337,20 @@ export const rpcRouter = {
       )
       .input(approvalInput)
       .handler(async ({ input, context }) => {
-        // No denial branch to audit here: `decideApproval` refuses an unknown task or one that is
-        // not awaiting review by throwing before it touches the record, so nothing happened that
-        // a trail would have to explain.
+        // An approval records that a person reviewed the change, and it unblocks writable runs a
+        // key could never create. An organization API key is a credential pasted into a CI secret,
+        // so it may submit work but not sign off on it, whatever permissions it carries.
+        if (context.principal.kind === 'apiKey') {
+          useLogger().audit.deny(API_KEY_APPROVAL_REFUSAL, {
+            actor: principalActor(context.principal),
+            action: 'approval.decide',
+            target: { type: 'task', id: input.taskId, decision: input.decision },
+          });
+          throw new ORPCError('FORBIDDEN', { message: API_KEY_APPROVAL_REFUSAL });
+        }
+        // No other denial branch to audit here: `decideApproval` refuses an unknown task or one
+        // that is not awaiting review by throwing before it touches the record, so nothing
+        // happened that a trail would have to explain.
         const task = await decideApproval(
           input.taskId,
           input.decision,

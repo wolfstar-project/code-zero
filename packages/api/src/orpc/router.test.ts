@@ -57,6 +57,7 @@ const FORBIDDEN_ERROR = /not allow-listed/i;
 const MODE_ERROR = /not granted/i;
 const STORAGE_ERROR = /storage unavailable/i;
 const ADMIN_ERROR = /admin role/i;
+const API_KEY_APPROVAL_ERROR = /may not decide approvals/i;
 const NO_AUDIT_LOG_ERROR = /keeps no audit log/i;
 const NO_REPOSITORY_STORE_ERROR = /keeps no repository store/i;
 
@@ -433,6 +434,26 @@ describe('rpc router', () => {
       instrumented(() => keyed.tasks.create({ repository: '.', feedback: 'x', mode: 'observe' })),
     ).rejects.toThrow(MODE_ERROR);
   });
+
+  it.each(['approved', 'rejected'] as const)(
+    'refuses to let an organization API key record an approval (%s)',
+    async (decision) => {
+      await store.save(awaiting('cz_1'));
+      const keyed = client({ presentedApiKey: 'cz_valid', apiKeys: apiKeys() });
+
+      await expect(
+        instrumented(() => keyed.approvals.decide({ taskId: 'cz_1', decision })),
+      ).rejects.toThrow(API_KEY_APPROVAL_ERROR);
+      await expect(store.get('cz_1')).resolves.toMatchObject({ status: 'needs-human' });
+      expect(audited.events).toMatchObject([
+        {
+          actor: { type: 'api', id: 'api-key:key_1@org_1' },
+          action: 'approval.decide',
+          outcome: 'denied',
+        },
+      ]);
+    },
+  );
 
   it('refuses a presented key that does not verify, without falling back to the session', async () => {
     const keyed = client({
