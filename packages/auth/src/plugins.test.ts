@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { authBetterAuthOptions, type AuthDatabaseOptions } from './auth.js';
 import {
   API_KEY_EXPIRES_IN_SECONDS,
+  API_KEY_MAXIMUM_EXPIRES_IN_DAYS,
   API_KEY_PREFIX,
   API_KEY_RATE_LIMIT_MAX_REQUESTS,
   API_KEY_RATE_LIMIT_WINDOW_SECONDS,
@@ -130,7 +131,7 @@ interface ApiKeyApi {
     headers: Headers;
   }): Promise<{ id: string } | null>;
   createApiKey(options: {
-    body: { name: string; organizationId: string };
+    body: { name: string; organizationId: string; expiresIn?: number };
     headers: Headers;
   }): Promise<CreatedApiKey>;
   listApiKeys(options: { query: { organizationId: string }; headers: Headers }): Promise<unknown>;
@@ -397,6 +398,30 @@ describe('API keys', () => {
     expect(new Date(created.expiresAt ?? 0).getTime()).toBe(
       NOW + API_KEY_EXPIRES_IN_SECONDS * 1000,
     );
+  });
+
+  it('caps a requested expiry in days, not seconds', async () => {
+    const { api, headers, organizationId } = await organizationOwner();
+    const day = 60 * 60 * 24;
+
+    const longest = await api.createApiKey({
+      body: { name: 'ci', organizationId, expiresIn: API_KEY_MAXIMUM_EXPIRES_IN_DAYS * day },
+      headers,
+    });
+
+    expect(new Date(longest.expiresAt ?? 0).getTime()).toBe(
+      NOW + API_KEY_MAXIMUM_EXPIRES_IN_DAYS * day * 1000,
+    );
+    await expect(
+      api.createApiKey({
+        body: {
+          name: 'ci',
+          organizationId,
+          expiresIn: (API_KEY_MAXIMUM_EXPIRES_IN_DAYS + 1) * day,
+        },
+        headers,
+      }),
+    ).rejects.toMatchObject({ statusCode: 400 });
   });
 
   it('stores the key hashed, so the store never holds a usable credential', async () => {

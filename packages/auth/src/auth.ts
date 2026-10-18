@@ -567,6 +567,7 @@ function authPlugins(options: AuthDatabaseOptions): BetterAuthPlugin[] {
             // it with `getDate(value, "sec")`. A test pins the resulting expiry, so a release
             // that changes the unit fails here instead of minting keys that live 1000x longer.
             defaultExpiresIn: config.apiKeyExpiresInSeconds,
+            // Days, unlike its sibling: the plugin compares it with `expiresIn / (3600 * 24)`.
             maxExpiresIn: config.apiKeyMaximumExpiresInDays,
           },
           rateLimit: {
