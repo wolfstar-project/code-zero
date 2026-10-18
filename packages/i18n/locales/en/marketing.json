@@ -15,13 +15,13 @@
     },
     "hero": {
       "eyebrow": "Open source · Apache-2.0",
-      "title": "The autonomous engineer that never merges a guess",
-      "subtitle": "Code Zero reads your pull requests, reproduces the problem, writes the fix, and proves it with a passing run. Observe mode is the default, so nothing touches your repository until you say so.",
+      "title": "Find the problem. Prove the fix.",
+      "subtitle": "Code Zero reviews pull requests, validates findings, and verifies fixes with your repository’s own checks. Start in observe mode: inspect the evidence before allowing changes.",
       "primaryCta": "Start with observe mode",
       "secondaryCta": "Read the docs",
-      "note": "No credit card. Runs on your own infrastructure.",
-      "terminalTitle": "code-zero review",
-      "terminalCaption": "A review run in observe mode: findings only, no writes."
+      "note": "Read-only by default. Self-hosted with your model provider.",
+      "terminalTitle": "Illustrative evidence · observe mode",
+      "terminalCaption": "Representative excerpt, not a recorded run. Observe mode reports findings without changing repository files."
     },
     "logos": {
       "title": "Built on the tooling your pipeline already speaks"
@@ -53,27 +53,6 @@
         "policy": {
           "title": "Policy you keep in git",
           "description": "Modes, model selection, and permitted commands live in repository configuration, reviewed like any other change to your codebase."
-        }
-      }
-    },
-    "testimonials": {
-      "title": "What teams do with it",
-      "subtitle": "Code Zero is used where a wrong automated change is expensive.",
-      "items": {
-        "one": {
-          "quote": "We pointed it at a backlog of stale review comments and let it run in observe mode for a week. It surfaced two real null-dereference paths our linters never flagged.",
-          "author": "Maya Chen",
-          "role": "Staff Engineer, Northline"
-        },
-        "two": {
-          "quote": "The part that sold us was the runner boundary. There is one file to read if you want to know everything the agent is allowed to execute.",
-          "author": "Jonas Weber",
-          "role": "Platform Lead, Latticeworks"
-        },
-        "three": {
-          "quote": "It never opens a pull request it cannot back with a green run, which means our reviewers stopped treating agent output as noise.",
-          "author": "Amelia Ortiz",
-          "role": "Head of Engineering, Harbor Studio"
         }
       }
     },

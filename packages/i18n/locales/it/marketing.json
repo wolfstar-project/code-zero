@@ -15,13 +15,13 @@
     },
     "hero": {
       "eyebrow": "Open source · Apache-2.0",
-      "title": "L'ingegnere autonomo che non fa merge di un'ipotesi",
-      "subtitle": "Code Zero legge le tue pull request, riproduce il problema, scrive la correzione e la dimostra con un'esecuzione che passa. La modalità osservazione è il default: finché non lo autorizzi, il repository non viene toccato.",
+      "title": "Trova il problema. Verifica la correzione.",
+      "subtitle": "Code Zero esamina le pull request, valida i risultati e verifica le correzioni con i controlli del tuo repository. Inizia in modalità osservazione: esamina le prove prima di autorizzare le modifiche.",
       "primaryCta": "Inizia in modalità osservazione",
       "secondaryCta": "Leggi la documentazione",
-      "note": "Nessuna carta di credito. Gira sulla tua infrastruttura.",
-      "terminalTitle": "code-zero review",
-      "terminalCaption": "Un'esecuzione in modalità osservazione: solo risultati, nessuna scrittura."
+      "note": "Sola lettura come default. Self-hosted con il tuo provider di modelli.",
+      "terminalTitle": "Esempio illustrativo · modalità osservazione",
+      "terminalCaption": "Estratto rappresentativo, non un’esecuzione registrata. La modalità osservazione riporta i risultati senza modificare i file del repository."
     },
     "logos": {
       "title": "Costruito sugli strumenti che la tua pipeline già usa"
@@ -53,27 +53,6 @@
         "policy": {
           "title": "Policy versionate in git",
           "description": "Modalità, selezione del modello e comandi permessi vivono nella configurazione del repository e si revisionano come qualsiasi altra modifica al codice."
-        }
-      }
-    },
-    "testimonials": {
-      "title": "Cosa ci fanno i team",
-      "subtitle": "Code Zero viene usato dove una modifica automatica sbagliata costa cara.",
-      "items": {
-        "one": {
-          "quote": "L'abbiamo puntato su un arretrato di commenti di review fermi da mesi, lasciandolo in modalità osservazione per una settimana. Ha fatto emergere due dereferenziazioni null reali che i nostri linter non avevano mai segnalato.",
-          "author": "Maya Chen",
-          "role": "Staff Engineer, Northline"
-        },
-        "two": {
-          "quote": "Ciò che ci ha convinti è il confine runner. C'è un solo file da leggere per sapere tutto quello che l'agente può eseguire.",
-          "author": "Jonas Weber",
-          "role": "Platform Lead, Latticeworks"
-        },
-        "three": {
-          "quote": "Non apre mai una pull request che non sappia sostenere con un'esecuzione verde, e così i nostri revisori hanno smesso di trattare l'output dell'agente come rumore.",
-          "author": "Amelia Ortiz",
-          "role": "Head of Engineering, Harbor Studio"
         }
       }
     },

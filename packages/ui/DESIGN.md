@@ -27,9 +27,10 @@ pull request and say why.
 ## Density
 
 - The dashboard is dense: 36 px controls (`h-9`), `text-xs` body in panels.
-- The marketing site is comfortable: 44 px primary controls (`h-11`), `text-sm` and up.
+- The marketing site is comfortable: 44 px controls (`h-11`), `text-sm` and up. Its primary
+  actions use solid `accent` with `canvas` text; secondary actions keep bordered surfaces.
 - Shared shortcuts (`panel`, `mono`, `focus-ring`, `btn-subtle`, `btn-accent`, `btn-icon`,
-  `input-field`) come from `defineCodeZeroUno`; each app defines its own `btn` height.
+  `input-field`) come from `defineCodeZeroUno`; apps may override control shortcuts for their density and primary-action treatment.
 
 ## Interaction and accessibility
 

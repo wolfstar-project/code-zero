@@ -126,7 +126,7 @@ Two deliberate exclusions:
 
 Icons reached through a `:name` binding cannot be found by the icon scanner. When a new icon comes
 from `config/content.ts`, add its list to `icon.clientBundle.icons` in `nuxt.config.ts` the way
-`featureCards` and `logoCloud` already are, or it will silently render as an empty box.
+`logoCloud` already is, or it will silently render as an empty box.
 
 ## Adding or editing a legal document
 
