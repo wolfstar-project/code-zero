@@ -64,6 +64,12 @@ export type ForgeConnection =
 export interface PreparedConnection {
   kind: ForgeKind;
   factory: ForgeProviderFactory;
+  /**
+   * The credential values the factory was built with. The factory keeps them private, so the
+   * registry cannot read them back, and without this list a token that matches no known secret
+   * pattern would pass redaction untouched into a comment or an error.
+   */
+  secrets: readonly string[];
 }
 
 export function isPreparedConnection(

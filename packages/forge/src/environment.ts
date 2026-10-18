@@ -39,7 +39,32 @@ export function connectionsFromEnvironment(
       skipped.push({ forge, suffix, reason: 'Code Zero does not connect to this forge' });
     else if (entry.factory === undefined)
       skipped.push({ forge, suffix, reason: 'the variables configured no provider' });
-    else connections.push({ kind: forge, factory: entry.factory });
+    else connections.push({ kind: forge, factory: entry.factory, secrets: secretsOf(env, entry) });
   }
   return { connections, skipped };
+}
+
+/** The `forges/env` fields that carry a credential rather than a setting. */
+const SECRET_FIELDS = ['TOKEN', 'PASSWORD', 'PRIVATE_KEY', 'WEBHOOK_SECRET'] as const;
+
+/**
+ * The credential values one variable set configured, read back from the same environment object
+ * `forges/env` built the factory from. That object need not be `process.env`, so the environment
+ * fallback of every redaction would not find them on its own.
+ */
+function secretsOf(
+  env: Readonly<Record<string, string | undefined>>,
+  set: { forge: string; suffix: string },
+): string[] {
+  const prefix = `FORGES_${set.forge.toUpperCase().replaceAll('-', '_')}_`;
+  const values: string[] = [];
+  for (const field of SECRET_FIELDS) {
+    const value = env[`${prefix}${field}${set.suffix ? `_${set.suffix}` : ''}`];
+    if (!value) continue;
+    values.push(value);
+    // `forges/env` turns escaped newlines in a PEM key into real ones before using it.
+    if (field === 'PRIVATE_KEY' && value.includes('\\n'))
+      values.push(value.replaceAll('\\n', '\n'));
+  }
+  return values;
 }

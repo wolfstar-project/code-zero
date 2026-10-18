@@ -37,7 +37,7 @@ export function fakeRegistry(
   factory: ForgeProviderFactory,
   kind: ForgeFixture['kind'],
 ): ForgeRegistry {
-  return createForgeRegistry([{ kind, factory }]);
+  return createForgeRegistry([{ kind, factory, secrets: [] }]);
 }
 
 /** The fake's change request 7, as a run would name it. */

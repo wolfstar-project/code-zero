@@ -61,6 +61,7 @@ export function createForgeRegistry(
           connection.kind,
           `the factory builds a ${provider.forge} provider`,
         );
+      secretsByProvider.set(provider, connection.secrets);
       return { kind: connection.kind, provider };
     }
     assertConnection(connection);

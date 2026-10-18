@@ -91,8 +91,8 @@ describe('createForgeRegistry', () => {
 
   it('accepts a prepared factory only for the forge it builds', () => {
     const factory = github({ auth: { type: 'token', token: TOKEN } });
-    expect(createForgeRegistry([{ kind: 'github', factory }]).list()).toHaveLength(1);
-    expect(() => createForgeRegistry([{ kind: 'gitlab', factory }])).toThrow(
+    expect(createForgeRegistry([{ kind: 'github', factory, secrets: [] }]).list()).toHaveLength(1);
+    expect(() => createForgeRegistry([{ kind: 'gitlab', factory, secrets: [] }])).toThrow(
       'builds a github provider',
     );
   });

@@ -118,8 +118,10 @@ one platform `packages/source-control` covers that this boundary does not.
   DevOps), routed by forge and instance host. Two connections to the same instance are refused.
   `list()` reports each connection's derived `ForgeCapabilities` and never its credentials.
 - `connectionsFromEnvironment(env)` — the same connections from `FORGES_<KIND>_<FIELD>[_<SUFFIX>]`
-  variables through `forges/env`. The factories hold the credentials, and every set that does not
-  become a connection is reported with a reason that never contains one.
+  variables through `forges/env`. The factories hold the credentials; each connection also lists
+  their values, read from the same environment object, so the registry can redact them even when
+  that object is not `process.env`. Every set that does not become a connection is reported with a
+  reason that never contains one.
 - `ingestDelivery(registry, kind, { headers, body }, options)` — verifies the delivery with
   `webhooks.verify`/`webhooks.ingest` and translates its events into `ReviewEvent` and
   `IssueEvent`. A forged, unsigned, or unparseable delivery is a typed `rejected` outcome, never
