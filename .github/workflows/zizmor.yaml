@@ -34,6 +34,10 @@ jobs:
 
       - uses: zizmorcore/zizmor-action@5f14fd08f7cf1cb1609c1e344975f152c7ee938d # v0.5.6
         with:
+          # Only `.github` holds this repository's workflows and actions. Vendored Agent Skills under
+          # `.agents/skills` ship example `action.yml` templates that are never run, and auditing
+          # them would gate pull requests on third-party sample code.
+          inputs: .github
           persona: pedantic
           annotations: true
           advanced-security: false
