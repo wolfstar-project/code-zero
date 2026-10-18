@@ -1,6 +1,6 @@
 /**
- * Structure of the landing page: which cards exist, in which order, and which translation key and
- * icon each one carries.
+ * Structure of the landing page: which cards exist, in which order, and which translation key
+ * each one carries.
  *
  * Copy itself lives in `@code-zero/i18n` (`locales/<locale>/marketing.json`) so translators work
  * from one place and Lunaria can report staleness. This file only holds what is not language —
@@ -11,15 +11,7 @@
 export interface FeatureCard {
   /** Key under `marketing.features.items`; also the Vue list key. */
   readonly id: string;
-  /** Lucide icon name resolved by `@nuxt/icon` from the locally installed collection. */
-  readonly icon: string;
-}
-
-export interface Testimonial {
-  /** Key under `marketing.testimonials.items`. */
-  readonly id: string;
-  /** Initials rendered in the avatar tile; no remote images on a page that must stay fast. */
-  readonly initials: string;
+  readonly layout: 'lead' | 'standard' | 'wide';
 }
 
 export interface FaqEntry {
@@ -48,19 +40,13 @@ export interface PricingPlan {
 export const pricingCurrency = 'USD';
 
 export const featureCards = [
-  { id: 'observe', icon: 'lucide:eye' },
-  { id: 'runner', icon: 'lucide:shield-check' },
-  { id: 'verify', icon: 'lucide:circle-check-big' },
-  { id: 'models', icon: 'lucide:cpu' },
-  { id: 'sandbox', icon: 'lucide:box' },
-  { id: 'policy', icon: 'lucide:scale' },
+  { id: 'observe', layout: 'lead' },
+  { id: 'runner', layout: 'standard' },
+  { id: 'verify', layout: 'standard' },
+  { id: 'models', layout: 'standard' },
+  { id: 'sandbox', layout: 'standard' },
+  { id: 'policy', layout: 'wide' },
 ] as const satisfies readonly FeatureCard[];
-
-export const testimonials = [
-  { id: 'one', initials: 'MC' },
-  { id: 'two', initials: 'JW' },
-  { id: 'three', initials: 'AO' },
-] as const satisfies readonly Testimonial[];
 
 export const faqEntries = [
   { id: 'write' },

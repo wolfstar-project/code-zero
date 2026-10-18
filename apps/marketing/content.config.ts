@@ -14,7 +14,7 @@ const legalSchema = z.object({
 /**
  * Frontmatter every blog post declares. `date` is the publication date (ISO 8601) the listing
  * sorts by; `tag` is a single lowercase category the listing can filter on; `authorInitials`
- * feeds the same initials-tile avatar the testimonials use — this site ships no portrait images.
+ * feeds the initials-tile avatar — this site ships no portrait images.
  */
 const blogSchema = z.object({
   title: z.string(),

@@ -14,7 +14,12 @@ export default defineCodeZeroUno({
       'btn',
       'focus-ring h-11 inline-flex items-center justify-center gap-2 border px-5 text-sm text-ink font-650 transition disabled:cursor-not-allowed disabled:opacity-60',
     ],
-    ['btn-sm', 'h-9 px-3.5 text-xs'],
+    ['btn-accent', 'btn border-accent bg-accent text-canvas hover:opacity-90'],
+    [
+      'btn-icon',
+      'focus-ring h-11 w-11 grid shrink-0 place-items-center border border-line bg-raised text-ink transition hover:border-muted',
+    ],
+    ['input-field', 'focus-ring h-11 border border-line bg-raised px-3 text-sm text-ink'],
     ['btn-link', 'focus-ring text-sm text-link'],
   ],
 });

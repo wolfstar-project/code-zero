@@ -3,7 +3,6 @@
     <HomeHero />
     <HomeLogoCloud />
     <HomeFeatureGrid />
-    <HomeTestimonials />
     <HomePricingTable />
     <HomeFaq />
     <HomeCallToAction />
