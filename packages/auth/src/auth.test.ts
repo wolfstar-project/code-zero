@@ -7,7 +7,7 @@ import {
   authDatabaseOptionsFromEnvironment,
   authOptionsFromEnvironment,
   createAuth,
-  ORGANIZATION_INVITATION_DELIVERY_UNAVAILABLE,
+  ORGANIZATION_INVITATION_ENDPOINTS,
   type SendPrivateInvitationEmail,
 } from './auth.js';
 import { defaultAuthConfig } from './config.js';
@@ -23,8 +23,6 @@ const MISSING_URL_MESSAGE = /missing required environment variable: BETTER_AUTH_
 const MISSING_SEND_PRIVATE_INVITATION_PATTERN = /sendPrivateInvitationEmail/;
 const MISSING_DASHBOARD_URL_PATTERN = /dashboardUrl/;
 const PUBLIC_INVITE_URL_PATTERN = /^http:\/\/localhost:3000\/invite\?token=[A-Za-z0-9_-]+$/;
-const ORGANIZATION_INVITE_URL_PATTERN =
-  /^http:\/\/localhost:3000\/organizations\/accept-invitation\/[A-Za-z0-9_-]+$/;
 
 /** The one private invitation the delivery contract hands over, captured by the specs below. */
 type PrivateInvitation = Parameters<SendPrivateInvitationEmail>[0];
@@ -53,20 +51,29 @@ interface OrganizationApi {
     body: { name: string; slug: string };
     headers: Headers;
   }): Promise<{ id: string; slug: string } | null>;
-  createInvitation(options: {
-    body: { email: string; role: string; organizationId: string };
-    headers: Headers;
-  }): Promise<unknown>;
 }
 
 /** Same boundary as {@link hasPublicInviteApi}: the organization endpoints, checked at runtime. */
 function hasOrganizationApi(api: object): api is object & OrganizationApi {
-  return (
-    'createOrganization' in api &&
-    typeof api.createOrganization === 'function' &&
-    'createInvitation' in api &&
-    typeof api.createInvitation === 'function'
-  );
+  return 'createOrganization' in api && typeof api.createOrganization === 'function';
+}
+
+interface OrganizationInviteApi {
+  createInvite(options: {
+    body: {
+      type: 'private';
+      kind: 'org-join';
+      email: string;
+      organizationId: string;
+      organizationRole: string;
+    };
+    headers: Headers;
+  }): Promise<unknown>;
+}
+
+/** Better Enrollment's invite endpoint, which is how an organization invites into itself. */
+function hasOrganizationInviteApi(api: object): api is object & OrganizationInviteApi {
+  return 'createInvite' in api && typeof api.createInvite === 'function';
 }
 
 /**
@@ -82,6 +89,7 @@ function organizationAuth(
     sendPrivateInvitationEmail?: SendPrivateInvitationEmail;
   } = {},
 ) {
+  const enableInvitations = options.sendPrivateInvitationEmail !== undefined;
   return betterAuth({
     ...authBetterAuthOptions({
       databaseUrl: completeEnvironment.DATABASE_URL,
@@ -90,6 +98,7 @@ function organizationAuth(
         enableOrganizations: true,
         enableSignup: true,
         allowUserToCreateOrganization: true,
+        enableInvitations,
       },
       ...options,
     }),
@@ -103,8 +112,9 @@ function organizationAuth(
       organization: [],
       member: [],
       invitation: [],
-      team: [],
-      teamMember: [],
+      invite: [],
+      inviteUse: [],
+      twoFactor: [],
     }),
     secret: completeEnvironment.BETTER_AUTH_SECRET,
     baseURL: completeEnvironment.BETTER_AUTH_URL,
@@ -290,7 +300,35 @@ describe('createAuth with organizations', () => {
     expect(() => createAuth({ ...instanceOptions, config: defaultAuthConfig })).not.toThrow();
   });
 
-  it('delivers an organization invitation to the address it names', async () => {
+  it("does not register the organization plugin's own invitation endpoints", async () => {
+    // Invitations travel through Better Enrollment only. The organization plugin's flow would be a
+    // second model for the same concept, so its endpoints are removed rather than guarded.
+    const options = authBetterAuthOptions({
+      databaseUrl: completeEnvironment.DATABASE_URL,
+      config: { ...defaultAuthConfig, enableOrganizations: true },
+    });
+    const plugin = options.plugins.find((candidate) => candidate.id === 'organization');
+    const auth = organizationAuth();
+    const headers = await signedInHeaders(auth);
+
+    for (const name of ORGANIZATION_INVITATION_ENDPOINTS) {
+      expect(Object.keys(plugin?.endpoints ?? {})).not.toContain(name);
+      expect(Object.keys(auth.api)).not.toContain(name);
+    }
+    // The routes behind them answer as if they never existed, for a signed-in caller too.
+    for (const path of ['/organization/invite-member', '/organization/accept-invitation']) {
+      const response = await auth.handler(
+        new Request(`${completeEnvironment.BETTER_AUTH_URL}/api/auth${path}`, {
+          method: 'POST',
+          headers: { ...Object.fromEntries(headers), 'content-type': 'application/json' },
+          body: JSON.stringify({ email: 'sam@example.com', role: 'member', invitationId: 'x' }),
+        }),
+      );
+      expect(response.status).toBe(404);
+    }
+  });
+
+  it('invites into an organization through an enrollment invite', async () => {
     const delivered: PrivateInvitation[] = [];
     const auth = organizationAuth({
       dashboardUrl: instanceOptions.dashboardUrl,
@@ -299,49 +337,34 @@ describe('createAuth with organizations', () => {
       },
     });
 
-    if (!hasOrganizationApi(auth.api)) throw new Error('missing organization API');
+    if (!hasOrganizationApi(auth.api) || !hasOrganizationInviteApi(auth.api))
+      throw new Error('missing organization or enrollment API');
     const headers = await signedInHeaders(auth);
     const organization = await auth.api.createOrganization({
       body: { name: 'Acme Ops', slug: 'acme-ops' },
       headers,
     });
-    await auth.api.createInvitation({
-      body: { email: 'sam@example.com', role: 'member', organizationId: organization?.id ?? '' },
+    await auth.api.createInvite({
+      body: {
+        type: 'private',
+        kind: 'org-join',
+        email: 'sam@example.com',
+        organizationId: organization?.id ?? '',
+        organizationRole: 'member',
+      },
       headers,
     });
 
-    // Better Auth builds no link of its own, so the accept URL has to point at the dashboard route
-    // that redeems it — an invitation delivered with any other path reaches a page that cannot
-    // accept it.
+    // One link format for every invitation, carrying only the token, pointed at the dashboard
+    // page that redeems it.
     expect(delivered).toEqual([
-      {
+      expect.objectContaining({
         to: 'sam@example.com',
-        name: null,
         inviterName: 'Dana',
         organizationName: 'Acme Ops',
-        acceptUrl: expect.stringMatching(ORGANIZATION_INVITE_URL_PATTERN),
-      },
-    ]);
-  });
-
-  it('refuses an organization invitation it has no way to deliver', async () => {
-    // The invitation would otherwise be a pending row nobody is told about: it holds a seat, and
-    // its recipient waits for mail that is never sent.
-    const auth = organizationAuth({ dashboardUrl: instanceOptions.dashboardUrl });
-
-    if (!hasOrganizationApi(auth.api)) throw new Error('missing organization API');
-    const headers = await signedInHeaders(auth);
-    const organization = await auth.api.createOrganization({
-      body: { name: 'Acme Ops', slug: 'acme-ops' },
-      headers,
-    });
-
-    await expect(
-      auth.api.createInvitation({
-        body: { email: 'sam@example.com', role: 'member', organizationId: organization?.id ?? '' },
-        headers,
+        acceptUrl: expect.stringMatching(PUBLIC_INVITE_URL_PATTERN),
       }),
-    ).rejects.toMatchObject({ body: { code: ORGANIZATION_INVITATION_DELIVERY_UNAVAILABLE } });
+    ]);
   });
 
   it('leaves the rest of the organization API working without a transport', async () => {
@@ -501,9 +524,9 @@ describe('createAuth with invitations', () => {
     });
   });
 
-  it('exposes the app-wide role column whether or not invitations are enabled', () => {
+  it('declares the app-wide role column whether or not invitations are enabled', () => {
     // The column exists in every deployment's store, and a field the adapter does not know about
-    // is one it silently drops on write.
+    // is one it silently drops on write. The admin plugin owns it, and it is always registered.
     for (const config of [defaultAuthConfig, invitationsEnabled]) {
       const options = authBetterAuthOptions({
         databaseUrl: completeEnvironment.DATABASE_URL,
@@ -511,8 +534,11 @@ describe('createAuth with invitations', () => {
         dashboardUrl: instanceOptions.dashboardUrl,
         sendPrivateInvitationEmail,
       });
+      const adminPlugin = options.plugins.find((plugin) => plugin.id === 'admin');
 
-      expect(options.user?.additionalFields).toMatchObject({ role: { type: 'string' } });
+      expect(adminPlugin?.schema?.user?.fields).toMatchObject({
+        role: { type: 'string', input: false },
+      });
     }
   });
 });

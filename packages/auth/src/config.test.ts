@@ -1,12 +1,17 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  authCapabilities,
   authConfigFromEnvironment,
   defaultAuthConfig,
   githubCredentialsFromEnvironment,
+  gitlabCredentialsFromEnvironment,
+  googleCredentialsFromEnvironment,
   infraFromEnvironment,
   MINIMUM_PASSWORD_LENGTH,
   oauthProxyFromEnvironment,
+  passkeyFromEnvironment,
+  scimFromEnvironment,
 } from './config.js';
 
 describe('defaultAuthConfig', () => {
@@ -171,5 +176,190 @@ describe('authConfigFromEnvironment', () => {
         AUTH_ALLOW_ORGANIZATION_CREATION: 'true',
       }).allowUserToCreateOrganization,
     ).toBe(true);
+  });
+});
+
+describe('additional social providers', () => {
+  it('reads GitLab and Google credentials only when both halves are present', () => {
+    expect(gitlabCredentialsFromEnvironment({ GITLAB_CLIENT_ID: 'id' })).toBeUndefined();
+    expect(googleCredentialsFromEnvironment({ GOOGLE_CLIENT_SECRET: 'secret' })).toBeUndefined();
+    expect(
+      gitlabCredentialsFromEnvironment({ GITLAB_CLIENT_ID: 'id', GITLAB_CLIENT_SECRET: 'secret' }),
+    ).toEqual({ clientId: 'id', clientSecret: 'secret' });
+    expect(
+      googleCredentialsFromEnvironment({ GOOGLE_CLIENT_ID: 'id', GOOGLE_CLIENT_SECRET: 'secret' }),
+    ).toEqual({ clientId: 'id', clientSecret: 'secret' });
+  });
+
+  it('points GitLab at a self-managed instance when one is named', () => {
+    expect(
+      gitlabCredentialsFromEnvironment({
+        GITLAB_CLIENT_ID: 'id',
+        GITLAB_CLIENT_SECRET: 'secret',
+        GITLAB_ISSUER: 'https://gitlab.example.test',
+      }),
+    ).toMatchObject({ issuer: 'https://gitlab.example.test' });
+  });
+
+  it('advertises each provider only when its credentials exist', () => {
+    const config = authConfigFromEnvironment({
+      GITLAB_CLIENT_ID: 'id',
+      GITLAB_CLIENT_SECRET: 'secret',
+    });
+
+    expect(config.enableGitlabOauth).toBe(true);
+    expect(config.enableGoogleOauth).toBe(false);
+  });
+});
+
+describe('passkeyFromEnvironment', () => {
+  it('derives the relying party from the dashboard origin', () => {
+    expect(passkeyFromEnvironment({ NUXT_PUBLIC_SITE_URL: 'https://app.example.test/' })).toEqual({
+      rpID: 'app.example.test',
+      rpName: 'Code Zero',
+      origin: 'https://app.example.test',
+    });
+  });
+
+  it('lets an explicit setting win over the derived one', () => {
+    expect(
+      passkeyFromEnvironment({
+        AUTH_DASHBOARD_ORIGIN: 'https://app.example.test',
+        AUTH_PASSKEY_ORIGIN: 'https://auth.example.test',
+        AUTH_PASSKEY_RP_ID: 'example.test',
+        AUTH_PASSKEY_RP_NAME: 'Acme',
+      }),
+    ).toEqual({ rpID: 'example.test', rpName: 'Acme', origin: 'https://auth.example.test' });
+  });
+
+  it('fails closed without a parseable web origin', () => {
+    expect(passkeyFromEnvironment({})).toBeUndefined();
+    expect(passkeyFromEnvironment({ NUXT_PUBLIC_SITE_URL: 'not a url' })).toBeUndefined();
+    expect(
+      passkeyFromEnvironment({ NUXT_PUBLIC_SITE_URL: 'ftp://app.example.test' }),
+    ).toBeUndefined();
+  });
+});
+
+describe('runtime policy flags', () => {
+  it('keeps the mail-backed flows off unless explicitly opted in', () => {
+    const config = authConfigFromEnvironment({});
+
+    expect(config.enableEmailVerification).toBe(false);
+    expect(config.enablePasswordReset).toBe(false);
+    expect(config.enableMagicLink).toBe(false);
+    expect(config.enableTwoFactorEmailOtp).toBe(false);
+    expect(authConfigFromEnvironment({ AUTH_ENABLE_MAGIC_LINK: 'TRUE' }).enableMagicLink).toBe(
+      false,
+    );
+    expect(authConfigFromEnvironment({ AUTH_ENABLE_MAGIC_LINK: 'true' }).enableMagicLink).toBe(
+      true,
+    );
+  });
+
+  it('treats required verification as also sending it', () => {
+    expect(
+      authConfigFromEnvironment({ AUTH_REQUIRE_EMAIL_VERIFICATION: 'true' })
+        .enableEmailVerification,
+    ).toBe(true);
+  });
+
+  it('offers two-factor by default and drops its mail codes with it', () => {
+    expect(authConfigFromEnvironment({}).enableTwoFactor).toBe(true);
+    const off = authConfigFromEnvironment({
+      AUTH_ENABLE_TWO_FACTOR: 'false',
+      AUTH_ENABLE_TWO_FACTOR_EMAIL_OTP: 'true',
+    });
+    expect(off.enableTwoFactor).toBe(false);
+    expect(off.enableTwoFactorEmailOtp).toBe(false);
+  });
+
+  it('offers passkeys only where a relying party resolves, and lets an operator opt out', () => {
+    const origin = { NUXT_PUBLIC_SITE_URL: 'https://app.example.test' };
+
+    expect(authConfigFromEnvironment({}).enablePasskey).toBe(false);
+    expect(authConfigFromEnvironment(origin).enablePasskey).toBe(true);
+    expect(
+      authConfigFromEnvironment({ ...origin, AUTH_ENABLE_PASSKEY: 'false' }).enablePasskey,
+    ).toBe(false);
+  });
+
+  it('refuses API keys while organizations are off', () => {
+    expect(authConfigFromEnvironment({ AUTH_ENABLE_API_KEYS: 'true' }).enableApiKeys).toBe(false);
+    expect(
+      authConfigFromEnvironment({ AUTH_ENABLE_API_KEYS: 'true', AUTH_ENABLE_ORGANIZATIONS: 'true' })
+        .enableApiKeys,
+    ).toBe(true);
+  });
+
+  it('reads the SCIM secret without deciding whether SCIM is on', () => {
+    expect(scimFromEnvironment({})).toBeUndefined();
+    expect(scimFromEnvironment({ SCIM_CREDENTIAL_HASH_SECRET: 's'.repeat(40) })).toEqual({
+      credentialHashSecret: 's'.repeat(40),
+    });
+  });
+});
+
+describe('authCapabilities', () => {
+  it('reports the conservative defaults with no enterprise capability', () => {
+    expect(authCapabilities(defaultAuthConfig)).toEqual({
+      signup: false,
+      password: true,
+      passwordReset: false,
+      emailVerification: false,
+      magicLink: false,
+      passkey: false,
+      twoFactor: true,
+      twoFactorEmailOtp: false,
+      social: { github: false, gitlab: false, google: false },
+      organizations: false,
+      organizationCreation: false,
+      organizationInvitations: false,
+      invitations: false,
+      apiKeys: false,
+      deviceAuthorization: false,
+      sso: false,
+      scim: false,
+      infra: false,
+    });
+  });
+
+  it('survives a JSON round trip unchanged, so the server can publish it as is', () => {
+    const capabilities = authCapabilities(
+      authConfigFromEnvironment({ AUTH_ENABLE_SIGNUP: 'true', AUTH_ENABLE_ORGANIZATIONS: 'true' }),
+      { sso: true, scim: false },
+    );
+
+    expect(JSON.parse(JSON.stringify(capabilities))).toEqual(capabilities);
+  });
+
+  it('publishes no credential the environment carries', () => {
+    const environment = {
+      GITHUB_CLIENT_ID: 'github-client-id',
+      GITHUB_CLIENT_SECRET: 'github-client-secret',
+      BETTER_AUTH_API_URL: 'https://dash.example.test',
+      BETTER_AUTH_KV_URL: 'https://kv.example.test',
+      BETTER_AUTH_API_KEY: 'project-api-key',
+      OAUTH_PROXY_SECRET: 'proxy-secret',
+    };
+    const serialized = JSON.stringify(authCapabilities(authConfigFromEnvironment(environment)));
+
+    for (const value of Object.values(environment)) expect(serialized).not.toContain(value);
+  });
+
+  it('requires both features for organization invitations, which travel through enrollment', () => {
+    const organizationsOnly = { ...defaultAuthConfig, enableOrganizations: true };
+
+    expect(authCapabilities(organizationsOnly).organizationInvitations).toBe(false);
+    expect(
+      authCapabilities({ ...organizationsOnly, enableInvitations: true }).organizationInvitations,
+    ).toBe(true);
+  });
+
+  it('reports SSO and SCIM from the entitlements alone', () => {
+    expect(authCapabilities(defaultAuthConfig, { sso: true, scim: true })).toMatchObject({
+      sso: true,
+      scim: true,
+    });
   });
 });

@@ -1,14 +1,14 @@
 import { definePackageConfig } from '../../scripts/tsdown.config.ts';
 
 /**
- * `./config` is a second entry point on purpose: it holds only policy, so the dashboard can read
- * the feature flags without pulling `@code-zero/database` and the rest of the server instance
- * into a browser bundle.
+ * `./config` and `./access` are separate entry points on purpose: they hold only policy (the
+ * feature flags and capabilities, and the organization roles), so the dashboard can read them
+ * without pulling `@code-zero/database` and the rest of the server instance into a browser bundle.
  */
 export default definePackageConfig({
-  entry: ['src/index.ts', 'src/config.ts'],
+  entry: ['src/index.ts', 'src/access.ts', 'src/config.ts'],
   attw: {
-    entrypoints: ['.', './config'],
+    entrypoints: ['.', './access', './config'],
     enabled: true,
     level: 'error',
     profile: 'esm-only',

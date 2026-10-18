@@ -22,7 +22,9 @@
     "typecheck": "nuxt typecheck"
   },
   "dependencies": {
+    "@better-auth/api-key": "^1.7.10",
     "@better-auth/infra": "^0.4.20",
+    "@better-auth/passkey": "^1.7.10",
     "@code-zero/api": "workspace:*",
     "@code-zero/auth": "workspace:*",
     "@code-zero/build-env": "workspace:*",
