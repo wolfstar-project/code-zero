@@ -5,7 +5,7 @@ import type { Session, User } from 'better-auth';
 import { sessionPrincipal, type Principal } from '../access.js';
 
 /**
- * The one Better Auth endpoint this integration calls, declared structurally.
+ * The Better Auth endpoints this integration calls, declared structurally.
  *
  * Typed against `better-auth`'s own `Session`/`User` rather than a hand-rolled shape, but never
  * against a concrete instance: building one needs a database adapter and the deployment's
@@ -18,6 +18,20 @@ import { sessionPrincipal, type Principal } from '../access.js';
 export interface BetterAuthSessionApi {
   api: {
     getSession: (options: { headers: Headers }) => Promise<BetterAuthSessionPayload | null>;
+    /**
+     * The admin plugin's permission check, which decides who administers the deployment.
+     *
+     * Optional in the type because the composition root widens its plugin list, so a real
+     * instance does not carry the plugin's endpoints in its static type even though it serves
+     * them. At runtime an instance without it grants no one the administrator modes.
+     */
+    userHasPermission?: (options: {
+      body: {
+        userId: string;
+        role?: string;
+        permissions: Readonly<Record<string, readonly string[]>>;
+      };
+    }) => Promise<{ success: boolean }>;
   };
 }
 
@@ -30,7 +44,7 @@ export interface BetterAuthSessionApi {
  */
 interface BetterAuthSessionPayload {
   session: Pick<Session, 'id'>;
-  /** `role` is an additional field the deployment adds, so it is absent from Better Auth's `User`. */
+  /** `role` is the admin plugin's field, so it is absent from Better Auth's base `User`. */
   user: Pick<User, 'id' | 'email'> & { readonly role?: unknown };
 }
 
@@ -54,28 +68,43 @@ export interface BetterAuthContext extends RequestHeadersHandlerPluginContext {
    * the authentication store, so a machine caller never pays for one.
    */
   principal?: Principal;
-  /** App-wide role granted the writable execution modes. Defaults to {@link DEFAULT_ADMIN_ROLE}. */
-  adminRole?: string;
 }
 
-/** App-wide role that grants a signed-in user the writable execution modes. */
-const DEFAULT_ADMIN_ROLE = 'admin';
+/**
+ * The permission that makes an account an administrator of the deployment.
+ *
+ * Granting roles is the one permission that implies every other: an account that may set roles
+ * can make itself anything. Asking for it, rather than for a role name, leaves the admin plugin
+ * the only place that decides what administration is — its `adminRoles`, its access control, and
+ * its `adminUserIds` — instead of this package parsing `user.role` against a second list.
+ */
+const ADMINISTRATION_PERMISSION = { user: ['set-role'] } as const;
 
 /**
- * Better Auth's base `User` carries no `role`; the deployment adds it as an additional field (see
- * `@code-zero/auth`'s `authBetterAuthOptions`). Read defensively rather than asserted, so a
- * deployment that drops the field grants the non-writable modes instead of throwing.
+ * Ask Better Auth's admin plugin whether `user` administers the deployment.
  *
- * Better Auth stores multiple roles as one comma-separated string, so membership is checked
- * rather than equality: an account provisioned with, say, `"support,admin"` holds the admin role
- * exactly as much as one provisioned with `"admin"` alone.
+ * Passes the role the session already carried, so the check costs no further lookup; the plugin
+ * still resolves what that role means. Fails closed: an instance without the plugin, or a check
+ * that throws, grants the non-writable modes rather than the writable ones.
  */
-function isAdministrator(user: BetterAuthSessionPayload['user'], adminRole: string): boolean {
-  if (typeof user.role !== 'string') return false;
-  return user.role
-    .split(',')
-    .map((role) => role.trim())
-    .includes(adminRole);
+async function isAdministrator(
+  auth: BetterAuthSessionApi,
+  user: BetterAuthSessionPayload['user'],
+): Promise<boolean> {
+  const check = auth.api.userHasPermission;
+  if (!check) return false;
+  try {
+    const { success } = await check({
+      body: {
+        userId: user.id,
+        ...(typeof user.role === 'string' ? { role: user.role } : {}),
+        permissions: ADMINISTRATION_PERMISSION,
+      },
+    });
+    return success;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -95,7 +124,7 @@ export async function betterAuthPrincipal(
   // The email is the identity an operator recognises in an audit trail; the immutable user id is
   // the fallback so a deployment that leaves it blank still records something resolvable.
   const name = user.email.trim() === '' ? user.id : user.email;
-  return sessionPrincipal(name, isAdministrator(user, context.adminRole ?? DEFAULT_ADMIN_ROLE));
+  return sessionPrincipal(name, await isAdministrator(auth, user));
 }
 
 /**

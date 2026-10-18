@@ -161,14 +161,32 @@ function operator() {
   });
 }
 
-/** A Better Auth instance stubbed down to the one endpoint the integration calls. */
-function betterAuth(user: { email: string; role: string } | null): BetterAuthSessionApi {
+/**
+ * A Better Auth instance stubbed down to the endpoints the integration calls.
+ *
+ * `userHasPermission` answers the way the admin plugin's default access control does: an account
+ * administers the deployment when any of its comma-separated roles is `admin`. `administers`
+ * overrides that answer, to show the decision is the plugin's and not the role string's.
+ */
+function betterAuth(
+  user: { email: string; role: string } | null,
+  administers?: boolean,
+): BetterAuthSessionApi {
   return {
     api: {
       getSession: () =>
         Promise.resolve(
           user === null ? null : { session: { id: 'sess_1' }, user: { id: 'usr_1', ...user } },
         ),
+      userHasPermission: ({ body }) =>
+        Promise.resolve({
+          success:
+            administers ??
+            (body.role ?? '')
+              .split(',')
+              .map((role) => role.trim())
+              .includes('admin'),
+        }),
     },
   };
 }
@@ -515,6 +533,38 @@ describe('rpc audit trail', () => {
     ).resolves.toMatchObject({ events: [{ id: 'audit_1' }] });
   });
 
+  it('takes the administrator decision from the admin plugin, not from the role string', async () => {
+    await auditLog.append(auditRecord('audit_1', '2026-08-09T10:00:00.000Z'));
+
+    await expect(
+      instrumented(() =>
+        client({
+          auth: betterAuth({ email: 'ops@example.test', role: 'admin' }, false),
+          reqHeaders: new Headers(),
+        }).audit.list({}),
+      ),
+    ).rejects.toThrow(ADMIN_ERROR);
+    await expect(
+      instrumented(() =>
+        client({
+          auth: betterAuth({ email: 'ops@example.test', role: 'operator' }, true),
+          reqHeaders: new Headers(),
+        }).audit.list({}),
+      ),
+    ).resolves.toMatchObject({ events: [{ id: 'audit_1' }] });
+  });
+
+  it('grants no administrator modes when the admin plugin is absent', async () => {
+    const { userHasPermission: _absent, ...api } = betterAuth({
+      email: 'ops@example.test',
+      role: 'admin',
+    }).api;
+
+    await expect(
+      instrumented(() => client({ auth: { api }, reqHeaders: new Headers() }).audit.list({})),
+    ).rejects.toThrow(ADMIN_ERROR);
+  });
+
   it('refuses a signed-in reader who is not an administrator', async () => {
     await expect(
       instrumented(() =>
@@ -634,6 +684,38 @@ describe('rpc repositories', () => {
       {},
       { action: 'repository.removed', outcome: 'success', target: { id: saved.id } },
     ]);
+  });
+
+  it('takes the administrator decision from the admin plugin, not from the role string', async () => {
+    await auditLog.append(auditRecord('audit_1', '2026-08-09T10:00:00.000Z'));
+
+    await expect(
+      instrumented(() =>
+        client({
+          auth: betterAuth({ email: 'ops@example.test', role: 'admin' }, false),
+          reqHeaders: new Headers(),
+        }).audit.list({}),
+      ),
+    ).rejects.toThrow(ADMIN_ERROR);
+    await expect(
+      instrumented(() =>
+        client({
+          auth: betterAuth({ email: 'ops@example.test', role: 'operator' }, true),
+          reqHeaders: new Headers(),
+        }).audit.list({}),
+      ),
+    ).resolves.toMatchObject({ events: [{ id: 'audit_1' }] });
+  });
+
+  it('grants no administrator modes when the admin plugin is absent', async () => {
+    const { userHasPermission: _absent, ...api } = betterAuth({
+      email: 'ops@example.test',
+      role: 'admin',
+    }).api;
+
+    await expect(
+      instrumented(() => client({ auth: { api }, reqHeaders: new Headers() }).audit.list({})),
+    ).rejects.toThrow(ADMIN_ERROR);
   });
 
   it('refuses a signed-in reader who is not an administrator', async () => {
