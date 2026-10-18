@@ -45,8 +45,8 @@
     </nav>
 
     <ClientOnly>
-      <!-- Only rendered where the deployment actually enables organizations; the auth server
-           enforces the same policy regardless, so a stale build can only hide the switcher. -->
+      <!-- Only rendered where the deployment actually enables organizations, as `/api/capabilities`
+           reports at runtime; the auth server enforces the same policy regardless. -->
       <OrganizationsSwitcher v-if="!collapsed && enableOrganizations" />
       <UserMenu v-if="!collapsed" />
     </ClientOnly>
@@ -104,8 +104,8 @@ import { NuxtLink } from '#components';
 const collapsed = useSidebarCollapsed();
 const route = useRoute();
 
-const appConfig = useAppConfig();
-const enableOrganizations = appConfig.auth.enableOrganizations;
+const capabilities = await useAuthCapabilities();
+const enableOrganizations = computed(() => capabilities.value.organizations);
 
 interface NavItem {
   key: string;

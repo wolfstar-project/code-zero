@@ -206,18 +206,17 @@ off until you turn them on, so a fresh deployment cannot be signed up for by a s
 | `NUXT_BETTER_AUTH_SECRET`                   | yes      | –       | Session signing secret. Required under this name in production; `BETTER_AUTH_SECRET` is a development-only fallback |
 | `DATABASE_URL`                              | yes      | –       | Postgres connection string                                                                                          |
 | `AUTH_ENABLE_SIGNUP`                        | no       | `false` | Set to `true` to allow self-registration                                                                            |
-| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | no       | –       | Enables the GitHub button when both are set                                                                         |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | no       | –       | Enables the GitHub button when both are set; GitLab (`GITLAB_*`) and Google (`GOOGLE_*`) follow the same rule       |
 | `NUXT_PUBLIC_SITE_URL`                      | no       | –       | Base URL override for a custom domain or deterministic OAuth callbacks; auto-detected from the request otherwise    |
 
 `AUTH_DATABASE_URL` is still read when `DATABASE_URL` is unset, so a deployment configured before
 the store moved into `packages/database` keeps starting; prefer `DATABASE_URL` for new ones.
 
-Sign-in lives at `/login` and self-registration at `/signup`; the methods each page offers are
-derived at build time from the same policy variables `server/auth.config.ts` reads at runtime
-(`AUTH_ENABLE_SIGNUP`, `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`), and no runtime override can
-change them. The flip side of that build-time capture is a deployment contract: whenever you change
-those policy variables, rebuild the app, or the auth pages will keep advertising the old
-capabilities (the server still enforces its own policy either way).
+Sign-in lives at `/login` and self-registration at `/signup`. The methods each page offers are
+read at runtime from `/api/capabilities`, which the server derives from the same policy variables
+`server/auth.config.ts` builds Better Auth from, so changing them needs a restart rather than a
+rebuild. Every variable is listed, with its default, in `apps/web/.env.example`; the full policy is
+described in the [authentication guide](apps/docs/content/1.guide/11.authentication/1.overview.md).
 
 The interface ships English and Italian through `@nuxtjs/i18n`, with dictionaries split by scope in
 `packages/i18n/locales/<locale>/` and shared with the marketing site; each app loads only the

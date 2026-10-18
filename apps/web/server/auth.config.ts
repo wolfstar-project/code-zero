@@ -31,11 +31,22 @@ const deliversMail =
  */
 const dashboardUrl = dashboardUrlFromEnvironment(process.env);
 
+/**
+ * Policy is read here, when the server starts, from the same environment `/api/capabilities`
+ * publishes from (see `server/utils/auth-policy.ts`), not from anything captured at build time.
+ * No entitlements are passed, so SSO and SCIM stay unregistered until an edition supplies them.
+ */
 const options = authBetterAuthOptions({
-  ...authDatabaseOptionsFromEnvironment(),
+  ...authDatabaseOptionsFromEnvironment(authEnvironment()),
   ...(dashboardUrl ? { dashboardUrl } : {}),
   ...(deliversMail
     ? {
+        // Each of these is wired only because a template exists for it; enabling the matching
+        // policy flag without a transport is a startup error in `packages/auth`, not a no-op.
+        sendVerificationEmail: ({ to, name, verifyUrl }) =>
+          sendMail({ to, templateId: 'emailVerification', context: { name, verifyUrl } }),
+        sendPasswordResetEmail: ({ to, name, resetUrl }) =>
+          sendMail({ to, templateId: 'passwordReset', context: { name, resetUrl } }),
         // The enrollment plugin deliberately never returns a private invitation's link to whoever
         // created it, so this callback is the only path the token travels. The template renders
         // the optional halves away rather than printing "null": an invitation with no invitee name
@@ -108,6 +119,8 @@ export default defineServerAuth(
           invite: [],
           inviteUse: [],
           deviceCode: [],
+          twoFactor: [],
+          passkey: [],
         }),
         // Test-only, and deliberately added here rather than in `packages/auth`: `testUtils`
         // registers no HTTP route, but it hangs privileged helpers off the auth context that can

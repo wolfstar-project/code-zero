@@ -9,8 +9,7 @@
     },
     "roles": {
       "member": "Membro",
-      "admin": "Amministratore",
-      "owner": "Proprietario"
+      "admin": "Amministratore"
     },
     "members": {
       "title": "Membri",
@@ -29,16 +28,8 @@
       "submitPending": "Invio in corso…",
       "sent": "Invito inviato a {email}."
     },
-    "accept": {
-      "title": "Invito all'organizzazione",
-      "pending": "Accettazione dell'invito in corso…",
-      "accepted": "Sei entrato nell'organizzazione.",
-      "failed": "Questo invito non è più valido. Potrebbe essere scaduto o già stato usato.",
-      "continue": "Vai alla dashboard"
-    },
     "errors": {
-      "generic": "Non è stato possibile completare l'operazione sull'organizzazione.",
-      "invitationDeliveryUnavailable": "Gli inviti non sono disponibili: questa istanza non ha un servizio email configurato."
+      "generic": "Non è stato possibile completare l'operazione sull'organizzazione."
     }
   }
 }
