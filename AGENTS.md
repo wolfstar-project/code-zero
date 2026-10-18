@@ -39,6 +39,7 @@ Code Zero is an open-source autonomous engineer that finds, fixes, and verifies 
 | `packages/core/runner`    | `@code-zero/runner`         | The only boundary allowed to run commands or mutate a checkout   |
 | `packages/core/models`    | `@code-zero/models`         | Model-provider abstractions                                      |
 | `packages/source-control` | `@code-zero/source-control` | Provider-neutral contracts plus GitHub, GitLab, Bitbucket, Gitea |
+| `packages/forge`          | `@code-zero/forge`          | Source-control boundary on `forges`; replaces `source-control`   |
 | `packages/core/config`    | `@code-zero/config`         | Configuration parsing and policy                                 |
 | `packages/core/shared`    | `@code-zero/shared`         | Stable cross-package contracts                                   |
 | `packages/build-env`      | `@code-zero/build-env`      | Build metadata resolution and the Nuxt module that publishes it  |
@@ -132,6 +133,7 @@ Use the smallest relevant check while iterating, then run the complete set befor
 - `packages/core/runner`: the only boundary allowed to execute repository commands or mutate a checkout.
 - `packages/core/models`: model-provider abstractions.
 - `packages/source-control`: provider-neutral source-control contracts, with GitHub, GitLab, Bitbucket, and Gitea adapters underneath.
+- `packages/forge`: the source-control boundary rebuilt on the `forges` library for GitHub, GitLab, Gitea, Forgejo, Bitbucket Cloud, and Azure DevOps. It replaces `packages/source-control` once `packages/api` and `apps/web` are rewired to it; until then nothing imports it.
 - `packages/core/config`: configuration parsing and policy.
 - `packages/core/shared`: stable cross-package contracts.
 - `packages/build-env`: build metadata (version, commit, branch, deploy channel) and the Nuxt module that publishes it under `runtimeConfig.public.buildInfo`. Build-time resolution reads the hosting provider's variables first and the checkout second; the deployed server completes only what the build could not resolve. Not a runtime package: nothing in `packages/core/agent`, `packages/core/runner`, or their adapters may import it.

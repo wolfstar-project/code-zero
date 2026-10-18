@@ -23,6 +23,9 @@
       "path": "packages/source-control"
     },
     {
+      "path": "packages/forge"
+    },
+    {
       "path": "packages/core/agent"
     },
     {

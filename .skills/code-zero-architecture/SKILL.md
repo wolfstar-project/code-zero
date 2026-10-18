@@ -23,6 +23,7 @@ Keep dependency direction explicit while changing the monorepo.
   exposes no equivalent hook — so that one transport's process is always spawned by the vendor SDK
   directly; its read-only sandbox and disabled MCP/approvals are the containment there instead.
 - `source-control`: provider-neutral source-control contracts, webhook normalization, capability detection, and the GitHub, GitLab, Bitbucket, and Gitea adapters, including GitHub's issue-to-PR publication (branch and pull-request creation through the Git data API).
+- `forge`: the replacement source-control boundary on the `forges` library (GitHub, GitLab, Gitea, Forgejo, Bitbucket Cloud, Azure DevOps): connection registry, webhook ingestion, change-request discovery, status and comment publication, and issue-to-PR publication behind `can()` checks. Not wired into `api` or `apps/web` yet; `source-control` stays until it is.
 - `runner`: command execution and checkout mutation boundary, plus the policy-to-boundary factory.
   Also the only exporter of a live process handle (`spawnManagedProcess`, alongside the bounded
   `execFileProcessRunner`) for an adapter that must hand a real child process to code it does not
