@@ -34,6 +34,10 @@ export default defineConfig({
         test: {
           name: 'nuxt',
           environment: 'nuxt',
+          // `@nuxt/test-utils` boots the whole app in a `beforeAll` hook before the first spec in
+          // each worker. On a cold cache or a loaded machine that boot alone outlasts Vitest's
+          // default 10 s hook timeout, which fails the file before any assertion runs.
+          hookTimeout: 60_000,
           include: ['test/nuxt/**/*.{test,spec}.ts'],
           environmentOptions: {
             nuxt: {
