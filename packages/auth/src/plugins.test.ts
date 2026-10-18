@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { authBetterAuthOptions, type AuthDatabaseOptions } from './auth.js';
 import {
+  API_KEY_DEFAULT_PERMISSIONS,
   API_KEY_EXPIRES_IN_SECONDS,
   API_KEY_MAXIMUM_EXPIRES_IN_DAYS,
   API_KEY_PREFIX,
@@ -135,6 +136,10 @@ interface ApiKeyApi {
     headers: Headers;
   }): Promise<CreatedApiKey>;
   listApiKeys(options: { query: { organizationId: string }; headers: Headers }): Promise<unknown>;
+  verifyApiKey(options: { body: { key: string } }): Promise<{
+    valid: boolean;
+    key: { referenceId: string; permissions: Record<string, string[]> | null } | null;
+  }>;
 }
 
 /**
@@ -152,7 +157,9 @@ function hasApiKeyApi(api: object): api is object & ApiKeyApi {
     'createApiKey' in api &&
     typeof api.createApiKey === 'function' &&
     'listApiKeys' in api &&
-    typeof api.listApiKeys === 'function'
+    typeof api.listApiKeys === 'function' &&
+    'verifyApiKey' in api &&
+    typeof api.verifyApiKey === 'function'
   );
 }
 
@@ -422,6 +429,21 @@ describe('API keys', () => {
         headers,
       }),
     ).rejects.toMatchObject({ statusCode: 400 });
+  });
+
+  it('grants a new key task creation, and verifies it for the control plane', async () => {
+    const { api, headers, organizationId } = await organizationOwner();
+    const created = await api.createApiKey({ body: { name: 'ci', organizationId }, headers });
+
+    // The shape `packages/api` reads through its `ApiKeyVerifier`: the owning organization and
+    // the permissions that decide which execution modes the key gets.
+    await expect(api.verifyApiKey({ body: { key: created.key } })).resolves.toMatchObject({
+      valid: true,
+      key: { referenceId: organizationId, permissions: API_KEY_DEFAULT_PERMISSIONS },
+    });
+    await expect(
+      api.verifyApiKey({ body: { key: `${API_KEY_PREFIX}not-a-key` } }),
+    ).resolves.toMatchObject({ valid: false, key: null });
   });
 
   it('stores the key hashed, so the store never holds a usable credential', async () => {

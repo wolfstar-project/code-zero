@@ -6,10 +6,11 @@ import type { RunMode } from '@code-zero/shared';
  * How a principal proved its identity.
  *
  * Recorded on every authenticated request so an audit log can tell a machine caller presenting a
- * static operator token from a human signed into the dashboard: the two are granted different
- * execution modes and revoked through entirely different channels.
+ * static operator token, a machine caller presenting an organization API key, and a human signed
+ * into the dashboard apart: each is granted different execution modes and revoked through a
+ * different channel (the deployment's environment, the organization's key list, the account).
  */
-export type PrincipalKind = 'token' | 'session';
+export type PrincipalKind = 'token' | 'apiKey' | 'session';
 
 /** An authenticated control-plane caller. Mutations record this identity, never a wire-supplied one. */
 export interface Principal {
@@ -123,4 +124,30 @@ export function authenticate(
  */
 export function sessionPrincipal(name: string, isAdmin: boolean): Principal {
   return { name, kind: 'session', modes: isAdmin ? ADMIN_MODES : DEFAULT_MODES, admin: isAdmin };
+}
+
+/** The API-key permission that lets a key submit tasks, as `@code-zero/auth` declares it. */
+const TASK_CREATE_PERMISSION = { resource: 'task', action: 'create' } as const;
+
+/**
+ * Build the principal for a caller who presented a verified organization API key.
+ *
+ * `permissions` is what the key carries, as Better Auth's API-key plugin stored it. A key that
+ * may create tasks is held to the non-writable {@link DEFAULT_MODES}, whatever else it carries:
+ * the writable modes run a model against a checkout with write access, and granting that to a
+ * credential pasted into a CI secret needs an organization-scoped policy the control plane does
+ * not have yet. A key without the permission can authenticate but request no mode at all. Never
+ * an administrator, for the same reason as an operator token.
+ */
+export function apiKeyPrincipal(
+  name: string,
+  permissions: Readonly<Record<string, readonly string[]>> | null | undefined,
+): Principal {
+  const actions = permissions?.[TASK_CREATE_PERMISSION.resource] ?? [];
+  return {
+    name,
+    kind: 'apiKey',
+    modes: actions.includes(TASK_CREATE_PERMISSION.action) ? DEFAULT_MODES : [],
+    admin: false,
+  };
 }

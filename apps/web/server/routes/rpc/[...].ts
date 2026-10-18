@@ -37,17 +37,15 @@ const handler = new RPCHandler(rpcRouter, {
  */
 export default defineEventHandler(async (event) => {
   const request = toWebRequest(event);
+  const auth = serverAuth(event);
   try {
     const { matched, response } = await handler.handle(request, {
       prefix: '/rpc',
       context: {
-        ...buildRpcContext(
-          request,
-          await controlPlaneAccess(),
-          taskStore,
-          repositoryStore,
-          serverAuth(event),
-        ),
+        ...buildRpcContext(request, await controlPlaneAccess(), taskStore, repositoryStore, {
+          session: auth,
+          apiKeys: apiKeyVerifier(auth),
+        }),
         auditLog: auditLogStore,
       },
     });

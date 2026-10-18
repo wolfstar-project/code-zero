@@ -33,6 +33,7 @@ import {
   oauthProxyFromEnvironment,
   passkeyFromEnvironment,
   scimFromEnvironment,
+  API_KEY_DEFAULT_PERMISSIONS,
   API_KEY_PREFIX,
   TWO_FACTOR_ISSUER,
 } from './config.js';
@@ -570,6 +571,10 @@ function authPlugins(options: AuthDatabaseOptions): BetterAuthPlugin[] {
             // Days, unlike its sibling: the plugin compares it with `expiresIn / (3600 * 24)`.
             maxExpiresIn: config.apiKeyMaximumExpiresInDays,
           },
+          // What a key may do on the control plane, which reads it in `packages/api`. Submitting
+          // tasks is the only grant, and it stays within the non-writable modes there; a key that
+          // needs more waits for organization-scoped run policy.
+          permissions: { defaultPermissions: API_KEY_DEFAULT_PERMISSIONS },
           rateLimit: {
             enabled: true,
             timeWindow: config.apiKeyRateLimitWindowSeconds * 1000,

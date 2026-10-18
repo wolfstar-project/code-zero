@@ -2,7 +2,7 @@ import { ORPCError, os } from '@orpc/server';
 import type { RequestHeadersHandlerPluginContext } from '@orpc/server/plugins';
 import type { Session, User } from 'better-auth';
 
-import { sessionPrincipal, type Principal } from '../access.js';
+import { apiKeyPrincipal, sessionPrincipal, type Principal } from '../access.js';
 
 /**
  * The Better Auth endpoints this integration calls, declared structurally.
@@ -49,6 +49,26 @@ interface BetterAuthSessionPayload {
 }
 
 /**
+ * Better Auth's API-key verification, declared structurally for the same reason as
+ * {@link BetterAuthSessionApi}.
+ *
+ * The plugin's `verifyApiKey` is server-only and enforces everything a key carries besides its
+ * permissions: that it exists, is enabled, has not expired, has uses left, and is within its rate
+ * limit. Kept apart from {@link BetterAuthSessionApi} because the two are offered to different
+ * transports: `/api/v1/**` verifies keys but must never honour a session cookie.
+ */
+export interface ApiKeyVerifier {
+  verifyApiKey: (options: { body: { key: string } }) => Promise<{
+    valid: boolean;
+    key: {
+      id: string;
+      referenceId: string;
+      permissions?: Readonly<Record<string, readonly string[]>> | null;
+    } | null;
+  }>;
+}
+
+/**
  * Context the authentication middleware reads.
  *
  * `reqHeaders` is injected by `RequestHeadersHandlerPlugin`, which every transport that wants
@@ -68,6 +88,14 @@ export interface BetterAuthContext extends RequestHeadersHandlerPluginContext {
    * the authentication store, so a machine caller never pays for one.
    */
   principal?: Principal;
+  /**
+   * An organization API key the transport found in the `Authorization` header and did not match
+   * against an operator token. Verified lazily, like a session, so only a procedure that needs an
+   * identity pays for the lookup.
+   */
+  presentedApiKey?: string;
+  /** Verifies {@link BetterAuthContext.presentedApiKey}. Absent where keys are not enabled. */
+  apiKeys?: ApiKeyVerifier;
 }
 
 /**
@@ -128,14 +156,41 @@ export async function betterAuthPrincipal(
 }
 
 /**
- * Requires an authenticated caller: a static operator token, or a Better Auth dashboard session.
+ * Resolve a presented organization API key into a {@link Principal}.
+ *
+ * Returns `undefined` when none was presented, and `null` when one was presented and refused:
+ * the caller chose that credential, so a failure must not fall back to whatever session cookie
+ * happens to ride along. A verifier that throws refuses the key, as does a deployment without one.
+ */
+async function apiKeyPrincipalFrom(
+  context: BetterAuthContext,
+): Promise<Principal | null | undefined> {
+  const { presentedApiKey, apiKeys } = context;
+  if (presentedApiKey === undefined) return undefined;
+  if (!apiKeys) return null;
+  try {
+    const { valid, key } = await apiKeys.verifyApiKey({ body: { key: presentedApiKey } });
+    if (!valid || !key) return null;
+    // The key id is what an organization sees in its key list and revokes by, and the reference
+    // is the organization that owns it, so the trail names something an operator can act on.
+    return apiKeyPrincipal(`api-key:${key.id}@${key.referenceId}`, key.permissions);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Requires an authenticated caller: a static operator token, an organization API key, or a Better
+ * Auth dashboard session.
  *
  * @see {@link https://orpc.dev/docs/integrations/better-auth | oRPC — Better Auth integration}
  */
 export const authMiddleware = os
   .$context<BetterAuthContext>()
   .middleware(async ({ context, next }) => {
-    const principal = context.principal ?? (await betterAuthPrincipal(context));
+    const fromKey = context.principal ? undefined : await apiKeyPrincipalFrom(context);
+    const principal =
+      context.principal ?? (fromKey === undefined ? await betterAuthPrincipal(context) : fromKey);
     if (!principal) throw new ORPCError('UNAUTHORIZED', { message: 'Authentication required' });
     return next({ context: { principal } });
   });

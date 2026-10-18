@@ -47,7 +47,9 @@ export default defineEventHandler(async (event) => {
     const { matched, response } = await handler.handle(request, {
       prefix: '/api/v1',
       context: {
-        ...buildRpcContext(request, await controlPlaneAccess(), taskStore, repositoryStore),
+        ...buildRpcContext(request, await controlPlaneAccess(), taskStore, repositoryStore, {
+          apiKeys: apiKeyVerifier(serverAuth(event)),
+        }),
         auditLog: auditLogStore,
       },
     });

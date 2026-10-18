@@ -29,6 +29,7 @@ export {
 } from './operations.js';
 export {
   accessFromEnvironment,
+  apiKeyPrincipal,
   authenticate,
   sessionPrincipal,
   type ControlPlaneAccess,
@@ -70,6 +71,7 @@ export { dashboardOverview, type DashboardOverview } from './dashboard.js';
 export {
   authMiddleware,
   betterAuthPrincipal,
+  type ApiKeyVerifier,
   type BetterAuthContext,
   type BetterAuthSessionApi,
 } from './orpc/auth.js';

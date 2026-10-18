@@ -32,6 +32,12 @@ export const MAGIC_LINK_EXPIRES_IN_SECONDS = 60 * 10;
  */
 export const API_KEY_PREFIX = 'cz_';
 
+/**
+ * What a new organization API key may do: submit tasks, which the control plane holds to the
+ * non-writable execution modes. Mutable arrays because the API-key plugin's option type is.
+ */
+export const API_KEY_DEFAULT_PERMISSIONS: Record<string, string[]> = { task: ['create'] };
+
 /** How long a new API key stays valid unless its creator picks a shorter lifetime. */
 export const API_KEY_EXPIRES_IN_SECONDS = 60 * 60 * 24 * 90;
 
