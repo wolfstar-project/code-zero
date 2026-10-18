@@ -1,18 +1,23 @@
 ---
-title: Code Zero
-description: An autonomous engineer that finds, fixes, and verifies problems in pull requests — with evidence, not assertions.
+title: Documentation
+description: Install Code Zero, run your first read-only review, and configure your deployment.
 navigation: false
 seo:
-  title: Code Zero
-  description: An open-source autonomous engineer that finds, fixes, and verifies problems in pull requests.
+  title: Documentation
+  description: Installation, self-hosting, configuration, and API guides for Code Zero.
 ---
 
 ::u-page-hero
+---
+
+orientation: horizontal
+---
+
 #title
-An autonomous engineer for pull requests
+Start with a read-only review
 
 #description
-Finds, fixes, and verifies problems in pull requests — with evidence, not assertions.
+Install Code Zero and review a change before enabling automated changes. These guides take you from the first local run to your own deployment.
 
 #links
 :::u-button
@@ -35,101 +40,112 @@ variant: outline
 size: xl
 ---
 
-What is Code Zero?
+How Code Zero works
 :::
 
-:::u-button
+#default
+:::u-page-grid
 ---
 
-to: https://github.com/wolfstar-project/code-zero
-target: _blank
-color: neutral
+class: grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4
+---
+
+::::u-page-card
+---
+
+title: Install Code Zero
+description: Set up the workspace and run the local CLI.
+to: /guide/installation
 variant: outline
-size: xl
-icon: i-simple-icons-github
 ---
 
-GitHub
+::::
+
+::::u-page-card
+---
+
+title: Self-host the dashboard
+description: Configure the database, authentication, and deployment.
+to: /guide/deployment
+variant: outline
+---
+
+::::
+
+::::u-page-card
+---
+
+title: Use the CLI
+description: Create a policy, inspect your environment, or review a change.
+to: /reference/cli
+variant: outline
+---
+
+::::
+
+::::u-page-card
+---
+
+title: Connect to the API
+description: Use the typed client or the HTTP API.
+to: /guide/api/overview
+variant: outline
+---
+
+::::
 :::
 ::
 
 ::u-page-section
-#features
-:::u-page-feature
 ---
 
-icon: i-lucide-badge-check
----
-
-#title
-Evidence over assertion
-
-#description
-Every fix carries the commands that verified it. Feedback is never treated as truth merely because it came from a human or an AI reviewer.
-:::
-
-:::u-page-feature
----
-
-icon: i-lucide-shield-check
+class: border-t border-default
 ---
 
 #title
-Safe by default
+Understand what the agent can change
 
 #description
-The observe mode inspects and reports and never writes to a target repository. Automatic fixes require confidence, an allowed change-risk class, repository permission, and verification.
-:::
+Observe mode is the default. Before enabling writes, configure the repository policy and understand the execution boundary.
 
-:::u-page-feature
+#default
+:::u-page-grid
 ---
 
-icon: i-lucide-square-terminal
+class: grid-cols-1 sm:grid-cols-1 md:grid-cols-3 gap-4
 ---
 
-#title
-One execution boundary
-
-#description
-A single runner package is the only code allowed to run commands or mutate a checkout, locally or inside an isolated sandbox.
-:::
-
-:::u-page-feature
+::::u-page-card
 ---
 
-icon: i-lucide-cable
+title: Repository configuration
+description: Choose modes, checks, model providers, and execution policy.
+to: /guide/configuration
+variant: outline
 ---
 
-#title
-Provider-neutral
+::::
 
-#description
-GitHub, GitLab, Bitbucket, and Gitea adapters on one side; OpenAI, Anthropic, Google, and OpenAI-compatible model providers on the other. The runtime depends on neither.
-:::
-
-:::u-page-feature
+::::u-page-card
 ---
 
-icon: i-lucide-git-pull-request
+title: Safety and approvals
+description: Understand the gates a proposed change must pass.
+to: /guide/safety
+variant: outline
 ---
 
-#title
-Issues become pull requests
+::::
 
-#description
-A labeled, repository-scoped issue can be investigated, implemented on an isolated branch, verified, and published as a pull request carrying its acceptance criteria and evidence.
-:::
-
-:::u-page-feature
+::::u-page-card
 ---
 
-icon: i-lucide-layout-dashboard
+title: Architecture
+description: Follow the agent, runner, and adapter boundaries.
+to: /guide/architecture/overview
+variant: outline
 ---
 
-#title
-One deployable app
-
-#description
-A single Nuxt dashboard serves the UI, a typed oRPC control plane, an OpenAPI surface, and authentication from one origin.
+::::
 :::
 ::

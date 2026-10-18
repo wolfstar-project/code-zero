@@ -38,6 +38,8 @@ export default defineNuxtConfig({
 
   compatibilityDate: '2026-08-09',
 
+  site: { name: 'Code Zero' },
+
   devServer: {
     // 3000 is the dashboard, 3001 marketing, 3005 mail-preview.
     port: 3002,

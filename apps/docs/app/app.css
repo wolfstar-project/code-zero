@@ -119,3 +119,19 @@ body {
 * {
   scrollbar-color: var(--ui-border) var(--ui-bg);
 }
+
+/* Keep long code lines inside the article while preserving Nuxt UI's code-group borders. */
+main pre {
+  max-inline-size: 100%;
+  overscroll-behavior-inline: contain;
+}
+
+@media (width < 64rem) {
+  header :where(button, a) {
+    min-block-size: 2.75rem;
+  }
+
+  header button {
+    min-inline-size: 2.75rem;
+  }
+}
