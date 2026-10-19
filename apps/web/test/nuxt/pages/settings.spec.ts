@@ -172,6 +172,32 @@ describe('settings page', () => {
     expect(wrapper.text()).toContain('Select an organization to see its limits.');
   });
 
+  it('drops a save answer for an organization the page no longer shows', async () => {
+    view.value = cloudView({ ...organization(true), id: 'org_a' });
+    const wrapper = await mountSuspended(SettingsPage);
+    const form = wrapper.findComponent({ name: 'SettingsOrganizationLimits' });
+
+    // The reader switched to another organization while the first one's save was in flight.
+    view.value = cloudView({ ...organization(true), id: 'org_b' });
+    await nextTick();
+    form.vm.$emit('saved', { ...organization(true), id: 'org_a' });
+    await nextTick();
+
+    expect(view.value?.edition === 'cloud' && view.value.organization?.id).toBe('org_b');
+  });
+
+  it('ignores a save answer that names another organization, even from the shown form', async () => {
+    view.value = cloudView({ ...organization(true), id: 'org_b' });
+    const wrapper = await mountSuspended(SettingsPage);
+
+    wrapper
+      .findComponent({ name: 'SettingsOrganizationLimits' })
+      .vm.$emit('saved', { ...organization(true), id: 'org_a' });
+    await nextTick();
+
+    expect(view.value?.edition === 'cloud' && view.value.organization?.id).toBe('org_b');
+  });
+
   it('reads the settings again when the sidebar switches organization', async () => {
     view.value = cloudView(null);
     await mountSuspended(SettingsPage);

@@ -97,8 +97,11 @@
           </div>
         </section>
 
+        <!-- Keyed by organization: switching starts a fresh form, so nothing typed or reported
+             for one organization is shown against another. -->
         <SettingsOrganizationLimits
           v-if="view.organization"
+          :key="view.organization.id"
           :organization="view.organization"
           :plan="view.plan"
           :bounds="view.bounds"
@@ -139,9 +142,17 @@ const exporter = () => $orpc.settings.export();
 const saveOrganization = (request: Parameters<typeof $orpc.settings.organization.update>[0]) =>
   $orpc.settings.organization.update(request);
 
-/** The organization's save answers with its own view; the rest of the page stays as it was. */
+/**
+ * The organization's save answers with its own view; the rest of the page stays as it was.
+ *
+ * A save can outlive the selection it was made for: start saving one organization, switch to
+ * another, and the answer arrives after the page already shows the second. Installing it then
+ * would put the first organization's limits — and its id, which the next save uses — back on
+ * screen under the second's name, so an answer for an organization no longer shown is dropped.
+ */
 function replaceOrganization(organization: OrganizationSettingsView): void {
-  if (view.value?.edition === 'cloud') replace({ ...view.value, organization });
+  if (view.value?.edition !== 'cloud' || view.value.organization?.id !== organization.id) return;
+  replace({ ...view.value, organization });
 }
 
 // Client-side only, like the audit log: the procedure authenticates the browser's session, and

@@ -19,17 +19,25 @@ export function useSettings(read: SettingsReader) {
   const view = shallowRef<SettingsView | null>(null);
   const pending = shallowRef(false);
   const error = shallowRef<SettingsError | null>(null);
+  // Reads can overlap — the organization switcher asks again while an earlier read is in flight —
+  // and only the most recent request describes what the page should show. Each read takes a
+  // number, and an answer whose number is no longer the latest is dropped, however late it lands.
+  let latest = 0;
 
   async function refresh(): Promise<void> {
+    const request = ++latest;
     pending.value = true;
     error.value = null;
     try {
-      view.value = await read();
+      const next = await read();
+      if (request !== latest) return;
+      view.value = next;
     } catch (caught) {
+      if (request !== latest) return;
       view.value = null;
       error.value = classifySettingsError(caught);
     } finally {
-      pending.value = false;
+      if (request === latest) pending.value = false;
     }
   }
 
