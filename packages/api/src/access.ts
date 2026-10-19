@@ -30,6 +30,14 @@ export interface Principal {
    * read it back would let one audit itself.
    */
   admin: boolean;
+  /**
+   * The account behind a `session` principal: its id, and the organization the session last chose
+   * to act in. That organization is the session's claim, not a grant — membership is read from the
+   * store before anything is decided by it. Absent on every other kind.
+   */
+  account?: { userId: string; activeOrganizationId: string | null };
+  /** The organization that owns an `apiKey` principal, as Better Auth verified it. */
+  organizationId?: string;
 }
 
 /**
@@ -122,8 +130,18 @@ export function authenticate(
  * {@link DEFAULT_MODES} an ungranted token gets. Repository targeting is a separate grant either
  * way, answered by the composition root against the deployment's store.
  */
-export function sessionPrincipal(name: string, isAdmin: boolean): Principal {
-  return { name, kind: 'session', modes: isAdmin ? ADMIN_MODES : DEFAULT_MODES, admin: isAdmin };
+export function sessionPrincipal(
+  name: string,
+  isAdmin: boolean,
+  account?: { userId: string; activeOrganizationId: string | null },
+): Principal {
+  return {
+    name,
+    kind: 'session',
+    modes: isAdmin ? ADMIN_MODES : DEFAULT_MODES,
+    admin: isAdmin,
+    ...(account ? { account } : {}),
+  };
 }
 
 /** The API-key permission that lets a key submit tasks, as `@code-zero/auth` declares it. */
@@ -142,6 +160,7 @@ const TASK_CREATE_PERMISSION = { resource: 'task', action: 'create' } as const;
 export function apiKeyPrincipal(
   name: string,
   permissions: Readonly<Record<string, readonly string[]>> | null | undefined,
+  organizationId?: string,
 ): Principal {
   const actions = permissions?.[TASK_CREATE_PERMISSION.resource] ?? [];
   return {
@@ -149,5 +168,6 @@ export function apiKeyPrincipal(
     kind: 'apiKey',
     modes: actions.includes(TASK_CREATE_PERMISSION.action) ? DEFAULT_MODES : [],
     admin: false,
+    ...(organizationId === undefined ? {} : { organizationId }),
   };
 }

@@ -41,6 +41,12 @@ export const errors = {
     fail({ status: 503, message: `${variable} is not configured` }),
 
   /**
+   * The deployment cannot take work until its operator fixes something, such as invalid settings.
+   * 503 rather than 500: nothing failed unexpectedly, and the same request succeeds once it is fixed.
+   */
+  unavailable: (reason: string) => fail({ status: 503, message: reason }),
+
+  /**
    * The caller is signed in, but the session does not carry the role the route requires. Distinct
    * from the 401 `requireUserSession` raises for an absent session: signing in again would not
    * help, and saying so is what keeps the reader from retrying the login loop.

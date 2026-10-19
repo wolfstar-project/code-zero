@@ -48,6 +48,7 @@ export {
   type DeliveryClaim,
   type DeliveryClaimStore,
   type KeyValueStorage,
+  type ScheduleLimits,
   type SchedulerOptions,
   type SchedulerSnapshot,
   type StoredTask,
@@ -83,4 +84,18 @@ export type {
   RepositoryMode,
   RepositoryRecord,
 } from './repositories.js';
+export { deploymentServices } from './settings.js';
+export type {
+  DashboardSettingsAuthority,
+  DeploymentConnections,
+  DeploymentSettingsAuthority,
+  FileSettingsAuthority,
+  OrganizationMembership,
+  OrganizationSettingsStore,
+  RunPolicy,
+  ServiceName,
+  ServiceStatus,
+  SettingsState,
+} from './settings.js';
+export type { OrganizationSettingsView, SettingsView } from './orpc/settings.js';
 export { FileKeyValueStorage } from './storage.js';

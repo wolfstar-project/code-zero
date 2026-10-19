@@ -119,6 +119,31 @@ Transport concerns stop at the route handlers: headers, status mapping, and requ
 
 <!-- #endregion dashboard-boundary -->
 
+<!-- #region settings-boundary -->
+
+## Settings authority boundary
+
+Deployment settings — how much work a deployment takes on, in which modes, with which model and which sandbox — have exactly one authority at a time, and the environment decides which one before the process serves a request. No request can move it.
+
+`CODE_ZERO_EDITION` says which product a deployment is: `self-hosted` (the default) or `cloud`, the managed service. It is stated, never inferred: a self-hosted install that happens to run on Cloudflare is still self-hosted. A value the process does not recognise is treated as the locked cloud edition and keeps every run refused until it is corrected, so a typo can never make anything editable.
+
+A self-hosted deployment reads its settings from one source, chosen with `CODE_ZERO_SETTINGS_SOURCE`:
+
+- `file` (the default) — the `execution`, `model`, and `runner` sections of the instance file, `config.yml` in the working directory or the path `CODE_ZERO_CONFIG` names (the old name `code-zero.deployment.yml` is still read when it is the only file present). The file is read once at start, the settings page shows it read-only, and `settings.update` refuses every write on the server whatever the page rendered.
+- `dashboard` — the `deployment_setting` row in Postgres, edited by an administrator from the settings page through `settings.update` and exportable as the YAML the file would hold through `settings.export`. The export passes through the environment's secret redaction, and the parser refuses any value shaped like a credential, so it cannot carry a secret. Settings sections still present in the file are ignored and reported as a warning, never merged: a value has one home.
+
+The settings are strict. `@code-zero/config` parses both sources with one parser that refuses an unknown key, an out-of-range value, a flag-shaped image, or unparseable YAML, and refuses the whole document on any issue rather than defaulting field by field. Invalid settings fail closed: `tasks.create`, the webhook route, and the poller start no run, and the page lists every issue with its `$.path`.
+
+Every run is held to them on top of the repository's own `.code-zero.yml`, stricter winning: `execution.max_concurrent_tasks` is the scheduler's ceiling, `execution.allowed_modes` refuses a run before it is recorded, `execution.command_timeout_minutes` caps how long one repository command may run (and a hosted sandbox lease lasts) — not the whole run, which can execute several commands — `execution.max_network` is a ceiling a repository can only narrow, `model` replaces the repository's model choice, and `runner` forces container isolation with the deployment's engine and image. `observe` is always allowed, since it is the default every unrequested run starts in and the one mode that never writes.
+
+On the managed cloud the service file is the only source and cannot be switched to the dashboard. The AI provider, the sandbox, the database, and the mail transport are the service's own: customers see only whether each one is configured — no credential, host, or provider name — and the plan's limits. An organization's owners and admins may set stricter limits for their own tasks (concurrency, per-command timeout, allowed modes) in `organization_setting`; the server refuses any value above the plan and takes the minimum again on every run, so a plan lowered later still wins. Membership and role are looked up in Postgres on every call rather than trusted from the session. A customer's run always belongs to one verified organization — an organization API key's own, or the session's selected organization once the member table confirms it — and work the deployment starts itself (webhook deliveries, polling) belongs to none and runs under the plan.
+
+The `settings.*` procedures are session-only on both editions: an API key or an operator token can neither read the settings nor change them.
+
+The boundary follows the package rule. `packages/core/config` parses and applies the settings and knows nothing about where they are stored; `packages/database` owns the two tables; `packages/api` authorizes the `settings.*` procedures and turns the settings into the `RunPolicy` a task runs under; `apps/web/server/utils/settings.ts` composes the authority from the environment, the instance file, and the store.
+
+<!-- #endregion settings-boundary -->
+
 <!-- #region issue-to-pr -->
 
 ## Issue-to-PR workflow

@@ -19,14 +19,24 @@ export {
   type WatchedRepositoryRecord,
 } from './repositories.js';
 export {
+  organizationMemberRole,
+  readDeploymentSettings,
+  readOrganizationSettings,
+  saveDeploymentSettings,
+  saveOrganizationSettings,
+  type StoredSettings,
+} from './settings.js';
+export {
   account,
   apiKey,
+  deploymentSetting,
   deviceCode,
   invitation,
   invite,
   inviteUse,
   member,
   organization,
+  organizationSetting,
   passkey,
   repository,
   schema,

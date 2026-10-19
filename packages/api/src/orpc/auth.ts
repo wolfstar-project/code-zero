@@ -43,7 +43,8 @@ export interface BetterAuthSessionApi {
  * below never looks at.
  */
 interface BetterAuthSessionPayload {
-  session: Pick<Session, 'id'>;
+  /** `activeOrganizationId` is the organization plugin's field, absent while it is off. */
+  session: Pick<Session, 'id'> & { readonly activeOrganizationId?: string | null };
   /** `role` is the admin plugin's field, so it is absent from Better Auth's base `User`. */
   user: Pick<User, 'id' | 'email'> & { readonly role?: unknown };
 }
@@ -148,11 +149,14 @@ export async function betterAuthPrincipal(
   if (!auth || !reqHeaders) return undefined;
   const sessionData = await auth.api.getSession({ headers: reqHeaders });
   if (!sessionData?.session || !sessionData.user) return undefined;
-  const { user } = sessionData;
+  const { session, user } = sessionData;
   // The email is the identity an operator recognises in an audit trail; the immutable user id is
   // the fallback so a deployment that leaves it blank still records something resolvable.
   const name = user.email.trim() === '' ? user.id : user.email;
-  return sessionPrincipal(name, await isAdministrator(auth, user));
+  return sessionPrincipal(name, await isAdministrator(auth, user), {
+    userId: user.id,
+    activeOrganizationId: session.activeOrganizationId ?? null,
+  });
 }
 
 /**
@@ -173,7 +177,11 @@ async function apiKeyPrincipalFrom(
     if (!valid || !key) return null;
     // The key id is what an organization sees in its key list and revokes by, and the reference
     // is the organization that owns it, so the trail names something an operator can act on.
-    return apiKeyPrincipal(`api-key:${key.id}@${key.referenceId}`, key.permissions);
+    return apiKeyPrincipal(
+      `api-key:${key.id}@${key.referenceId}`,
+      key.permissions,
+      key.referenceId,
+    );
   } catch {
     return null;
   }

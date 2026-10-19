@@ -227,6 +227,9 @@ export default defineNuxtConfig({
     // A session is enough to reach the page; the admin role is enforced by the endpoint it reads
     // (the router's `audit.list`), so a non-admin sees the refusal rather than a redirect.
     '/audit': { appLayout: 'default', auth: { only: 'user' } },
+    // Same reasoning: who may read or change the settings is the router's `settings.*` decision
+    // (admin self-hosted, membership and role on the managed cloud), shown on the page itself.
+    '/settings': { appLayout: 'default', auth: { only: 'user' } },
     '/login': { auth: { only: 'guest' } },
     '/signin': { auth: { only: 'guest' } },
     '/organizations': { appLayout: 'default', auth: { only: 'user' } },
