@@ -31,6 +31,7 @@ export interface AppShortcut {
 export const APP_SHORTCUTS: readonly AppShortcut[] = [
   { chords: ['G', 'C'], labelKey: 'dashboard.shortcuts.control' },
   { chords: ['G', 'A'], labelKey: 'dashboard.shortcuts.audit' },
+  { chords: ['G', 'S'], labelKey: 'dashboard.shortcuts.settings' },
   { chords: ['B'], labelKey: 'dashboard.shortcuts.sidebar' },
   { chords: ['Shift+/'], labelKey: 'dashboard.shortcuts.help' },
   { chords: ['R'], labelKey: 'dashboard.shortcuts.refresh' },
@@ -69,6 +70,7 @@ export function useAppShortcuts(): void {
     [
       { sequence: ['G', 'C'], callback: () => void router.push('/') },
       { sequence: ['G', 'A'], callback: () => void router.push('/audit') },
+      { sequence: ['G', 'S'], callback: () => void router.push('/settings') },
     ],
     notWhileDialogOpen,
   );

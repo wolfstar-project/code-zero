@@ -67,7 +67,6 @@ const roleId = useId();
 const roleOptions = computed<{ value: OrganizationRole; label: string }[]>(() => [
   { value: 'member', label: t('organizations.roles.member') },
   { value: 'admin', label: t('organizations.roles.admin') },
-  { value: 'owner', label: t('organizations.roles.owner') },
 ]);
 
 const email = ref('');

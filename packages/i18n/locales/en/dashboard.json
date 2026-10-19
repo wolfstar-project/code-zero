@@ -15,7 +15,8 @@
       "control": "Control Plane",
       "audit": "Audit Log",
       "collapse": "Collapse",
-      "expand": "Expand"
+      "expand": "Expand",
+      "settings": "Settings"
     },
     "metrics": {
       "aria": "Runner metrics",
@@ -125,7 +126,8 @@
       "filter": "Focus the table filter",
       "next": "Select the next task",
       "previous": "Select the previous task",
-      "more": "Load older audit entries"
+      "more": "Load older audit entries",
+      "settings": "Go to the settings"
     },
     "newTask": {
       "title": "New task",
@@ -146,6 +148,150 @@
       "triggers": {
         "proactive": "Proactive diff review",
         "feedback": "Review feedback"
+      }
+    },
+    "settings": {
+      "header": {
+        "eyebrow": "Code Zero / Configuration",
+        "title": "Settings"
+      },
+      "loading": "Loading the settings…",
+      "error": {
+        "title": "The settings could not be read",
+        "forbidden": "Managing the deployment settings requires the admin role. Ask an administrator for access.",
+        "unauthorized": "Your session has expired. Sign in again to see the settings.",
+        "unavailable": "This deployment keeps no settings.",
+        "generic": "The settings are temporarily unavailable. Try again in a moment.",
+        "retry": "Try again"
+      },
+      "invalid": {
+        "title": "The settings are invalid",
+        "body": "No task can start until every issue below is fixed."
+      },
+      "warnings": {
+        "title": "Warnings"
+      },
+      "source": {
+        "title": "Source",
+        "edition": "Edition",
+        "editions": {
+          "selfHosted": "Self-hosted",
+          "cloud": "Managed cloud"
+        },
+        "source": "Settings source",
+        "sources": {
+          "file": "File",
+          "dashboard": "Dashboard"
+        },
+        "file": "File",
+        "saved": "Last saved",
+        "neverSaved": "Never saved: the defaults apply.",
+        "fileHint": "Read-only here. Edit this file on the server and restart Code Zero to apply a change.",
+        "dashboardHint": "Stored in the database and edited on this page. A saved change applies to the next task that starts.",
+        "cloudHint": "The managed service runs the AI provider, the sandbox, the database and mail. They cannot be changed here.",
+        "switchHint": "The source is chosen with CODE_ZERO_SETTINGS_SOURCE when the server starts."
+      },
+      "sections": {
+        "execution": "Execution",
+        "model": "Model",
+        "runner": "Runner"
+      },
+      "fields": {
+        "maxConcurrentTasks": "Max concurrent tasks",
+        "commandTimeoutMinutes": "Timeout per command",
+        "allowedModes": "Allowed modes",
+        "maxNetwork": "Max network access",
+        "modelSource": "Model choice",
+        "provider": "Provider",
+        "modelName": "Model name",
+        "runnerSource": "Isolation",
+        "engine": "Container engine",
+        "image": "Image"
+      },
+      "hints": {
+        "maxConcurrentTasks": "Tasks this deployment runs at once; the rest wait in the queue. From {min} to {max}.",
+        "commandTimeoutMinutes": "Minutes before one repository command is stopped. Not a limit on a whole run, which can run several commands. From {min} to {max}.",
+        "allowedModes": "Observe is always allowed: it never writes.",
+        "maxNetwork": "The widest network access any run may have. A repository may narrow it, never widen it.",
+        "model": "The provider's credentials stay in the server environment.",
+        "runner": "Only container isolation can be enforced from here."
+      },
+      "choices": {
+        "modelRepository": "Each repository chooses (.code-zero.yml)",
+        "modelDeployment": "One model for every run",
+        "runnerRepository": "Each repository chooses (.code-zero.yml)",
+        "runnerContainer": "Every run in a container"
+      },
+      "placeholders": {
+        "modelName": "gpt-5",
+        "image": "ghcr.io/acme/runner:1.0"
+      },
+      "values": {
+        "minutes": "{count} min",
+        "repositoryChooses": "Each repository chooses"
+      },
+      "modes": {
+        "observe": "Observe",
+        "suggest": "Suggest",
+        "fix": "Fix",
+        "autonomous": "Autonomous"
+      },
+      "network": {
+        "none": "None",
+        "restricted": "Restricted",
+        "full": "Full"
+      },
+      "form": {
+        "save": "Save settings",
+        "saving": "Saving…",
+        "reset": "Discard changes",
+        "saved": "Settings saved. The next task that starts uses them.",
+        "numberRequired": "Enter a number.",
+        "invalid": "Some values were refused. Fix the marked fields and save again.",
+        "forbidden": "You are not allowed to change these settings.",
+        "unauthorized": "Your session has expired. Sign in again, then save.",
+        "precondition": "The service settings are invalid, so these limits cannot be saved right now.",
+        "generic": "The settings could not be saved. Try again in a moment."
+      },
+      "services": {
+        "title": "Services",
+        "caption": "Only whether each service is configured. Credentials, hosts and providers are never shown.",
+        "model": "AI provider",
+        "sandbox": "Sandbox",
+        "database": "Database",
+        "mail": "Mail",
+        "configured": "Configured",
+        "missing": "Not configured"
+      },
+      "export": {
+        "title": "Export",
+        "body": "The settings as the YAML config.yml would hold. Secrets are never included.",
+        "unavailable": "Fix the invalid settings to export them.",
+        "download": "Download config.yml",
+        "copy": "Copy YAML",
+        "copied": "Copied",
+        "copyFailed": "The YAML could not be copied. Use the download instead.",
+        "error": "The settings could not be exported. Try again in a moment."
+      },
+      "plan": {
+        "title": "Plan limits",
+        "caption": "The ceiling for every organization on this plan.",
+        "unavailable": "The plan's limits are unavailable right now, so no task can start until the service is restored."
+      },
+      "organization": {
+        "title": "Organization limits",
+        "caption": "Stricter limits for this organization's own tasks. They can never exceed the plan.",
+        "none": "Select an organization to see its limits.",
+        "invalid": "The stored limits are invalid, so this organization's tasks cannot start until they are saved again.",
+        "emptyUsesPlan": "Leave empty to use the plan's value.",
+        "planValue": "Plan: {value}",
+        "usesPlan": "Plan's value",
+        "restrictModes": "Allow fewer modes than the plan",
+        "readOnly": "Only an organization owner or admin can change these limits.",
+        "save": "Save limits",
+        "saved": "Limits saved. The next task this organization starts uses them.",
+        "effective": "Effective limits",
+        "effectiveCaption": "What this organization's tasks are held to: the plan, lowered by the limits above."
       }
     }
   }

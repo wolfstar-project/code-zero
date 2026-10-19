@@ -45,8 +45,8 @@
     </nav>
 
     <ClientOnly>
-      <!-- Only rendered where the deployment actually enables organizations; the auth server
-           enforces the same policy regardless, so a stale build can only hide the switcher. -->
+      <!-- Only rendered where the deployment actually enables organizations, as `/api/capabilities`
+           reports at runtime; the auth server enforces the same policy regardless. -->
       <OrganizationsSwitcher v-if="!collapsed && enableOrganizations" />
       <UserMenu v-if="!collapsed" />
     </ClientOnly>
@@ -104,8 +104,8 @@ import { NuxtLink } from '#components';
 const collapsed = useSidebarCollapsed();
 const route = useRoute();
 
-const appConfig = useAppConfig();
-const enableOrganizations = appConfig.auth.enableOrganizations;
+const capabilities = await useAuthCapabilities();
+const enableOrganizations = computed(() => capabilities.value.organizations);
 
 interface NavItem {
   key: string;
@@ -125,6 +125,9 @@ interface NavItem {
 const navItems: readonly NavItem[] = [
   { key: 'control', labelKey: 'dashboard.nav.control', icon: 'lucide:layout-dashboard', to: '/' },
   { key: 'audit', labelKey: 'dashboard.nav.audit', icon: 'lucide:scroll-text', to: '/audit' },
+  // Listed for every signed-in account: what the page shows depends on the edition and the role,
+  // and it explains a refusal itself rather than the nav guessing who may open it.
+  { key: 'settings', labelKey: 'dashboard.nav.settings', icon: 'lucide:settings', to: '/settings' },
 ];
 
 function isActive(item: NavItem): boolean {

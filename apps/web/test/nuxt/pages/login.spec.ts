@@ -1,19 +1,45 @@
+import type { AuthCapabilities } from '@code-zero/auth/config';
 import { mockNuxtImport, mountSuspended } from '@nuxt/test-utils/runtime';
 import type { VueWrapper } from '@vue/test-utils';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { computed } from 'vue';
 
 import LoginPage from '~/pages/(auth)/login.vue';
 
 /**
- * The login page renders whatever sign-in capabilities `appConfig.auth` publishes, which
- * `nuxt.config.ts` derives from the shared environment through `authConfigFromEnvironment()`
- * (`AUTH_ENABLE_SIGNUP`, GitHub OAuth credentials). That derivation is covered in
- * `packages/auth/src/config.test.ts`; the mock stands in for it here so each spec can render the
- * page under a specific deployment policy.
+ * The login page renders whatever sign-in capabilities `/api/capabilities` publishes, which the
+ * server derives at runtime through `authCapabilities()` from the same environment it builds Better
+ * Auth from. That derivation is covered in `packages/auth/src/config.test.ts`; the mock stands in
+ * for the request here so each spec can render the page under a specific deployment policy.
  */
 const authCapabilities = { enableSignup: false, enableGithubOauth: false };
 
-mockNuxtImport('useAppConfig', () => () => ({ auth: authCapabilities }));
+mockNuxtImport(
+  'useAuthCapabilities',
+  () => () =>
+    Promise.resolve(
+      computed<AuthCapabilities>(() => ({
+        signup: authCapabilities.enableSignup,
+        password: true,
+        passwordReset: false,
+        emailVerification: false,
+        magicLink: false,
+        passkey: false,
+        twoFactor: true,
+        twoFactorEmailOtp: false,
+        social: { github: authCapabilities.enableGithubOauth, gitlab: false, google: false },
+        organizations: false,
+        organizationCreation: false,
+        organizationInvitations: false,
+        invitations: false,
+        apiKeys: false,
+        deviceAuthorization: false,
+        sso: false,
+        scim: false,
+        infra: false,
+      })),
+    ),
+);
 
 function getButtonByText(wrapper: VueWrapper, text: string) {
   const button = wrapper.findAll('button').find((candidate) => candidate.text() === text);

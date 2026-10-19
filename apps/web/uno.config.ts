@@ -14,5 +14,10 @@ export default defineCodeZeroUno({
       'focus-ring h-9 flex items-center justify-center border text-xs text-ink font-650 transition disabled:cursor-wait disabled:opacity-60',
     ],
     ['btn-link', 'focus-ring text-xs text-link'],
+    // A small, square tag for a value that is one of a few: a mode, a source, an edition.
+    [
+      'chip',
+      'h-6 inline-flex items-center gap-1.5 border border-line bg-raised px-2 text-3xs text-ink font-650',
+    ],
   ],
 });

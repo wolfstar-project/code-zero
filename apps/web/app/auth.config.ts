@@ -1,11 +1,16 @@
+import { apiKeyClient } from '@better-auth/api-key/client';
 import { dashClient, sentinelClient } from '@better-auth/infra/client';
+import { passkeyClient } from '@better-auth/passkey/client';
 import { betterEnrollmentClient } from '@octopi-ai/better-enrollment/client';
 import { defineClientAuth } from '@onmax/nuxt-better-auth/config';
 import {
+  adminClient,
   deviceAuthorizationClient,
   lastLoginMethodClient,
+  magicLinkClient,
   multiSessionClient,
   organizationClient,
+  twoFactorClient,
 } from 'better-auth/client/plugins';
 
 // Better Auth is mounted in this app's own server (`server/auth.config.ts`), so every request is
@@ -18,8 +23,9 @@ import {
 // and the rest stop existing on the client's type.
 //
 // Declared as a factory rather than a plain object so `useAppConfig()` is callable: the module
-// builds the client lazily, inside the Nuxt app, so the policy published at build time is readable
-// by the time this runs.
+// builds the client lazily, inside the Nuxt app. Only the hosted-infrastructure flag is read from
+// there, because it decides which client code loads; every sign-in capability is read at runtime
+// from `/api/capabilities` instead.
 export default defineClientAuth(() => {
   const { auth } = useAppConfig();
 
@@ -34,11 +40,20 @@ export default defineClientAuth(() => {
     // between the accounts this browser holds sessions for, `deviceAuthorizationClient` is what the
     // `/device` page calls to approve or deny a CLI's request, and `dashClient` reads the hosted
     // audit log.
+    //
+    // `adminClient`, `twoFactorClient`, `passkeyClient`, `magicLinkClient`, and `apiKeyClient` are
+    // the client halves of plugins the server registers from runtime policy; the pages that drive
+    // them read `/api/capabilities` to decide whether to offer them.
     plugins: [
       organizationClient(),
       betterEnrollmentClient(),
       lastLoginMethodClient(),
       multiSessionClient(),
+      adminClient(),
+      twoFactorClient(),
+      passkeyClient(),
+      magicLinkClient(),
+      apiKeyClient(),
       deviceAuthorizationClient(),
       dashClient(),
       // The one entry that is gated, and the only one whose absence changes nothing about the

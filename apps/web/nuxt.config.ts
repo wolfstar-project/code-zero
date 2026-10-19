@@ -2,28 +2,28 @@ import { symlink, unlink } from 'node:fs/promises';
 import { basename } from 'node:path';
 import process from 'node:process';
 
-// Read from `@code-zero/auth/config` rather than restated here, so the build-time label below and
-// the runtime enforcement in `server/auth.config.ts` cannot drift. That subpath carries policy
-// only, with none of the database dependencies `authBetterAuthOptions` needs.
-import { authConfigFromEnvironment, infraFromEnvironment } from '@code-zero/auth/config';
+// Read from `@code-zero/auth/config` rather than restated here, so the build-time flag below and
+// the server plugins in `server/auth.config.ts` cannot drift. That subpath carries policy only,
+// with none of the database dependencies `authBetterAuthOptions` needs.
+import { infraFromEnvironment } from '@code-zero/auth/config';
 import { defaultLocale, i18nLocalesFor, localeCookieName } from '@code-zero/i18n';
 import { defineNuxtConfig } from 'nuxt/config';
 
 import { viteHubPresetFromEnvironment, viteHubVercelEntryAlias } from './config/env.js';
 
-// Resolved once at config evaluation so the dashboard's auth pages publish the same sign-in
-// policy `server/auth.config.ts` enforces at runtime (AUTH_ENABLE_SIGNUP, GitHub OAuth
-// credentials). Build-time capture is deliberate: the deployment contract (documented in README
-// and .env.example) is that the app is rebuilt whenever those policy variables change. The server
-// config enforces its own policy regardless, so a stale build can only mislabel a page, never open
-// a sign-in method the server rejects.
-const authPolicy = authConfigFromEnvironment();
+// The sign-in policy is deliberately not read here. Pages ask `/api/capabilities` at runtime, which
+// derives it from the same environment `server/auth.config.ts` builds Better Auth from, so changing
+// AUTH_ENABLE_SIGNUP or a provider's credentials needs a restart, not a rebuild.
+//
+// The hosted-infrastructure settings are the one exception, because they decide which client code
+// ships: `app/auth.config.ts` loads `sentinelClient()` only where they are configured.
+const infra = infraFromEnvironment();
 
 // Only the KV origin is read out of the hosted-infrastructure settings, and only so the browser
 // can be told where to identify. The API key sitting next to it in `infraFromEnvironment()` is
 // never touched here: appConfig is published to the client, so anything read into it leaves the
 // server.
-const infraKvUrl = infraFromEnvironment()?.kvUrl ?? '';
+const infraKvUrl = infra?.kvUrl ?? '';
 
 // ViteHub's deployment preset is a build-time decision that also pins Nitro's own preset, so the
 // deployment target has to be resolved here rather than detected later: `node` emits the
@@ -158,21 +158,17 @@ export default defineNuxtConfig({
   },
 
   // Published through appConfig rather than runtimeConfig.public: Nuxt maps NUXT_PUBLIC_* env vars
-  // onto public runtime keys, which would let a deployment advertise a sign-in capability that
-  // diverges from the policy `server/auth.config.ts` enforces from the same environment. appConfig
-  // has no env override channel, so AUTH_ENABLE_SIGNUP and the GitHub OAuth credentials stay the
-  // single authoritative source for both the build-time label and the runtime enforcement.
+  // onto public runtime keys, which would let a deployment load the sentinel client while its
+  // server registers no `sentinel()` plugin. appConfig has no env override channel, so the
+  // `BETTER_AUTH_*` credentials stay the single source for both halves. Sign-in capabilities are
+  // not here: pages read them from `/api/capabilities` at runtime.
   appConfig: {
     auth: {
-      enableSignup: authPolicy.enableSignup,
-      enableGithubOauth: authPolicy.enableGithubOauth,
-      enableOrganizations: authPolicy.enableOrganizations,
-      // Read by `app/auth.config.ts` to decide whether to load `sentinelClient()`. Unlike the
-      // three above, this one is not a label: the sentinel client identifies every visitor
-      // against Better Auth's KV service from their browser, so publishing it wrongly would send
-      // a self-hosted deployment's visitors to a third party. appConfig having no env override
-      // channel is what makes `BETTER_AUTH_*` the single source for both halves.
-      enableInfra: authPolicy.enableInfra,
+      // Read by `app/auth.config.ts` to decide whether to load `sentinelClient()`. Not a label:
+      // the sentinel client identifies every visitor against Better Auth's KV service from their
+      // browser, so publishing it wrongly would send a self-hosted deployment's visitors to a
+      // third party.
+      enableInfra: infra !== undefined,
       // The project's own ingestion endpoint. Without it `sentinelClient()` falls back to Better
       // Auth's shared global one, which its own startup warning calls out as not recommended.
       // Not a secret — the visitor's browser posts to it directly — unlike the API key it is
@@ -231,6 +227,9 @@ export default defineNuxtConfig({
     // A session is enough to reach the page; the admin role is enforced by the endpoint it reads
     // (the router's `audit.list`), so a non-admin sees the refusal rather than a redirect.
     '/audit': { appLayout: 'default', auth: { only: 'user' } },
+    // Same reasoning: who may read or change the settings is the router's `settings.*` decision
+    // (admin self-hosted, membership and role on the managed cloud), shown on the page itself.
+    '/settings': { appLayout: 'default', auth: { only: 'user' } },
     '/login': { auth: { only: 'guest' } },
     '/signin': { auth: { only: 'guest' } },
     '/organizations': { appLayout: 'default', auth: { only: 'user' } },
@@ -239,9 +238,6 @@ export default defineNuxtConfig({
     // than being shown the form. The auth layout, not the shell, because the visitor arriving here
     // typed a code off a terminal and has no business in the navigation.
     '/device': { auth: { only: 'user' } },
-    // Reached from an invitation email, so the visitor is frequently signed out at that moment:
-    // requiring a session sends them through /login and back, rather than rejecting the link.
-    '/organizations/accept-invitation/**': { appLayout: 'default', auth: { only: 'user' } },
   },
 
   vite: {

@@ -1,50 +1,114 @@
-import { resolve } from 'node:path';
-
 import {
   defaultDeploymentConfig,
   DEPLOYMENT_CONFIG_FILE,
   describeDeploymentConfigIssues,
-  loadDeploymentConfig,
+  editionFromEnvironment,
+  LEGACY_DEPLOYMENT_CONFIG_FILE,
+  loadDeploymentFile,
+  locateDeploymentConfig,
+  settingsSourceFromEnvironment,
   type DeploymentConfig,
+  type DeploymentConfigIssue,
+  type DeploymentFile,
+  type Edition,
+  type SettingsSource,
 } from '@code-zero/config';
 
 /**
- * How this deployment behaves, read once from `code-zero.deployment.yml`.
+ * Which product this deployment is, and where its settings come from, as its environment says.
  *
- * One file replaces the handful of comma-separated environment variables this policy used to be
- * spelled in — a list of origins, a `name:mode|mode` grant string, a poll interval — each of which
- * had its own ad-hoc format to get wrong. What stays in the environment is what a deployment
- * already keeps there: secrets, and the two bootstrap values needed to find everything else
- * (`DATABASE_URL`, and the path to this file).
- *
- * `CODE_ZERO_CONFIG` names the file; without it the process reads `code-zero.deployment.yml` from
- * its working directory, and a deployment that has never needed to change anything ships no file
- * at all and gets the defaults.
- *
- * Resolved once and awaited by every reader, rather than re-read per request: this is deployment
- * policy, which changes when the process restarts. Repository configuration is the opposite — it
- * changes while the process runs — which is exactly why it lives in the store instead.
+ * Both are bootstrap values the process reads before anything else, so they live in the
+ * environment beside `DATABASE_URL`, where only whoever runs the deployment can change them. No
+ * request reaches them: the settings page can show them, never move them.
  */
-let pending: Promise<DeploymentConfig> | undefined;
+export interface DeploymentIdentity {
+  edition: Edition;
+  source: SettingsSource;
+  /** Why the environment could not be read. While any is present, every run is refused. */
+  issues: readonly DeploymentConfigIssue[];
+}
 
-export function deploymentConfig(): Promise<DeploymentConfig> {
-  pending ??= read();
+/**
+ * Read the edition and the settings source from the environment.
+ *
+ * An edition this process does not recognise is treated as the managed cloud, the locked one:
+ * nothing becomes editable because a variable was mistyped, and the issue it carries keeps every run
+ * refused until it is corrected.
+ */
+export function deploymentIdentity(
+  environment: Readonly<Record<string, string | undefined>> = process.env,
+): DeploymentIdentity {
+  const edition = editionFromEnvironment(environment);
+  const resolved: Edition = edition.ok ? edition.value : 'cloud';
+  const source = settingsSourceFromEnvironment(environment, resolved);
+  return {
+    edition: resolved,
+    source: source.ok ? source.value : 'file',
+    issues: [...(edition.ok ? [] : edition.issues), ...(source.ok ? [] : source.issues)],
+  };
+}
+
+/** The instance configuration file as this process read it, and where it was found. */
+export interface LoadedDeploymentFile extends DeploymentFile {
+  path: string;
+  /** True when it was found under its old name, `code-zero.deployment.yml`. */
+  legacy: boolean;
+}
+
+/**
+ * Read the instance configuration file — `config.yml`, or the path `CODE_ZERO_CONFIG` names.
+ *
+ * One file, decided once. When both `config.yml` and the old `code-zero.deployment.yml` exist and
+ * neither is named, nothing is read: the control-plane policy keeps its closed defaults and the
+ * settings are refused, rather than one file silently winning over the other.
+ */
+export async function readDeploymentFile(
+  environment: Readonly<Record<string, string | undefined>>,
+  directory: string,
+  edition: Edition,
+): Promise<LoadedDeploymentFile> {
+  const located = await locateDeploymentConfig(environment, directory);
+  if (!located.ok)
+    return {
+      config: structuredClone(defaultDeploymentConfig),
+      issues: located.issues,
+      settings: { ok: false, issues: located.issues },
+      declaresSettings: false,
+      path: `${directory}/${DEPLOYMENT_CONFIG_FILE}`,
+      legacy: false,
+    };
+  return { ...(await loadDeploymentFile(located.value.path, edition)), ...located.value };
+}
+
+/**
+ * The instance configuration, read once per process and awaited by every reader.
+ *
+ * Deployment policy changes when the process restarts. What changes while it runs — repositories,
+ * and settings kept in the dashboard — lives in the store instead.
+ */
+let pending: Promise<LoadedDeploymentFile> | undefined;
+
+export function deploymentFile(): Promise<LoadedDeploymentFile> {
+  pending ??= readDeploymentFile(process.env, process.cwd(), deploymentIdentity().edition).then(
+    (file) => {
+      if (file.issues.length > 0)
+        // Reported rather than thrown: a refused control-plane field falls back to its own closed
+        // default, and the process starting with a loud complaint beats a dashboard that will not
+        // load at all. Every issue names its path, so the fix is one edit.
+        console.error(
+          `[config] ${file.path} has problems; the defaults stand where a value was refused:\n${describeDeploymentConfigIssues(file.issues)}`,
+        );
+      if (file.legacy)
+        console.warn(
+          `[config] ${file.path} uses the old name ${LEGACY_DEPLOYMENT_CONFIG_FILE}; rename it to ${DEPLOYMENT_CONFIG_FILE}.`,
+        );
+      return file;
+    },
+  );
   return pending;
 }
 
-async function read(): Promise<DeploymentConfig> {
-  const path = resolve(process.env.CODE_ZERO_CONFIG?.trim() || DEPLOYMENT_CONFIG_FILE);
-  const { config, issues } = await loadDeploymentConfig(path);
-  if (issues.length > 0) {
-    // Reported rather than thrown: a malformed field falls back to its own default, and the
-    // process starting with a loud complaint beats a dashboard that will not load at all because
-    // one line of YAML is wrong. Every issue names its path, so the fix is one edit.
-    console.error(
-      `[config] ${path} has problems; the defaults stand where a value was refused:\n${describeDeploymentConfigIssues(issues)}`,
-    );
-  }
-  return config;
+/** The control-plane and polling half of the instance configuration. */
+export async function deploymentConfig(): Promise<DeploymentConfig> {
+  return (await deploymentFile()).config;
 }
-
-/** The defaults, for a caller that must answer before the file has been read. */
-export const deploymentDefaults: DeploymentConfig = defaultDeploymentConfig;

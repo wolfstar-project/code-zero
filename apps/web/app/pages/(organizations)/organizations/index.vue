@@ -13,7 +13,9 @@
       <div class="mt-8">
         <OrganizationsMemberList />
       </div>
-      <div class="mt-8">
+      <!-- Organization invitations travel through enrollment invites, so the form is offered only
+           where the deployment serves them; the server refuses them everywhere else regardless. -->
+      <div v-if="capabilities.organizationInvitations" class="mt-8">
         <OrganizationsInviteForm />
       </div>
     </template>
@@ -26,6 +28,7 @@
 
 <script setup lang="ts">
 const { activeOrganization, error, refresh } = useOrganizations();
+const capabilities = await useAuthCapabilities();
 
 onMounted(() => {
   void refresh();

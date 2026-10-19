@@ -272,4 +272,61 @@ describe('TaskScheduler', () => {
     await expect(scheduler.schedule('acme/site', async () => 'ran')).resolves.toBe('ran');
     expect(scheduler.snapshot()).toMatchObject({ queued: 1 });
   });
+
+  it('holds a job to the concurrency the deployment settings gave it', () => {
+    const scheduler = new TaskScheduler({
+      maxConcurrent: 4,
+      maxQueued: 10,
+      maxConcurrentPerRepository: 1,
+    });
+    void scheduler.schedule('one', () => new Promise(() => undefined), { maxConcurrent: 1 });
+    void scheduler.schedule('two', () => new Promise(() => undefined), { maxConcurrent: 1 });
+    expect(scheduler.snapshot()).toMatchObject({ active: 1, queued: 1 });
+  });
+
+  it('runs above its own default when the deployment settings allow more', () => {
+    const scheduler = new TaskScheduler({
+      maxConcurrent: 1,
+      maxQueued: 10,
+      maxConcurrentPerRepository: 1,
+    });
+    for (const repository of ['one', 'two', 'three'])
+      void scheduler.schedule(repository, () => new Promise(() => undefined), {
+        maxConcurrent: 3,
+      });
+    expect(scheduler.snapshot()).toMatchObject({ active: 3, queued: 0 });
+  });
+
+  it('keeps an organization to its own lower limit while others keep running', () => {
+    const scheduler = new TaskScheduler({
+      maxConcurrent: 4,
+      maxQueued: 10,
+      maxConcurrentPerRepository: 1,
+    });
+    const organization = { key: 'org-a', maxConcurrent: 1 };
+    void scheduler.schedule('one', () => new Promise(() => undefined), { group: organization });
+    void scheduler.schedule('two', () => new Promise(() => undefined), { group: organization });
+    void scheduler.schedule('three', () => new Promise(() => undefined));
+    expect(scheduler.snapshot()).toMatchObject({ active: 2, queued: 1 });
+  });
+
+  it('starts the queued organization job once its running one finishes', async () => {
+    const scheduler = new TaskScheduler({
+      maxConcurrent: 4,
+      maxQueued: 10,
+      maxConcurrentPerRepository: 1,
+    });
+    const organization = { key: 'org-a', maxConcurrent: 1 };
+    const releases: Array<() => void> = [];
+    const first = scheduler.schedule(
+      'one',
+      () => new Promise<string>((resolve) => releases.push(() => resolve('first'))),
+      { group: organization },
+    );
+    const second = scheduler.schedule('two', async () => 'second', { group: organization });
+    expect(scheduler.snapshot()).toMatchObject({ active: 1, queued: 1 });
+    releases.shift()?.();
+    await expect(first).resolves.toBe('first');
+    await expect(second).resolves.toBe('second');
+  });
 });

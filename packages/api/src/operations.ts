@@ -1,7 +1,12 @@
 import { createHash } from 'node:crypto';
 
 import { CodeZero } from '@code-zero/agent';
-import { loadConfig, mayModifyRepository } from '@code-zero/config';
+import {
+  applyDeploymentSettings,
+  isModeAllowed,
+  loadConfig,
+  mayModifyRepository,
+} from '@code-zero/config';
 import { isSubscriptionProviderEnabled, modelFromEnvironment } from '@code-zero/models';
 import {
   createRunner,
@@ -51,6 +56,7 @@ import {
   type StoredTask,
   type TaskStore,
 } from './control-plane.js';
+import { runExecution, scheduleLimits, type RunPolicy } from './settings.js';
 import { claudeCodeProcessSpawner, claudeCodeRefusalReason } from './subscription-isolation.js';
 
 const TRAILING_SLASH = /\/$/u;
@@ -121,6 +127,7 @@ export async function createTask(
   input: z.infer<typeof taskInput>,
   store: TaskStore = defaultStore,
   scheduler: TaskScheduler = defaultScheduler,
+  policy?: RunPolicy,
 ): Promise<TaskResult> {
   return runTask(
     {
@@ -131,7 +138,7 @@ export async function createTask(
       ...(input.source ? { source: input.source } : {}),
       ...(input.files ? { files: input.files } : {}),
     },
-    { store, scheduler },
+    { store, scheduler, ...(policy ? { policy } : {}) },
   );
 }
 
@@ -140,6 +147,29 @@ export interface RunTaskOptions {
   scheduler?: TaskScheduler;
   /** Optional hosted execution pool; its leases still expose only the Runner boundary. */
   runnerPool?: RunnerPool;
+  /**
+   * The deployment's settings this run is held to. Without one the repository's own policy
+   * applies alone, which is how an embedded caller with no settings has always run.
+   */
+  policy?: RunPolicy;
+}
+
+/** Why a run never started: its mode is one the deployment's settings do not allow. */
+function modeRefusal(mode: ReviewInput['mode']): string {
+  return `Execution mode '${mode}' is not allowed by the deployment settings`;
+}
+
+/** Why a run on the managed cloud never started, or stopped before executing anything. */
+const ISOLATION_UNAVAILABLE =
+  'This deployment runs repository work only inside an isolated sandbox, and none is configured for this run';
+
+/**
+ * Whether a run that must be isolated has any sandbox to reach: the deployment's container sandbox,
+ * or a hosted sandbox provider's pool. Decided before anything is recorded, because without either
+ * the run could only execute on the service's own host.
+ */
+function lacksRequiredSandbox(policy: RunPolicy | undefined, runnerPool: RunnerPool | undefined) {
+  return policy?.isolationRequired === true && policy.settings.runner === null && !runnerPool;
 }
 
 /**
@@ -154,6 +184,12 @@ export async function runTask(
 ): Promise<TaskResult> {
   const store = options.store ?? defaultStore;
   const scheduler = options.scheduler ?? defaultScheduler;
+  const { policy } = options;
+  const execution = policy ? runExecution(policy) : undefined;
+  // Refused before anything is recorded: a run the settings never allowed did not happen, so it
+  // leaves no task behind for the board to show as failed.
+  if (execution && !isModeAllowed(execution, input.mode)) throw new Error(modeRefusal(input.mode));
+  if (lacksRequiredSandbox(policy, options.runnerPool)) throw new Error(ISOLATION_UNAVAILABLE);
   const identifier = taskId();
   const timestamp = now();
   const record: StoredTask = {
@@ -163,90 +199,107 @@ export async function runTask(
     createdAt: timestamp,
     updatedAt: timestamp,
     events: [],
+    ...(policy?.organization ? { organizationId: policy.organization.id } : {}),
   };
   await store.save(record);
 
   try {
-    return await scheduler.schedule(input.repository, async () => {
-      record.status = 'running';
-      record.updatedAt = now();
-      await store.save(record);
+    return await scheduler.schedule(
+      input.repository,
+      async () => {
+        record.status = 'running';
+        record.updatedAt = now();
+        await store.save(record);
 
-      const config = await loadConfig(input.repository);
-      let eventWrites = Promise.resolve();
-      const writable = mayModifyRepository(config, input.mode);
-      const lease = options.runnerPool
-        ? await options.runnerPool.acquire({
-            taskId: identifier,
-            repository: input.repository,
-            mode: input.mode,
-            writable,
-            network: config.permissions.network,
-            leaseMs: config.agent.timeoutMs,
-          })
-        : undefined;
-      const runner =
-        lease?.runner ?? createRunner(input.repository, runnerOptionsFromPolicy(config, writable));
-      // Refuses claude-code under container isolation when no CLI container image is configured,
-      // and outright under a RunnerPool lease regardless of runner.isolation: SandboxProvider
-      // (vitehub/cloudflare/vercel/custom) returns only a bounded-command Runner, never a live
-      // process handle, so there is no way to route the CLI's duplex spawn through the same hosted
-      // boundary the lease already gives repository commands — spawning it on the control-plane
-      // host instead would bypass exactly the isolation, lifecycle, quota, and audit controls an
-      // operator configured RunnerPool for. Reported to modelFromEnvironment as a refusal reason,
-      // not by disabling the enable flag: the flag would also skip fallback selection, turning a
-      // configured CODE_ZERO_MODEL_FALLBACK_PROVIDER into a run that fails outright instead of
-      // degrading to it.
-      const refusalReason =
-        config.model.provider !== 'claude-code'
-          ? undefined
-          : lease
-            ? 'A RunnerPool lease is active for this task; the claude-code CLI process cannot be ' +
-              "routed through an arbitrary SandboxProvider's boundary, so it cannot honor the " +
-              'isolation the lease provides for repository commands.'
-            : claudeCodeRefusalReason(config, process.env);
-      const spawnClaudeCodeProcess =
-        config.model.provider === 'claude-code' &&
-        refusalReason === undefined &&
-        isSubscriptionProviderEnabled('claude-code', process.env)
-          ? claudeCodeProcessSpawner(config, process.env)
+        // The repository's `.code-zero.yml` is untrusted input from the checkout; the deployment's
+        // settings are applied over it, stricter winning, before anything reads the result.
+        const repositoryConfig = await loadConfig(input.repository);
+        const config = policy
+          ? applyDeploymentSettings(repositoryConfig, policy.settings, execution)
+          : repositoryConfig;
+        let eventWrites = Promise.resolve();
+        const writable = mayModifyRepository(config, input.mode);
+        const lease = options.runnerPool
+          ? await options.runnerPool.acquire({
+              taskId: identifier,
+              repository: input.repository,
+              mode: input.mode,
+              writable,
+              network: config.permissions.network,
+              leaseMs: config.agent.timeoutMs,
+            })
           : undefined;
-      const agent = new CodeZero({
-        model: modelFromEnvironment(
-          config.model,
-          process.env,
-          spawnClaudeCodeProcess,
-          refusalReason,
-        ),
-        runner,
-        config,
-        taskIdentifier: identifier,
-        onEvent: (event) => {
-          record.events.push(event);
-          record.updatedAt = event.timestamp;
-          eventWrites = eventWrites.then(() => store.save(record));
-        },
-      });
-      let result: TaskResult;
-      let snapshot: ChangedFileSnapshot[] | undefined;
-      try {
-        result = await agent.run(input);
-        // Captured through the run's own boundary before the lease is released, so publication
-        // later reads exactly what the run verified, never whatever the checkout holds by then.
-        if (result.changedFiles.length > 0)
-          snapshot = await snapshotChangedFiles(runner, result.changedFiles);
-      } finally {
-        if (lease) await options.runnerPool?.release(lease.id);
-      }
-      await eventWrites;
-      record.status = result.state;
-      record.updatedAt = now();
-      record.result = result;
-      record.evidence = evidenceFromResult(result, input);
-      if (snapshot) record.changedFileSnapshot = snapshot;
-      await store.save(record);
-      return result;
-    });
+        const runner =
+          lease?.runner ??
+          createRunner(input.repository, runnerOptionsFromPolicy(config, writable));
+        // A provider can hand back a runner that is not isolated; checked on what was actually built,
+        // and before the agent starts, so nothing executes outside the sandbox the policy requires.
+        if (policy?.isolationRequired && !runner.describe().isolated) {
+          if (lease) await options.runnerPool?.release(lease.id);
+          throw new Error(ISOLATION_UNAVAILABLE);
+        }
+        // Refuses claude-code under container isolation when no CLI container image is configured,
+        // and outright under a RunnerPool lease regardless of runner.isolation: SandboxProvider
+        // (vitehub/cloudflare/vercel/custom) returns only a bounded-command Runner, never a live
+        // process handle, so there is no way to route the CLI's duplex spawn through the same hosted
+        // boundary the lease already gives repository commands — spawning it on the control-plane
+        // host instead would bypass exactly the isolation, lifecycle, quota, and audit controls an
+        // operator configured RunnerPool for. Reported to modelFromEnvironment as a refusal reason,
+        // not by disabling the enable flag: the flag would also skip fallback selection, turning a
+        // configured CODE_ZERO_MODEL_FALLBACK_PROVIDER into a run that fails outright instead of
+        // degrading to it.
+        const refusalReason =
+          config.model.provider !== 'claude-code'
+            ? undefined
+            : lease
+              ? 'A RunnerPool lease is active for this task; the claude-code CLI process cannot be ' +
+                "routed through an arbitrary SandboxProvider's boundary, so it cannot honor the " +
+                'isolation the lease provides for repository commands.'
+              : claudeCodeRefusalReason(config, process.env);
+        const spawnClaudeCodeProcess =
+          config.model.provider === 'claude-code' &&
+          refusalReason === undefined &&
+          isSubscriptionProviderEnabled('claude-code', process.env)
+            ? claudeCodeProcessSpawner(config, process.env)
+            : undefined;
+        const agent = new CodeZero({
+          model: modelFromEnvironment(
+            config.model,
+            process.env,
+            spawnClaudeCodeProcess,
+            refusalReason,
+          ),
+          runner,
+          config,
+          taskIdentifier: identifier,
+          onEvent: (event) => {
+            record.events.push(event);
+            record.updatedAt = event.timestamp;
+            eventWrites = eventWrites.then(() => store.save(record));
+          },
+        });
+        let result: TaskResult;
+        let snapshot: ChangedFileSnapshot[] | undefined;
+        try {
+          result = await agent.run(input);
+          // Captured through the run's own boundary before the lease is released, so publication
+          // later reads exactly what the run verified, never whatever the checkout holds by then.
+          if (result.changedFiles.length > 0)
+            snapshot = await snapshotChangedFiles(runner, result.changedFiles);
+        } finally {
+          if (lease) await options.runnerPool?.release(lease.id);
+        }
+        await eventWrites;
+        record.status = result.state;
+        record.updatedAt = now();
+        record.result = result;
+        record.evidence = evidenceFromResult(result, input);
+        if (snapshot) record.changedFileSnapshot = snapshot;
+        await store.save(record);
+        return result;
+      },
+      policy ? scheduleLimits(policy) : {},
+    );
   } catch (error) {
     record.status = 'failed';
     record.updatedAt = now();
@@ -311,6 +364,8 @@ export interface WebhookOptions {
    * deduplication only spans this process's lifetime and its bounded in-memory registry.
    */
   deliveryClaims?: DeliveryClaimStore;
+  /** The deployment's settings every run this delivery starts is held to. */
+  policy?: RunPolicy;
 }
 
 export type WebhookOutcome =
@@ -380,6 +435,8 @@ export async function ingestWebhook(
       return { status: 'ignored', reason: 'Proactive review is disabled by repository policy' };
     mode = config.mode;
   }
+  const refusal = settingsRefusal(options, mode);
+  if (refusal) return refusal;
 
   // A proactive trigger is unrequested work started on the delivery's own say-so — the same
   // description that fits a poller's pass over the same commit. Both claim this key before
@@ -414,6 +471,24 @@ export async function ingestWebhook(
 }
 
 /**
+ * An outcome for a delivery whose run the deployment's settings would refuse, or null.
+ *
+ * Answered before any claim is taken, so a refused delivery leaves nothing standing for a later
+ * redelivery, after the settings change, to trip over.
+ */
+function settingsRefusal(
+  options: WebhookOptions,
+  mode: ReviewInput['mode'],
+): WebhookOutcome | null {
+  if (!options.policy) return null;
+  if (!isModeAllowed(runExecution(options.policy), mode))
+    return { status: 'ignored', reason: `The deployment settings do not allow ${mode} runs` };
+  if (lacksRequiredSandbox(options.policy, undefined))
+    return { status: 'ignored', reason: ISOLATION_UNAVAILABLE };
+  return null;
+}
+
+/**
  * The idempotency key for one proactive review of one change-request commit.
  *
  * Shared with `apps/web`'s poller, which claims the identical key for the identical reason:
@@ -434,6 +509,7 @@ async function runReviewEvent(
   const runOptions: RunTaskOptions = {
     ...(options.store ? { store: options.store } : {}),
     ...(options.scheduler ? { scheduler: options.scheduler } : {}),
+    ...(options.policy ? { policy: options.policy } : {}),
   };
   const result = await runTask(
     reviewInputFromEvent(event, { checkoutPath: options.checkoutPath, mode }),
@@ -478,6 +554,8 @@ async function ingestIssueEvent(
     ...(options.ignoreAuthors ? { ignoreAuthors: options.ignoreAuthors } : {}),
   });
   if (!task) return { status: 'ignored', reason: 'No actionable issue task in this event' };
+  const refusal = settingsRefusal(options, config.mode);
+  if (refusal) return refusal;
 
   const identity = await new LocalRunner(options.checkoutPath).originRepository();
   const mismatch = checkoutRepositoryMismatch(identity, task.issue);
@@ -549,6 +627,7 @@ async function runIssueTask(
   const runOptions: RunTaskOptions = {
     ...(options.store ? { store: options.store } : {}),
     ...(options.scheduler ? { scheduler: options.scheduler } : {}),
+    ...(options.policy ? { policy: options.policy } : {}),
   };
   const result = await runTask(
     issueInputFromTask(task, { checkoutPath: options.checkoutPath, mode: policy.mode }),

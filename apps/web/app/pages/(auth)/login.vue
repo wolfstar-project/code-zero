@@ -59,14 +59,14 @@
  */
 definePageMeta({ layout: 'auth' });
 
-const appConfig = useAppConfig();
+const capabilities = await useAuthCapabilities();
 const { localizeAuthError } = useAuthErrorMessage();
 
 const signInEmail = useSignIn('email');
 const signInSocial = useSignIn('social');
 
-const canSignUp = appConfig.auth.enableSignup;
-const canUseGithub = appConfig.auth.enableGithubOauth;
+const canSignUp = computed(() => capabilities.value.signup);
+const canUseGithub = computed(() => capabilities.value.social.github);
 
 const email = ref('');
 const password = ref('');

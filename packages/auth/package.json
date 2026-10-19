@@ -10,6 +10,10 @@
       "types": "./dist/index.d.mts",
       "default": "./dist/index.mjs"
     },
+    "./access": {
+      "types": "./dist/access.d.mts",
+      "default": "./dist/access.mjs"
+    },
     "./config": {
       "types": "./dist/config.d.mts",
       "default": "./dist/config.mjs"
@@ -25,10 +29,14 @@
     "typecheck": "tsc --project tsconfig.json --pretty false --noEmit"
   },
   "dependencies": {
-    "@better-auth/infra": "^0.4.0",
+    "@better-auth/api-key": "^1.7.10",
+    "@better-auth/infra": "^0.4.20",
+    "@better-auth/passkey": "^1.7.10",
+    "@better-auth/scim": "^1.7.10",
+    "@better-auth/sso": "^1.7.10",
     "@code-zero/database": "workspace:*",
-    "@octopi-ai/better-enrollment": "^0.4.0",
-    "better-auth": "^1.6.26",
+    "@octopi-ai/better-enrollment": "^0.5.2",
+    "better-auth": "^1.7.10",
     "zod": "^4.4.3"
   },
   "devDependencies": {
