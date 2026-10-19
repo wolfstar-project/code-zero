@@ -1,5 +1,5 @@
 <template>
-  <section class="panel w-full max-w-88 p-6">
+  <section class="w-full">
     <h1 class="m-0 text-lg font-650 tracking-tight">
       {{ stage === 'confirm' ? $t('auth.device.confirmTitle') : $t('auth.device.title') }}
     </h1>
