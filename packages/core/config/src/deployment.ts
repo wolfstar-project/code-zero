@@ -6,6 +6,7 @@ import { parse } from 'yaml';
 
 import {
   declaresDeploymentSettings,
+  DEPLOYMENT_CONFIG_SECTIONS,
   parseDeploymentSettings,
   type DeploymentSettings,
   type Edition,
@@ -222,7 +223,7 @@ export function parseDeploymentFile(
   }
   return {
     ...configFromDocument(parsed),
-    settings: parseDeploymentSettings(parsed, edition),
+    settings: parseDeploymentSettings(parsed, edition, DEPLOYMENT_CONFIG_SECTIONS),
     declaresSettings: declaresDeploymentSettings(parsed),
   };
 }

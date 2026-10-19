@@ -183,6 +183,20 @@ execution:
     });
   });
 
+  it('refuses a mistyped section instead of leaving every limit at its default', () => {
+    const file = parseDeploymentFile(`
+poll:
+  interval_seconds: 30
+exection:
+  allowed_modes: [observe]
+`);
+
+    expect(file.settings).toEqual({
+      ok: false,
+      issues: [{ path: '$.exection', message: 'Unknown section.' }],
+    });
+  });
+
   it('says when a file states no settings, so a dashboard source has nothing to ignore', () => {
     expect(parseDeploymentFile('poll:\n  interval_seconds: 30\n').declaresSettings).toBe(false);
   });

@@ -75,6 +75,20 @@ describe('parseDeploymentSettingsText', () => {
     },
   );
 
+  it('refuses a top-level key that is no section of the deployment file', () => {
+    expect(parseDeploymentSettingsText('exection:\n  allowed_modes: [observe]\n')).toEqual({
+      ok: false,
+      issues: [{ path: '$.exection', message: 'Unknown section.' }],
+    });
+  });
+
+  it('refuses the configuration sections in a settings document saved from the dashboard', () => {
+    expect(parseDeploymentSettings({ control_plane: { origins: [] } })).toEqual({
+      ok: false,
+      issues: [{ path: '$.control_plane', message: 'Unknown section.' }],
+    });
+  });
+
   it('refuses unparseable YAML instead of falling back to the defaults', () => {
     const parsed = parseDeploymentSettingsText('execution: [unclosed\n');
 
@@ -380,6 +394,32 @@ describe('applyDeploymentSettings', () => {
     });
 
     expect(applied.permissions.network).toBe('restricted');
+  });
+
+  it('drops the container network a repository named whenever the deployment restricts the network', () => {
+    const applied = applyDeploymentSettings(
+      repository({
+        permissions: { network: 'full' },
+        runner: {
+          isolation: 'container',
+          engine: 'docker',
+          image: 'ghcr.io/acme/runner:1',
+          network: 'host',
+          workdir: '/workspace',
+          maxOutputBytes: 200_000,
+        },
+      }),
+      {
+        ...defaultDeploymentSettings,
+        execution: { ...defaultDeploymentSettings.execution, maxNetwork: 'restricted' },
+      },
+    );
+
+    // `restricted` is where the container runner reads a network name, so a repository-chosen
+    // `host` would otherwise become `--network host` under a restricted ceiling.
+    expect(applied.permissions.network).toBe('restricted');
+    expect(applied.runner).not.toHaveProperty('network');
+    expect(applied.runner.isolation).toBe('container');
   });
 
   it('lets a repository narrow the network below the deployment ceiling', () => {

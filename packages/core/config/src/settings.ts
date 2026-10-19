@@ -147,6 +147,12 @@ export const noOrganizationLimits: OrganizationLimits = {
 /** The deployment file's top-level keys that belong to the settings document. */
 const SETTINGS_SECTIONS = ['execution', 'model', 'runner'] as const;
 
+/**
+ * The deployment file's other top-level sections, which `deployment.ts` parses. Named here so the
+ * file has one list of every section it may hold, and a key that is neither is refused.
+ */
+export const DEPLOYMENT_CONFIG_SECTIONS: readonly string[] = ['control_plane', 'poll'];
+
 const EXECUTION_KEYS = [
   'max_concurrent_tasks',
   'command_timeout_minutes',
@@ -211,17 +217,23 @@ export function declaresDeploymentSettings(document: unknown): boolean {
  *
  * Unlike the rest of the deployment file, nothing here falls back to a default field by field: a
  * limit or a sandbox that was meant and mistyped must not quietly become a different one, so the
- * caller gets either the complete document or every issue in it. Keys outside the three sections
- * are ignored, because they belong to the deployment configuration, which parses them itself.
+ * caller gets either the complete document or every issue in it. That includes the top level: an
+ * unknown section is refused, because a mistyped `exection:` would otherwise leave every limit at
+ * its default. `otherSections` names the top-level keys that belong to someone else — the
+ * deployment configuration's own sections, when the document is the deployment file.
  */
 export function parseDeploymentSettings(
   document: unknown,
   edition: Edition = 'self-hosted',
+  otherSections: readonly string[] = [],
 ): Parsed<DeploymentSettings> {
   // An empty file parses to null, and states no setting, exactly like a file that has none.
   const root = document ?? {};
   if (!isRecord(root)) return err('$', 'Expected an object.');
   const issues: DeploymentConfigIssue[] = [];
+  for (const key of Object.keys(root))
+    if (!SETTINGS_SECTIONS.some((section) => section === key) && !otherSections.includes(key))
+      issues.push({ path: `$.${key}`, message: 'Unknown section.' });
   const settings: DeploymentSettings = {
     execution: executionSection(root.execution, issues),
     model: modelSection(root.model, issues),
@@ -247,7 +259,7 @@ export function parseDeploymentSettingsText(
   } catch (error) {
     return err('$', error instanceof Error ? error.message : 'YAML parsing failed.');
   }
-  return parseDeploymentSettings(document, edition);
+  return parseDeploymentSettings(document, edition, DEPLOYMENT_CONFIG_SECTIONS);
 }
 
 /**
@@ -392,8 +404,8 @@ export function effectiveExecution(
  * the deployment states a model or a sandbox, the deployment's choice replaces the repository's
  * rather than merging with it. The command timeout is the shorter of the two, and the network the
  * narrower, whatever executes the run: a repository may ask for less than the deployment allows,
- * never more. A repository's own container
- * network name is dropped under a deployment sandbox, because `--network host` is a name too.
+ * never more. A repository's own container network name is dropped under a deployment sandbox and
+ * under any network ceiling below `full`, because `--network host` is a name too.
  *
  * `execution` is the effective limit for this run — the plan lowered by an organization's limits on
  * the managed cloud — and defaults to the deployment's own.
@@ -422,6 +434,11 @@ export function applyDeploymentSettings(
       engine: settings.runner.engine,
       image: settings.runner.image,
     };
+  // Under a restricted ceiling the container runner reads the network *name* the repository
+  // gave (`restricted` is the one policy that uses it), and `host` is a name too. So whenever the
+  // deployment narrows the network, the repository's own name goes, sandbox or not, and the
+  // runner falls back to its default restricted network.
+  else if (execution.maxNetwork !== 'full') applied.runner = withoutContainerNetwork(config.runner);
   return applied;
 }
 
