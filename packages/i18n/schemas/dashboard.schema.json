@@ -51,6 +51,9 @@
             },
             "expand": {
               "type": "string"
+            },
+            "settings": {
+              "type": "string"
             }
           },
           "additionalProperties": false
@@ -381,6 +384,9 @@
             },
             "more": {
               "type": "string"
+            },
+            "settings": {
+              "type": "string"
             }
           },
           "additionalProperties": false
@@ -440,6 +446,438 @@
                   "type": "string"
                 },
                 "feedback": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "settings": {
+          "type": "object",
+          "properties": {
+            "header": {
+              "type": "object",
+              "properties": {
+                "eyebrow": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "loading": {
+              "type": "string"
+            },
+            "error": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "forbidden": {
+                  "type": "string"
+                },
+                "unauthorized": {
+                  "type": "string"
+                },
+                "unavailable": {
+                  "type": "string"
+                },
+                "generic": {
+                  "type": "string"
+                },
+                "retry": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "invalid": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "body": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "warnings": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "source": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "edition": {
+                  "type": "string"
+                },
+                "editions": {
+                  "type": "object",
+                  "properties": {
+                    "selfHosted": {
+                      "type": "string"
+                    },
+                    "cloud": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "source": {
+                  "type": "string"
+                },
+                "sources": {
+                  "type": "object",
+                  "properties": {
+                    "file": {
+                      "type": "string"
+                    },
+                    "dashboard": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "file": {
+                  "type": "string"
+                },
+                "saved": {
+                  "type": "string"
+                },
+                "neverSaved": {
+                  "type": "string"
+                },
+                "fileHint": {
+                  "type": "string"
+                },
+                "dashboardHint": {
+                  "type": "string"
+                },
+                "cloudHint": {
+                  "type": "string"
+                },
+                "switchHint": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "sections": {
+              "type": "object",
+              "properties": {
+                "execution": {
+                  "type": "string"
+                },
+                "model": {
+                  "type": "string"
+                },
+                "runner": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "fields": {
+              "type": "object",
+              "properties": {
+                "maxConcurrentTasks": {
+                  "type": "string"
+                },
+                "commandTimeoutMinutes": {
+                  "type": "string"
+                },
+                "allowedModes": {
+                  "type": "string"
+                },
+                "maxNetwork": {
+                  "type": "string"
+                },
+                "modelSource": {
+                  "type": "string"
+                },
+                "provider": {
+                  "type": "string"
+                },
+                "modelName": {
+                  "type": "string"
+                },
+                "runnerSource": {
+                  "type": "string"
+                },
+                "engine": {
+                  "type": "string"
+                },
+                "image": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "hints": {
+              "type": "object",
+              "properties": {
+                "maxConcurrentTasks": {
+                  "type": "string"
+                },
+                "commandTimeoutMinutes": {
+                  "type": "string"
+                },
+                "allowedModes": {
+                  "type": "string"
+                },
+                "maxNetwork": {
+                  "type": "string"
+                },
+                "model": {
+                  "type": "string"
+                },
+                "runner": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "choices": {
+              "type": "object",
+              "properties": {
+                "modelRepository": {
+                  "type": "string"
+                },
+                "modelDeployment": {
+                  "type": "string"
+                },
+                "runnerRepository": {
+                  "type": "string"
+                },
+                "runnerContainer": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "placeholders": {
+              "type": "object",
+              "properties": {
+                "modelName": {
+                  "type": "string"
+                },
+                "image": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "values": {
+              "type": "object",
+              "properties": {
+                "minutes": {
+                  "type": "string"
+                },
+                "repositoryChooses": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "modes": {
+              "type": "object",
+              "properties": {
+                "observe": {
+                  "type": "string"
+                },
+                "suggest": {
+                  "type": "string"
+                },
+                "fix": {
+                  "type": "string"
+                },
+                "autonomous": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "network": {
+              "type": "object",
+              "properties": {
+                "none": {
+                  "type": "string"
+                },
+                "restricted": {
+                  "type": "string"
+                },
+                "full": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "form": {
+              "type": "object",
+              "properties": {
+                "save": {
+                  "type": "string"
+                },
+                "saving": {
+                  "type": "string"
+                },
+                "reset": {
+                  "type": "string"
+                },
+                "saved": {
+                  "type": "string"
+                },
+                "numberRequired": {
+                  "type": "string"
+                },
+                "invalid": {
+                  "type": "string"
+                },
+                "forbidden": {
+                  "type": "string"
+                },
+                "unauthorized": {
+                  "type": "string"
+                },
+                "precondition": {
+                  "type": "string"
+                },
+                "generic": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "services": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "caption": {
+                  "type": "string"
+                },
+                "model": {
+                  "type": "string"
+                },
+                "sandbox": {
+                  "type": "string"
+                },
+                "database": {
+                  "type": "string"
+                },
+                "mail": {
+                  "type": "string"
+                },
+                "configured": {
+                  "type": "string"
+                },
+                "missing": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "export": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "body": {
+                  "type": "string"
+                },
+                "unavailable": {
+                  "type": "string"
+                },
+                "download": {
+                  "type": "string"
+                },
+                "copy": {
+                  "type": "string"
+                },
+                "copied": {
+                  "type": "string"
+                },
+                "copyFailed": {
+                  "type": "string"
+                },
+                "error": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "plan": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "caption": {
+                  "type": "string"
+                },
+                "unavailable": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "organization": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "caption": {
+                  "type": "string"
+                },
+                "none": {
+                  "type": "string"
+                },
+                "invalid": {
+                  "type": "string"
+                },
+                "emptyUsesPlan": {
+                  "type": "string"
+                },
+                "planValue": {
+                  "type": "string"
+                },
+                "usesPlan": {
+                  "type": "string"
+                },
+                "restrictModes": {
+                  "type": "string"
+                },
+                "readOnly": {
+                  "type": "string"
+                },
+                "save": {
+                  "type": "string"
+                },
+                "saved": {
+                  "type": "string"
+                },
+                "effective": {
+                  "type": "string"
+                },
+                "effectiveCaption": {
                   "type": "string"
                 }
               },
