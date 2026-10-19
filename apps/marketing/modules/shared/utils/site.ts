@@ -20,6 +20,6 @@ export const links = {
   issues: 'https://github.com/wolfstar-project/code-zero/issues',
   security: 'https://github.com/wolfstar-project/code-zero/blob/main/SECURITY.md',
   architecture: 'https://github.com/wolfstar-project/code-zero/blob/main/docs/architecture.md',
-  docs: 'https://github.com/wolfstar-project/code-zero#readme',
+  docs: 'https://docs.code-zero.dev',
   contactEmail: 'hello@code-zero.dev',
 } as const;

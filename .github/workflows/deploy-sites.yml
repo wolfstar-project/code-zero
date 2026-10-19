@@ -1,0 +1,86 @@
+name: Deploy sites
+
+# Publishes the marketing site to code-zero.dev and the docs to docs.code-zero.dev, as two static
+# Cloudflare Workers (see each app's `wrangler.jsonc`). Both are generated ahead of time, so a
+# deploy is a build plus an asset upload; nothing runs on Cloudflare at request time.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - apps/marketing/**
+      - apps/docs/**
+      - docs/*.md
+      - packages/build-env/**
+      - packages/i18n/**
+      - packages/ui/**
+      - pnpm-lock.yaml
+      - .github/workflows/deploy-sites.yml
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  # One deploy per site at a time, and never cancel one halfway through an upload.
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+env:
+  # Pinned so a deploy is reproducible; bump together with the compatibility dates in wrangler.jsonc.
+  WRANGLER_VERSION: 4.151.1
+
+jobs:
+  deploy:
+    name: Deploy ${{ matrix.site }}
+    if: github.repository == 'wolfstar-project/code-zero'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    environment:
+      name: ${{ matrix.site }}
+      url: ${{ matrix.url }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - site: marketing
+            package: '@code-zero/marketing'
+            url: https://code-zero.dev
+          - site: docs
+            package: '@code-zero/docs'
+            url: https://docs.code-zero.dev
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup toolchain
+        uses: ./.github/actions/setup-toolchain
+
+      - name: Build workspace dependencies
+        env:
+          PACKAGE: ${{ matrix.package }}
+        run: aube exec turbo run build --filter="${PACKAGE}^..."
+
+      - name: Generate static site
+        working-directory: apps/${{ matrix.site }}
+        env:
+          # Absolute URLs in the sitemap, canonical links and robots.txt.
+          NUXT_SITE_URL: ${{ matrix.url }}
+          MARKETING_SITE_URL: https://code-zero.dev
+          MARKETING_DASHBOARD_URL: https://app.code-zero.dev
+          CODE_ZERO_BUILD_COMMIT: ${{ github.sha }}
+          CODE_ZERO_BUILD_BRANCH: ${{ github.ref_name }}
+          # The Docus prerender needs more than Node's default heap.
+          NODE_OPTIONS: --max-old-space-size=6144
+        run: aube exec nuxt generate
+
+      - name: Deploy to Cloudflare
+        working-directory: apps/${{ matrix.site }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes "wrangler@${WRANGLER_VERSION}" deploy

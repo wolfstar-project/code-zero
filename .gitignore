@@ -1,11 +1,14 @@
 # Also matches a node_modules symlink, which the trailing-slash form does not.
 node_modules
 .turbo/
-dist/
+# Also matches the `dist` symlink `nuxt generate` points at `.output/public`.
+dist
 .output/
 .nuxt/
 # Written by the Nitro `vercel` preset and by the Vercel CLI's own local link file.
 .vercel/
+# Local state of `wrangler dev` and `wrangler deploy`.
+.wrangler/
 .maizzle/
 .vitehub/
 *.tsbuildinfo
