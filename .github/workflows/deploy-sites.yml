@@ -15,7 +15,13 @@ on:
       - packages/build-env/**
       - packages/i18n/**
       - packages/ui/**
+      # Shared build inputs: a change to any of them changes what the sites are built from.
+      - scripts/tsdown.config.ts
+      - package.json
       - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - turbo.jsonc
+      - .github/actions/setup-toolchain/**
       - .github/workflows/deploy-sites.yml
   workflow_dispatch:
 
