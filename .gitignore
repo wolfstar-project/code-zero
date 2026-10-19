@@ -27,5 +27,7 @@ test-report.junit.xml
 # Local editor tooling; never something a checkout should carry.
 /code
 /vscode_cli.tar.gz
+# The instance file (config.yml) where a deployment keeps it locally, and its old name anywhere.
+/config.yml
+/apps/web/config.yml
 code-zero.deployment.yml
-!code-zero.deployment.example.yml

@@ -1,7 +1,16 @@
-import { readFile } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
 
 import type { RunMode } from '@code-zero/shared';
 import { parse } from 'yaml';
+
+import {
+  declaresDeploymentSettings,
+  parseDeploymentSettings,
+  type DeploymentSettings,
+  type Edition,
+  type Parsed,
+} from './settings.js';
 
 /**
  * One thing wrong with a deployment configuration file, and where.
@@ -65,13 +74,68 @@ const MAXIMUM_POLL_SECONDS = 3_600;
 const RUN_MODES = new Set<string>(['observe', 'suggest', 'fix', 'autonomous']);
 
 /**
- * The default path, relative to the process's working directory.
+ * The instance configuration file, read from the process's working directory by default.
  *
- * Named for the deployment rather than the product so it cannot be mistaken for `.code-zero.yml`
- * at a glance: the leading dot and the different word are both load-bearing, because confusing the
- * two would mean reading a target repository's file as this deployment's own policy.
+ * Deliberately not `.code-zero.yml`: that file comes out of whatever checkout a run works on and is
+ * untrusted input, while this one is the deployment's own trusted policy. Confusing the two would
+ * mean reading a target repository's file as this deployment's policy, so the names differ in both
+ * the leading dot and the word.
  */
-export const DEPLOYMENT_CONFIG_FILE = 'code-zero.deployment.yml';
+export const DEPLOYMENT_CONFIG_FILE = 'config.yml';
+
+/**
+ * The name this file had before `config.yml`, still read when it is the only one present so an
+ * upgrade does not silently drop a deployment's policy. Reported, so the operator renames it.
+ */
+export const LEGACY_DEPLOYMENT_CONFIG_FILE = 'code-zero.deployment.yml';
+
+/** Where the instance configuration lives, and whether it was found under its old name. */
+export interface DeploymentConfigLocation {
+  path: string;
+  legacy: boolean;
+}
+
+/**
+ * Decide which one file is the instance configuration.
+ *
+ * `CODE_ZERO_CONFIG` names it outright, and nothing else is looked at. Without it the working
+ * directory's `config.yml` is the file, or `code-zero.deployment.yml` when only the old name exists.
+ * Both present is refused rather than resolved: reading one would silently ignore the other, and
+ * two active files is exactly the ambiguity a single source exists to rule out.
+ */
+export async function locateDeploymentConfig(
+  environment: Readonly<Record<string, string | undefined>>,
+  directory: string,
+  exists: (path: string) => Promise<boolean> = fileExists,
+): Promise<Parsed<DeploymentConfigLocation>> {
+  const named = environment.CODE_ZERO_CONFIG?.trim();
+  if (named) return { ok: true, value: { path: resolve(directory, named), legacy: false } };
+  const current = join(directory, DEPLOYMENT_CONFIG_FILE);
+  const legacy = join(directory, LEGACY_DEPLOYMENT_CONFIG_FILE);
+  const [hasCurrent, hasLegacy] = await Promise.all([exists(current), exists(legacy)]);
+  if (hasCurrent && hasLegacy)
+    return {
+      ok: false,
+      issues: [
+        {
+          path: '$',
+          message: `Both ${DEPLOYMENT_CONFIG_FILE} and ${LEGACY_DEPLOYMENT_CONFIG_FILE} exist in ${directory}; keep one, or name it with CODE_ZERO_CONFIG.`,
+        },
+      ],
+    };
+  if (hasLegacy) return { ok: true, value: { path: legacy, legacy: true } };
+  return { ok: true, value: { path: current, legacy: false } };
+}
+
+async function fileExists(path: string): Promise<boolean> {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    // Absent or unreadable both mean "not this candidate"; reading it later reports the reason.
+    return false;
+  }
+}
 
 export interface DeploymentConfigResult {
   config: DeploymentConfig;
@@ -88,34 +152,89 @@ export interface DeploymentConfigResult {
  * a decision only a composition root can make.
  */
 export async function loadDeploymentConfig(path: string): Promise<DeploymentConfigResult> {
+  const { config, issues } = await loadDeploymentFile(path);
+  return { config, issues };
+}
+
+/**
+ * Everything the deployment file says: the configuration, and the settings it states.
+ *
+ * The two halves fail differently on purpose. A refused configuration field falls back to its own
+ * default, which is always the most closed one. The settings are refused whole: a limit, a model,
+ * or a sandbox that was mistyped must not quietly become a different one, so their caller gets the
+ * complete document or every issue in it, and has to decide what a run does without them.
+ */
+export interface DeploymentFile extends DeploymentConfigResult {
+  settings: Parsed<DeploymentSettings>;
+  /**
+   * Whether the file states any settings section, so a deployment whose settings come from the
+   * dashboard can say the file's are ignored rather than leave its operator editing a dead copy.
+   */
+  declaresSettings: boolean;
+}
+
+/** Read the deployment file once, for both its configuration and its settings. */
+export async function loadDeploymentFile(
+  path: string,
+  edition: Edition = 'self-hosted',
+): Promise<DeploymentFile> {
   let raw: string;
   try {
     raw = await readFile(path, 'utf8');
   } catch (error) {
     if (isRecord(error) && error.code === 'ENOENT')
-      return { config: structuredClone(defaultDeploymentConfig), issues: [] };
+      return {
+        config: structuredClone(defaultDeploymentConfig),
+        issues: [],
+        settings: parseDeploymentSettings({}, edition),
+        declaresSettings: false,
+      };
+    const issue = { path: '$', message: `Could not read ${path}: ${String(error)}` };
     return {
       config: structuredClone(defaultDeploymentConfig),
-      issues: [{ path: '$', message: `Could not read ${path}: ${String(error)}` }],
+      issues: [issue],
+      settings: { ok: false, issues: [issue] },
+      declaresSettings: false,
     };
   }
-  return parseDeploymentConfig(raw);
+  return parseDeploymentFile(raw, edition);
 }
 
-/** Validate the file's text. Separated from reading it so the tests never touch a filesystem. */
-export function parseDeploymentConfig(text: string): DeploymentConfigResult {
-  const issues: DeploymentConfigIssue[] = [];
+/** Validate the file's text, for both halves. Separate from reading so tests need no filesystem. */
+export function parseDeploymentFile(
+  text: string,
+  edition: Edition = 'self-hosted',
+): DeploymentFile {
   let parsed: unknown;
   try {
     parsed = parse(text);
   } catch (error) {
+    const issue = {
+      path: '$',
+      message: error instanceof Error ? error.message : 'YAML parsing failed.',
+    };
     return {
       config: structuredClone(defaultDeploymentConfig),
-      issues: [
-        { path: '$', message: error instanceof Error ? error.message : 'YAML parsing failed.' },
-      ],
+      issues: [issue],
+      settings: { ok: false, issues: [issue] },
+      declaresSettings: false,
     };
   }
+  return {
+    ...configFromDocument(parsed),
+    settings: parseDeploymentSettings(parsed, edition),
+    declaresSettings: declaresDeploymentSettings(parsed),
+  };
+}
+
+/** Validate the file's text. Separated from reading it so the tests never touch a filesystem. */
+export function parseDeploymentConfig(text: string): DeploymentConfigResult {
+  const { config, issues } = parseDeploymentFile(text);
+  return { config, issues };
+}
+
+function configFromDocument(parsed: unknown): DeploymentConfigResult {
+  const issues: DeploymentConfigIssue[] = [];
   // An empty file is a deployment that wrote the file and configured nothing yet, which is the
   // same thing as having no file at all.
   if (parsed === null || parsed === undefined)

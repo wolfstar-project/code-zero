@@ -1,0 +1,74 @@
+# Instance configuration for the dashboard, copied to `config.yml` in the server's working
+# directory (or to any path named by CODE_ZERO_CONFIG). Every section is optional; a deployment that
+# has changed nothing ships no file at all and gets these defaults. The old name,
+# `code-zero.deployment.yml`, is still read when it is the only file present.
+#
+# This is not `.code-zero.yml`: that file lives in each repository and is that repository's own,
+# untrusted policy. This one belongs to whoever runs the deployment, and where both speak, the
+# stricter wins.
+#
+# What belongs here, and what does not:
+#
+#   - Here: policy. Values that are fixed for the life of the process, are not secret, and are read
+#     more easily as a structured document than as a comma-separated variable.
+#   - The environment: secrets, and the bootstrap values needed to find everything else
+#     (DATABASE_URL, CODE_ZERO_CONFIG, CODE_ZERO_EDITION, CODE_ZERO_SETTINGS_SOURCE).
+#   - The `repository` table: anything that changes while the process runs. Which checkouts a task
+#     may target, and which repositories the poller watches, are rows an operator edits from the
+#     dashboard — a repository added a moment ago is answerable without a restart.
+#
+# The control_plane and poll sections are validated field by field: a value that is refused is
+# reported on stderr with its own `$.path` and falls back to the default below, so one wrong line
+# does not stop the dashboard from loading. The settings sections at the end are stricter.
+
+control_plane:
+  # Origins allowed to read /api/v1/** cross-origin via CORS. Empty by default: `tasks.list`,
+  # `tasks.get` and `health` are unauthenticated by design, so letting a browser read their
+  # responses from another origin is an explicit opt-in, not the default.
+  origins: []
+  #  - https://ops.example.com
+
+  # Execution modes each operator token may request from `tasks.create`, keyed by the principal
+  # name in CODE_ZERO_CONTROL_PLANE_TOKENS. Without a grant a principal may only request the
+  # non-writable `observe` and `suggest`. An unknown mode, or an unknown principal name, is
+  # refused rather than quietly narrowed.
+  modes: {}
+  #  ci: [observe, suggest]
+  #  release: [observe, suggest, fix, autonomous]
+
+poll:
+  # Seconds between polling passes. Clamped to 15..3600.
+  interval_seconds: 60
+
+# Deployment settings: the limits every run is held to, shown at /settings in the dashboard.
+#
+# These three sections are read only while CODE_ZERO_SETTINGS_SOURCE is `file` (the default). With
+# `dashboard` the settings live in Postgres instead, and settings left here are ignored with a
+# warning rather than merged. They are strict: an unknown key, an out-of-range value, or anything
+# shaped like a credential makes the whole settings document invalid, and no task starts until it is
+# fixed. Uncomment to set them; the values shown are the defaults, except where noted.
+#
+# execution:
+#   # Tasks this deployment runs at once; the rest wait in the queue. 1..64.
+#   max_concurrent_tasks: 4
+#   # Minutes before ONE repository command is stopped (and the longest a hosted sandbox lease
+#   # lasts). Not a limit on a whole run, which can execute several commands. 1..1440.
+#   command_timeout_minutes: 30
+#   # Modes a run may start in. Must include observe, the mode that never writes.
+#   allowed_modes: [observe, suggest, fix, autonomous]
+#   # The widest network any run may have: none, restricted, or full. A repository may only narrow it.
+#   max_network: full
+#
+# # Not set by default: each repository's .code-zero.yml chooses. When set, replaces that choice for
+# # every run. The provider's credential stays in the environment (ANTHROPIC_API_KEY, ...).
+# model:
+#   provider: anthropic
+#   name: claude-sonnet-4-5
+#
+# # Not set by default: each repository chooses. When set, forces every run this process executes
+# # into a container with this engine (docker or podman) and image. Only container isolation can be
+# # imposed from here.
+# runner:
+#   isolation: container
+#   engine: docker
+#   image: ghcr.io/acme/code-zero-runner:1.0

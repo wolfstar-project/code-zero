@@ -25,6 +25,8 @@
 **/.env
 **/.env.*
 !**/.env.example
+config.yml
+apps/web/config.yml
 code-zero.deployment.yml
 Dockerfile
 .dockerignore
