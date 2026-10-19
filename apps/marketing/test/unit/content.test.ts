@@ -5,13 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { locales } from '@code-zero/i18n';
 import { describe, expect, it } from 'vitest';
 
-import {
-  faqEntries,
-  featureCards,
-  logoCloud,
-  pricingPlans,
-  testimonials,
-} from '../../config/content.js';
+import { faqEntries, featureCards, logoCloud, pricingPlans } from '../../config/content.js';
 
 /**
  * The landing page's structure lives in `config/content.ts` while its words live in
@@ -57,12 +51,6 @@ describe.each(localeCodes)('%s dictionary', (locale) => {
     expect(messageAt(messages, `features.items.${id}.description`)).toBeDefined();
   });
 
-  it.each(testimonials.map((entry) => entry.id))('translates the %s testimonial', (id) => {
-    expect(messageAt(messages, `testimonials.items.${id}.quote`)).toBeDefined();
-    expect(messageAt(messages, `testimonials.items.${id}.author`)).toBeDefined();
-    expect(messageAt(messages, `testimonials.items.${id}.role`)).toBeDefined();
-  });
-
   it.each(faqEntries.map((entry) => entry.id))('translates the %s FAQ entry', (id) => {
     expect(messageAt(messages, `faq.items.${id}.question`)).toBeDefined();
     expect(messageAt(messages, `faq.items.${id}.answer`)).toBeDefined();
@@ -82,7 +70,7 @@ describe.each(localeCodes)('%s dictionary', (locale) => {
 
 describe('content structure', () => {
   it('keeps every id unique within its section', () => {
-    for (const section of [featureCards, testimonials, faqEntries, pricingPlans, logoCloud]) {
+    for (const section of [featureCards, faqEntries, pricingPlans, logoCloud]) {
       const ids = section.map((entry) => entry.id);
       expect(new Set(ids).size).toBe(ids.length);
     }

@@ -1,8 +1,8 @@
 <template>
   <header class="sticky top-0 z-40 border-b border-line bg-canvas/85 backdrop-blur">
-    <div class="shell h-16 flex items-center gap-4">
+    <div class="shell h-16 flex items-center gap-2 sm:gap-4">
       <NuxtLink
-        class="focus-ring flex shrink-0 items-center gap-2.5"
+        class="focus-ring min-h-11 flex shrink-0 items-center gap-2.5"
         :to="localePath({ path: '/' })"
         :aria-label="site.name"
       >
@@ -14,7 +14,7 @@
         <NuxtLink
           v-for="link in navigation"
           :key="link.id"
-          class="focus-ring px-2.5 py-2 text-xs text-muted font-600 transition hover:text-ink"
+          class="focus-ring min-h-11 inline-flex items-center px-2.5 text-sm text-muted font-600 transition hover:text-ink"
           :to="link.to"
           :external="link.external"
           :target="link.external ? '_blank' : undefined"
@@ -24,15 +24,15 @@
         </NuxtLink>
       </nav>
 
-      <div class="ms-auto flex items-center gap-2">
+      <div class="ms-auto flex items-center gap-1 sm:gap-2">
         <ClientOnly>
           <ColorModeToggle />
           <template #fallback>
-            <span class="h-9 w-9" aria-hidden="true" />
+            <span class="h-11 w-11" aria-hidden="true" />
           </template>
         </ClientOnly>
         <LocaleSwitcher class="hidden sm:block" />
-        <a class="btn btn-accent btn-sm" :href="dashboardUrl">
+        <a class="btn btn-accent px-3 sm:px-5" :href="dashboardUrl">
           {{ $t('marketing.nav.signIn') }}
         </a>
         <button
@@ -54,14 +54,15 @@
       :aria-label="$t('marketing.nav.aria')"
       class="border-t border-line bg-panel lg:hidden"
     >
-      <ul class="shell m-0 list-none flex flex-col gap-1 py-3 ps-0">
+      <ul class="shell m-0 list-none flex flex-col gap-1 py-4">
         <li v-for="link in navigation" :key="link.id">
           <NuxtLink
-            class="focus-ring block px-1 py-2.5 text-sm text-muted font-600 transition hover:text-ink"
+            class="focus-ring min-h-11 flex items-center px-2 text-base text-muted font-600 transition hover:text-ink"
             :to="link.to"
             :external="link.external"
             :target="link.external ? '_blank' : undefined"
             :rel="link.external ? 'noreferrer' : undefined"
+            @click="menuOpen = false"
           >
             {{ $t(`marketing.nav.${link.id}`) }}
           </NuxtLink>

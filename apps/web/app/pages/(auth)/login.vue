@@ -1,5 +1,5 @@
 <template>
-  <section class="panel w-full max-w-88 p-6">
+  <section class="w-full">
     <h1 class="m-0 text-lg font-650 tracking-tight">{{ $t('auth.login.title') }}</h1>
     <p class="mb-6 mt-1 text-xs text-muted">{{ $t('auth.login.subtitle') }}</p>
 
@@ -59,14 +59,14 @@
  */
 definePageMeta({ layout: 'auth' });
 
-const appConfig = useAppConfig();
+const capabilities = await useAuthCapabilities();
 const { localizeAuthError } = useAuthErrorMessage();
 
 const signInEmail = useSignIn('email');
 const signInSocial = useSignIn('social');
 
-const canSignUp = appConfig.auth.enableSignup;
-const canUseGithub = appConfig.auth.enableGithubOauth;
+const canSignUp = computed(() => capabilities.value.signup);
+const canUseGithub = computed(() => capabilities.value.social.github);
 
 const email = ref('');
 const password = ref('');

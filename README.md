@@ -164,7 +164,7 @@ The CLI parses arguments with [`@bomb.sh/args`](https://github.com/bomb-sh/args)
 | `/api/v1/**`   | The same router over OpenAPI/REST; interactive docs at `/api/v1/docs`, spec at `/api/v1/openapi.json`        |
 | `/api/auth/**` | The Better Auth handler (mounted by `@onmax/nuxt-better-auth` from `server/auth.config.ts`)                  |
 
-`/rpc/**` and `/api/v1/**` are the same `rpcRouter` from [`packages/api`](./packages/api) served over two wire protocols, so authorization behaves identically either way. Reads are open for the dashboard; mutations (`tasks.create`, `approvals.decide`) fail closed. `CODE_ZERO_CONTROL_PLANE_TOKENS` holds comma-separated `name:token` bearer credentials — the one half of this policy that is a secret, and so the one half still in the environment. Which execution modes each principal may request is `control_plane.modes` in `code-zero.deployment.yml`; without a grant a principal may only request the non-writable `observe` and `suggest` modes, so `fix` and `autonomous` require an explicit operator grant. Which checkouts `tasks.create` may target is neither a secret nor fixed for the life of the process, so it is the `repository` table an operator edits from the dashboard; with none configured every task creation is refused. The approval actor is the authenticated principal's name, never a wire-supplied value. This bearer-token scheme authorizes the control-plane API and is independent of the Better Auth session that protects the dashboard UI.
+`/rpc/**` and `/api/v1/**` are the same `rpcRouter` from [`packages/api`](./packages/api) served over two wire protocols, so authorization behaves identically either way. Reads are open for the dashboard; mutations (`tasks.create`, `approvals.decide`) fail closed. `CODE_ZERO_CONTROL_PLANE_TOKENS` holds comma-separated `name:token` bearer credentials — the one half of this policy that is a secret, and so the one half still in the environment. Which execution modes each principal may request is `control_plane.modes` in the instance file, `config.yml`; without a grant a principal may only request the non-writable `observe` and `suggest` modes, so `fix` and `autonomous` require an explicit operator grant. Which checkouts `tasks.create` may target is neither a secret nor fixed for the life of the process, so it is the `repository` table an operator edits from the dashboard; with none configured every task creation is refused. The approval actor is the authenticated principal's name, never a wire-supplied value. This bearer-token scheme authorizes the control-plane API and is independent of the Better Auth session that protects the dashboard UI.
 
 Typed clients infer their shape from the router rather than redeclaring request and response types:
 
@@ -206,18 +206,17 @@ off until you turn them on, so a fresh deployment cannot be signed up for by a s
 | `NUXT_BETTER_AUTH_SECRET`                   | yes      | –       | Session signing secret. Required under this name in production; `BETTER_AUTH_SECRET` is a development-only fallback |
 | `DATABASE_URL`                              | yes      | –       | Postgres connection string                                                                                          |
 | `AUTH_ENABLE_SIGNUP`                        | no       | `false` | Set to `true` to allow self-registration                                                                            |
-| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | no       | –       | Enables the GitHub button when both are set                                                                         |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | no       | –       | Enables the GitHub button when both are set; GitLab (`GITLAB_*`) and Google (`GOOGLE_*`) follow the same rule       |
 | `NUXT_PUBLIC_SITE_URL`                      | no       | –       | Base URL override for a custom domain or deterministic OAuth callbacks; auto-detected from the request otherwise    |
 
 `AUTH_DATABASE_URL` is still read when `DATABASE_URL` is unset, so a deployment configured before
 the store moved into `packages/database` keeps starting; prefer `DATABASE_URL` for new ones.
 
-Sign-in lives at `/login` and self-registration at `/signup`; the methods each page offers are
-derived at build time from the same policy variables `server/auth.config.ts` reads at runtime
-(`AUTH_ENABLE_SIGNUP`, `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`), and no runtime override can
-change them. The flip side of that build-time capture is a deployment contract: whenever you change
-those policy variables, rebuild the app, or the auth pages will keep advertising the old
-capabilities (the server still enforces its own policy either way).
+Sign-in lives at `/login` and self-registration at `/signup`. The methods each page offers are
+read at runtime from `/api/capabilities`, which the server derives from the same policy variables
+`server/auth.config.ts` builds Better Auth from, so changing them needs a restart rather than a
+rebuild. Every variable is listed, with its default, in `apps/web/.env.example`; the full policy is
+described in the [authentication guide](apps/docs/content/1.guide/11.authentication/1.overview.md).
 
 The interface ships English and Italian through `@nuxtjs/i18n`, with dictionaries split by scope in
 `packages/i18n/locales/<locale>/` and shared with the marketing site; each app loads only the
@@ -422,7 +421,7 @@ also tagged with its full commit SHA, and `vX.Y.Z` tags matching the dashboard v
 docker build -t code-zero .
 docker run --rm -p 3000:3000 --env-file apps/web/.env \
   -v code-zero-data:/app/.data \
-  -v "$PWD/code-zero.deployment.yml:/app/code-zero.deployment.yml:ro" \
+  -v "$PWD/config.yml:/app/config.yml:ro" \
   code-zero
 ```
 
@@ -437,8 +436,8 @@ environment sets. Apply migrations against `DATABASE_URL` with
 root needs `RAILWAY_RUN_UID=0`, since the image runs as the unprivileged `node` user).
 
 The image carries only `.output/`, so the deployment policy has to be supplied: mount
-`code-zero.deployment.yml` at `/app/code-zero.deployment.yml` as above, or mount it elsewhere and
-point `CODE_ZERO_CONFIG` at it. Without it the process falls back to the closed defaults (no CORS
+`config.yml` at `/app/config.yml` as above (see [`config.example.yml`](./config.example.yml)), or
+mount it elsewhere and point `CODE_ZERO_CONFIG` at it. Without it the process falls back to the closed defaults (no CORS
 origins, no `fix` or `autonomous` grants). The image ships `git` for the host runner but no
 container engine, so `runner.isolation: container` is not supported by it: tasks that require
 container isolation fail closed instead of running on the host. Deploy the `.output/` bundle on a

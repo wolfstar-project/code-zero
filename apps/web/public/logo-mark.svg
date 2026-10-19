@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"
+     width="64" height="64" class="cz" role="img" aria-label="Code Zero">
+  <title>Code Zero</title>
+  <style>
+    .cz .ink{fill:var(--cz-ink,#EFF3EE)}
+    .cz .ink-s{stroke:var(--cz-ink,#EFF3EE)}
+    .cz .acc{fill:var(--cz-accent,#84E04F)}
+    @media (prefers-color-scheme: light){
+      .cz .ink{fill:var(--cz-ink,#0B140E)}
+      .cz .ink-s{stroke:var(--cz-ink,#0B140E)}
+      .cz .acc{fill:var(--cz-accent,#026C00)}
+    }
+  </style>
+  <defs>
+    <mask id="cutm" maskUnits="userSpaceOnUse"
+          x="-4.326" y="-23.04" width="72.653" height="110.08">
+      <rect x="-4.326" y="-23.04" width="72.653" height="110.08" fill="#fff"/>
+      <g fill="#000"><rect x="-9.28" y="27.467" width="82.56" height="9.066" transform="rotate(-62 32 32)"/></g>
+    </mask>
+    <clipPath id="clipm"><path d="M13.198,22.643A18.802,18.802 0 0 1 50.802,22.643L50.802,41.357A18.802,18.802 0 0 1 13.198,41.357Z"/></clipPath>
+  </defs>
+  <g mask="url(#cutm)" fill="none" stroke-width="6.385">
+    <path class="ink-s" d="M32,7.672A14.971,14.971 0 0 1 46.971,22.643L46.971,41.357A14.971,14.971 0 0 1 17.029,41.357L17.029,22.643A14.971,14.971 0 0 1 32,7.672Z" stroke="#EFF3EE"/>
+  </g>
+  <g class="acc" clip-path="url(#clipm)" fill="#84E04F"><rect x="-9.28" y="29.382" width="82.56" height="5.235" transform="rotate(-62 32 32)"/></g>
+</svg>

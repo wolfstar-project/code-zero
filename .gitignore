@@ -1,11 +1,14 @@
 # Also matches a node_modules symlink, which the trailing-slash form does not.
 node_modules
 .turbo/
-dist/
+# Also matches the `dist` symlink `nuxt generate` points at `.output/public`.
+dist
 .output/
 .nuxt/
 # Written by the Nitro `vercel` preset and by the Vercel CLI's own local link file.
 .vercel/
+# Local state of `wrangler dev` and `wrangler deploy`.
+.wrangler/
 .maizzle/
 .vitehub/
 *.tsbuildinfo
@@ -27,5 +30,7 @@ test-report.junit.xml
 # Local editor tooling; never something a checkout should carry.
 /code
 /vscode_cli.tar.gz
+# The instance file (config.yml) where a deployment keeps it locally, and its old name anywhere.
+/config.yml
+/apps/web/config.yml
 code-zero.deployment.yml
-!code-zero.deployment.example.yml

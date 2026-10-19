@@ -1,5 +1,5 @@
 <template>
-  <section class="panel w-full max-w-88 p-6">
+  <section class="w-full">
     <h1 class="m-0 text-lg font-650 tracking-tight">{{ $t('auth.signup.title') }}</h1>
     <p class="mb-6 mt-1 text-xs text-muted">{{ $t('auth.login.subtitle') }}</p>
 
@@ -68,20 +68,20 @@
  * Registration lives on its own route rather than behind a toggle on the sign-in page, so the two
  * flows have distinct URLs to link to, bookmark, and gate.
  *
- * `enableSignup` only decides what this page offers. The server enforces the same policy on its own
- * from the same environment, independent of this page, so the closed state below is presentation,
- * not the actual gate.
+ * The `signup` capability, read from `/api/capabilities` at runtime, only decides what this page
+ * offers. The server enforces the same policy on its own from the same environment, independent
+ * of this page, so the closed state below is presentation, not the actual gate.
  */
 definePageMeta({ layout: 'auth' });
 
-const appConfig = useAppConfig();
+const capabilities = await useAuthCapabilities();
 const { localizeAuthError } = useAuthErrorMessage();
 
 const signUpEmail = useSignUp('email');
 const signInSocial = useSignIn('social');
 
-const canSignUp = appConfig.auth.enableSignup;
-const canUseGithub = appConfig.auth.enableGithubOauth;
+const canSignUp = computed(() => capabilities.value.signup);
+const canUseGithub = computed(() => capabilities.value.social.github);
 
 const email = ref('');
 const password = ref('');

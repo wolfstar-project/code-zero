@@ -32,4 +32,17 @@ describe('SiteHeader', () => {
     expect(toggle.attributes('aria-expanded')).toBe('true');
     expect(toggle.attributes('aria-label')).toBe('Close menu');
   });
+
+  it('closes the mobile menu after following a documentation link', async () => {
+    const wrapper = await mountSuspended(Header);
+    const toggle = wrapper.get('[aria-controls="site-mobile-menu"]');
+    await toggle.trigger('click');
+
+    const docsLink = wrapper.get('#site-mobile-menu a[target="_blank"]');
+    docsLink.element.addEventListener('click', (event) => event.preventDefault(), { once: true });
+    await docsLink.trigger('click');
+
+    expect(toggle.attributes('aria-expanded')).toBe('false');
+    expect(toggle.attributes('aria-label')).toBe('Open menu');
+  });
 });

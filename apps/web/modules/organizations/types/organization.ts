@@ -6,15 +6,11 @@
  * plugin returns, narrowed to what the UI actually reads.
  */
 
-/** Roles the invitation and member views can assign. */
-export const ORGANIZATION_ROLES = ['member', 'admin', 'owner'] as const;
-
 /**
- * The error code the auth server refuses an organization invitation with when the deployment has
- * no way to deliver it. Mirrors `ORGANIZATION_INVITATION_DELIVERY_UNAVAILABLE` in
- * `@code-zero/auth`, for the same reason the shapes above are mirrored rather than imported.
+ * Roles an invitation can grant. `owner` is not one of them: ownership is handed over by an owner
+ * from the member list, never granted to an address by whoever holds the invite permission.
  */
-export const INVITATION_DELIVERY_UNAVAILABLE = 'INVITATION_DELIVERY_UNAVAILABLE';
+export const ORGANIZATION_ROLES = ['member', 'admin'] as const;
 
 export type OrganizationRole = (typeof ORGANIZATION_ROLES)[number];
 

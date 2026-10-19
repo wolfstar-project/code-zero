@@ -9,8 +9,7 @@
     },
     "roles": {
       "member": "Member",
-      "admin": "Admin",
-      "owner": "Owner"
+      "admin": "Admin"
     },
     "members": {
       "title": "Members",
@@ -29,16 +28,8 @@
       "submitPending": "Sending…",
       "sent": "Invitation sent to {email}."
     },
-    "accept": {
-      "title": "Organization invitation",
-      "pending": "Accepting your invitation…",
-      "accepted": "You have joined the organization.",
-      "failed": "This invitation is no longer valid. It may have expired or already been used.",
-      "continue": "Go to dashboard"
-    },
     "errors": {
-      "generic": "That organization action could not be completed.",
-      "invitationDeliveryUnavailable": "Invitations are unavailable: this deployment has no email delivery configured."
+      "generic": "That organization action could not be completed."
     }
   }
 }

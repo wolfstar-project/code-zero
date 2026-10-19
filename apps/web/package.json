@@ -22,7 +22,9 @@
     "typecheck": "nuxt typecheck"
   },
   "dependencies": {
-    "@better-auth/infra": "^0.4.0",
+    "@better-auth/api-key": "^1.7.10",
+    "@better-auth/infra": "^0.4.20",
+    "@better-auth/passkey": "^1.7.10",
     "@code-zero/api": "workspace:*",
     "@code-zero/auth": "workspace:*",
     "@code-zero/build-env": "workspace:*",
@@ -32,7 +34,7 @@
     "@code-zero/mail": "workspace:*",
     "@code-zero/shared": "workspace:*",
     "@code-zero/source-control": "workspace:*",
-    "@octopi-ai/better-enrollment": "^0.4.0",
+    "@octopi-ai/better-enrollment": "^0.5.2",
     "@onmax/nuxt-better-auth": "^0.1.2",
     "@orpc/client": "2.0.0-beta.26",
     "@orpc/evlog": "2.0.0-beta.26",
@@ -43,7 +45,7 @@
     "@tanstack/vue-hotkeys": "^0.10.0",
     "@tanstack/vue-query": "^5.101.4",
     "@tanstack/vue-table": "^9.1.2",
-    "better-auth": "^1.6.26",
+    "better-auth": "^1.7.10",
     "evlog": "^2.26.0",
     "h3": "^1.15.11",
     "nuxt": "^4.5.2",

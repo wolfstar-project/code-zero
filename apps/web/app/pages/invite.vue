@@ -1,5 +1,5 @@
 <template>
-  <section class="panel w-full max-w-88 p-6">
+  <section class="w-full">
     <h1 class="m-0 text-lg font-650 tracking-tight">{{ $t('auth.invite.title') }}</h1>
     <p v-if="organizationName" class="mb-6 mt-1 text-xs text-muted">{{ organizationName }}</p>
 

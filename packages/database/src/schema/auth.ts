@@ -24,7 +24,8 @@ export const user = pgTable(
      * private invitation pre-creates an inert row before redemption decides what it grants.
      *
      * Distinct from `member.role`, which scopes a role to a single organization. This column is
-     * app-wide.
+     * app-wide, and Better Auth's admin plugin is its authority: it decides which values grant
+     * administration, and Better Enrollment merges invitation grants into the same string.
      */
     role: text('role'),
     /**
@@ -36,6 +37,21 @@ export const user = pgTable(
      * because every account predates its first sign-in under this plugin.
      */
     lastLoginMethod: text('last_login_method'),
+    /**
+     * Set by Better Auth's two-factor plugin once the first authenticator code has verified a
+     * pending enrollment, never at enrollment itself: an account that started setup and abandoned
+     * it must still sign in with its password alone.
+     */
+    twoFactorEnabled: boolean('two_factor_enabled').notNull().default(false),
+    /**
+     * Admin plugin: whether an administrator has banned the account. A banned account's sessions
+     * are revoked and every new sign-in is refused until the ban is lifted or `banExpires` passes.
+     */
+    banned: boolean('banned').notNull().default(false),
+    /** Admin plugin: the reason the ban was imposed with, shown to the administrators who list it. */
+    banReason: text('ban_reason'),
+    /** Admin plugin: when a temporary ban lapses. Null means the ban, if any, does not expire. */
+    banExpires: timestamp('ban_expires', { withTimezone: true }),
     ...timestampColumns,
   },
   (table) => [uniqueIndex('user_email_unique').on(table.email)],
@@ -56,6 +72,13 @@ export const session = pgTable(
     // Which organization the session is currently acting in. Written by the organization plugin
     // when the user switches context; null means no organization is selected.
     activeOrganizationId: text('active_organization_id'),
+    /**
+     * Admin plugin: the administrator acting through this session when it was minted by
+     * impersonation, null for every session the account holder signed in to themselves. It is what
+     * makes an impersonated action attributable, so it cascades with the administrator's account
+     * rather than outliving it as a session nobody answers for.
+     */
+    impersonatedBy: text('impersonated_by').references(() => user.id, { onDelete: 'cascade' }),
     ...timestampColumns,
   },
   (table) => [

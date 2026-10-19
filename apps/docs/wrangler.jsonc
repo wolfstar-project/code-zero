@@ -1,0 +1,13 @@
+{
+  // Docus is generated as a static site (`nuxt generate`): every page is prerendered and search
+  // runs in the browser over the content dump, so the Worker only serves files and needs no D1.
+  "name": "code-zero-docs",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": ".output/public",
+    "not_found_handling": "404-page",
+    "html_handling": "drop-trailing-slash",
+  },
+  "routes": [{ "pattern": "docs.code-zero.dev", "custom_domain": true }],
+  "workers_dev": true,
+}

@@ -34,7 +34,7 @@
     "@orpc/evlog": "2.0.0-beta.26",
     "@orpc/openapi": "2.0.0-beta.26",
     "@orpc/server": "2.0.0-beta.26",
-    "better-auth": "^1.6.26",
+    "better-auth": "^1.7.10",
     "evlog": "^2.26.0",
     "zod": "^4.4.3"
   },

@@ -32,6 +32,14 @@ export interface StoredTask extends DashboardTask {
    * mutation after verification cannot ride along under the run's evidence.
    */
   changedFileSnapshot?: ChangedFileSnapshot[];
+  /**
+   * The organization the run was started for on the managed cloud, fixed when it was created.
+   *
+   * Anything later done about this task — deciding it, retrying it — answers to this organization,
+   * not to whichever one the session that comes back has selected by then. Absent on a self-hosted
+   * deployment and for work the deployment started itself.
+   */
+  organizationId?: string;
 }
 
 export interface TaskStore {
@@ -220,6 +228,20 @@ export interface SchedulerOptions {
   maxConcurrentPerRepository: number;
 }
 
+/**
+ * The limits one job was submitted under.
+ *
+ * Carried per job rather than fixed on the scheduler, because they come from settings that change
+ * while the process runs: a job queued under the old limit keeps it, and the next one is held to the
+ * new one, with no restart and no scheduler to rebuild.
+ */
+export interface ScheduleLimits {
+  /** How many jobs may run at once when this one starts. Replaces the scheduler's own ceiling. */
+  maxConcurrent?: number;
+  /** At most `maxConcurrent` jobs sharing `key` run at once: one organization's own, lower ceiling. */
+  group?: { key: string; maxConcurrent: number };
+}
+
 export interface SchedulerSnapshot {
   active: number;
   queued: number;
@@ -235,13 +257,15 @@ export class TaskQueueQuotaError extends Error {
 
 interface QueuedJob {
   repository: string;
+  limits: ScheduleLimits;
   start: () => Promise<void>;
 }
 
-/** Bounded FIFO scheduler with a separate per-repository fairness quota. */
+/** Bounded FIFO scheduler with separate per-repository and per-group fairness quotas. */
 export class TaskScheduler {
   private active = 0;
   private readonly activeByRepository = new Map<string, number>();
+  private readonly activeByGroup = new Map<string, number>();
   private readonly queue: QueuedJob[] = [];
 
   constructor(private readonly options: SchedulerOptions) {
@@ -250,12 +274,16 @@ export class TaskScheduler {
     assertPositiveInteger(options.maxConcurrentPerRepository, 'maxConcurrentPerRepository');
   }
 
-  schedule<T>(repository: string, run: () => Promise<T>): Promise<T> {
-    if (this.queue.length >= this.options.maxQueued && !this.hasImmediateCapacity(repository))
+  schedule<T>(repository: string, run: () => Promise<T>, limits: ScheduleLimits = {}): Promise<T> {
+    if (limits.maxConcurrent !== undefined)
+      assertPositiveInteger(limits.maxConcurrent, 'maxConcurrent');
+    if (limits.group) assertPositiveInteger(limits.group.maxConcurrent, 'group.maxConcurrent');
+    if (this.queue.length >= this.options.maxQueued && !this.canStart({ repository, limits }))
       throw new TaskQueueQuotaError('Task queue capacity is exhausted');
     return new Promise<T>((resolve, reject) => {
       this.queue.push({
         repository,
+        limits,
         start: async () => {
           try {
             resolve(await run());
@@ -277,43 +305,49 @@ export class TaskScheduler {
   }
 
   /**
-   * Whether a new job for this repository would start synchronously in {@link drain}.
+   * Whether a job with these limits would start synchronously in {@link drain}.
    *
    * Only jobs without immediate capacity occupy the queue, so `maxQueued` must bound exactly those:
-   * a job blocked by its repository quota counts against the queue even while global capacity is
-   * free, otherwise per-repository-blocked submissions could grow the queue without limit.
+   * a job blocked by its repository or group quota counts against the queue even while global
+   * capacity is free, otherwise blocked submissions could grow the queue without limit.
    */
-  private hasImmediateCapacity(repository: string): boolean {
+  private canStart(job: Pick<QueuedJob, 'repository' | 'limits'>): boolean {
+    const { group } = job.limits;
     return (
-      this.active < this.options.maxConcurrent &&
-      (this.activeByRepository.get(repository) ?? 0) < this.options.maxConcurrentPerRepository
+      this.active < (job.limits.maxConcurrent ?? this.options.maxConcurrent) &&
+      (this.activeByRepository.get(job.repository) ?? 0) <
+        this.options.maxConcurrentPerRepository &&
+      (!group || (this.activeByGroup.get(group.key) ?? 0) < group.maxConcurrent)
     );
   }
 
   private drain(): void {
-    while (this.active < this.options.maxConcurrent) {
-      const index = this.queue.findIndex(
-        (job) =>
-          (this.activeByRepository.get(job.repository) ?? 0) <
-          this.options.maxConcurrentPerRepository,
-      );
+    for (;;) {
+      const index = this.queue.findIndex((job) => this.canStart(job));
       if (index < 0) return;
       const [job] = this.queue.splice(index, 1);
       if (!job) return;
       this.active += 1;
-      this.activeByRepository.set(
-        job.repository,
-        (this.activeByRepository.get(job.repository) ?? 0) + 1,
-      );
+      increment(this.activeByRepository, job.repository);
+      if (job.limits.group) increment(this.activeByGroup, job.limits.group.key);
       void job.start().finally(() => {
         this.active -= 1;
-        const repositoryActive = (this.activeByRepository.get(job.repository) ?? 1) - 1;
-        if (repositoryActive === 0) this.activeByRepository.delete(job.repository);
-        else this.activeByRepository.set(job.repository, repositoryActive);
+        decrement(this.activeByRepository, job.repository);
+        if (job.limits.group) decrement(this.activeByGroup, job.limits.group.key);
         this.drain();
       });
     }
   }
+}
+
+function increment(counts: Map<string, number>, key: string): void {
+  counts.set(key, (counts.get(key) ?? 0) + 1);
+}
+
+function decrement(counts: Map<string, number>, key: string): void {
+  const remaining = (counts.get(key) ?? 1) - 1;
+  if (remaining === 0) counts.delete(key);
+  else counts.set(key, remaining);
 }
 
 function sanitizeTask(task: StoredTask, secrets: readonly string[]): StoredTask {

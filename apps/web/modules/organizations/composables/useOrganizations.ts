@@ -3,28 +3,13 @@
 import { useAuthClient } from '@onmax/nuxt-better-auth/composables';
 import { useState } from 'nuxt/app';
 
-import { INVITATION_DELIVERY_UNAVAILABLE } from '../types/organization.js';
 import type { Organization, OrganizationMember, OrganizationRole } from '../types/organization.js';
 
 /**
- * Translation key per error code this app can explain. Everything else falls back to the generic
- * message: the server's own text is untrusted input, and the page renders what this returns.
+ * The translation key every failure renders: the server's own text is untrusted input, and the
+ * page renders what this names.
  */
-const ERROR_MESSAGE_KEYS: Readonly<Record<string, string>> = {
-  [INVITATION_DELIVERY_UNAVAILABLE]: 'organizations.errors.invitationDeliveryUnavailable',
-};
-
-/** Resolve a Better Auth error into a translation key, without assuming a shape it may not have. */
-function messageFrom(cause: unknown): string {
-  if (cause && typeof cause === 'object' && 'code' in cause) {
-    const { code } = cause as { code?: unknown };
-    if (typeof code === 'string') {
-      const key = ERROR_MESSAGE_KEYS[code];
-      if (key) return key;
-    }
-  }
-  return 'organizations.errors.generic';
-}
+const GENERIC_ERROR = 'organizations.errors.generic';
 
 /**
  * Better Auth client calls resolve with `{ data, error }` rather than rejecting on an API error.
@@ -69,8 +54,8 @@ export function useOrganizations() {
     error.value = null;
     try {
       return await action(client);
-    } catch (cause) {
-      error.value = messageFrom(cause);
+    } catch {
+      error.value = GENERIC_ERROR;
       return undefined;
     } finally {
       pending.value = false;
@@ -124,13 +109,23 @@ export function useOrganizations() {
     return created;
   }
 
+  /**
+   * Invite an address into the active organization.
+   *
+   * Through Better Enrollment's `org-join` invite rather than the organization plugin's own
+   * invitation, which the server does not serve: the link is mailed to the address alone and
+   * redeemed on `/invite`, like every other invitation.
+   */
   async function inviteMember(input: { email: string; role: OrganizationRole }) {
     const organizationId = activeOrganization.value?.id;
     if (!organizationId) return undefined;
     return run(async (authClient) => {
-      const { data, error: apiError } = await authClient.organization.inviteMember({
-        ...input,
+      const { data, error: apiError } = await authClient.invite.create({
+        type: 'private',
+        kind: 'org-join',
+        email: input.email,
         organizationId,
+        organizationRole: input.role,
       });
       throwOnApiError(apiError);
       return data;

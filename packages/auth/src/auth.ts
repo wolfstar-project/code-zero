@@ -1,4 +1,8 @@
+import { apiKey } from '@better-auth/api-key';
 import { dash, sentinel } from '@better-auth/infra';
+import { passkey } from '@better-auth/passkey';
+import { scim } from '@better-auth/scim';
+import { sso } from '@better-auth/sso';
 import { createDatabase, databaseUrlFromEnvironment, schema } from '@code-zero/database';
 import { betterEnrollment } from '@octopi-ai/better-enrollment';
 import { betterAuth } from 'better-auth';
@@ -6,39 +10,44 @@ import type { BetterAuthOptions, BetterAuthPlugin } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { APIError } from 'better-auth/api';
 import {
+  admin,
   bearer,
   deviceAuthorization,
   lastLoginMethod,
+  magicLink,
   multiSession,
   oAuthProxy,
   organization,
+  twoFactor,
 } from 'better-auth/plugins';
-import type { OrganizationOptions } from 'better-auth/plugins';
 
+import { accessControl, organizationRoles } from './access.js';
 import {
   authConfigFromEnvironment,
   DEVICE_VERIFICATION_PATH,
   githubCredentialsFromEnvironment,
+  gitlabCredentialsFromEnvironment,
+  googleCredentialsFromEnvironment,
   infraFromEnvironment,
+  NO_ENTITLEMENTS,
   oauthProxyFromEnvironment,
+  passkeyFromEnvironment,
+  scimFromEnvironment,
+  API_KEY_DEFAULT_PERMISSIONS,
+  API_KEY_PREFIX,
+  TWO_FACTOR_ISSUER,
 } from './config.js';
 import type {
   AuthConfig,
+  AuthEntitlements,
   GithubOauthCredentials,
+  GitlabOauthCredentials,
+  GoogleOauthCredentials,
   InfraConfig,
   OauthProxyConfig,
+  PasskeyRelyingParty,
+  ScimConfig,
 } from './config.js';
-
-/**
- * Error code an organization invitation is refused with when the deployment cannot deliver it.
- *
- * Travels to the client as the error body's `code`, so a UI can say why in the visitor's language
- * rather than rendering this package's English message: an operator has to configure a transport,
- * and the org admin who pressed "invite" should be told that rather than shown a generic failure.
- * The dashboard mirrors the literal instead of importing it — this package pulls Better Auth and
- * the database adapter, neither of which may reach a browser bundle.
- */
-export const ORGANIZATION_INVITATION_DELIVERY_UNAVAILABLE = 'INVITATION_DELIVERY_UNAVAILABLE';
 
 /**
  * Delivers a private (email-bound) enrollment invitation.
@@ -81,6 +90,43 @@ export type SendPublicInvitationEmail = (invitation: {
   readonly expiresAt: Date | null;
 }) => Promise<void>;
 
+/**
+ * Delivers the link that verifies an account's email address.
+ *
+ * Structural, like the invitation contracts above, so this package never depends on
+ * `@code-zero/mail`. The link carries a single-use token and is sent only to the address it
+ * verifies.
+ */
+export type SendVerificationEmail = (message: {
+  readonly to: string;
+  readonly name: string;
+  /** Absolute URL that verifies the address. Carries the only copy of the token. */
+  readonly verifyUrl: string;
+}) => Promise<void>;
+
+/** Delivers the link that resets a forgotten password, to the account's own address only. */
+export type SendPasswordResetEmail = (message: {
+  readonly to: string;
+  readonly name: string;
+  /** Absolute URL that opens the reset form. Carries the only copy of the token. */
+  readonly resetUrl: string;
+}) => Promise<void>;
+
+/** Delivers a passwordless sign-in link. Possession of the link is the credential. */
+export type SendMagicLinkEmail = (message: {
+  readonly to: string;
+  /** Absolute URL that signs the recipient in. Carries the only copy of the token. */
+  readonly signInUrl: string;
+}) => Promise<void>;
+
+/** Delivers a one-time second-factor code by mail, for an account that chose that factor. */
+export type SendTwoFactorOtpEmail = (message: {
+  readonly to: string;
+  readonly name: string;
+  /** The one-time code. Short-lived, single-use, and never logged. */
+  readonly code: string;
+}) => Promise<void>;
+
 /** Everything Better Auth's policy shape needs that isn't signing or origin configuration. */
 export interface AuthDatabaseOptions {
   /**
@@ -92,6 +138,28 @@ export interface AuthDatabaseOptions {
   readonly databaseUrl: string;
   readonly config: AuthConfig;
   readonly github?: GithubOauthCredentials;
+  readonly gitlab?: GitlabOauthCredentials;
+  readonly google?: GoogleOauthCredentials;
+  /**
+   * The relying party passkeys are bound to. Required when `config.enablePasskey` is on: without
+   * a configured origin the plugin would trust whatever `Origin` header a request carried.
+   */
+  readonly passkey?: PasskeyRelyingParty;
+  /**
+   * Enterprise capabilities. Absent means none: SSO and SCIM are registered only when their
+   * entitlement is explicitly true, and otherwise their endpoints do not exist.
+   */
+  readonly entitlements?: AuthEntitlements;
+  /** SCIM settings, required when the `scim` entitlement is granted. */
+  readonly scim?: ScimConfig;
+  /** Required when `config.enableEmailVerification` is on. */
+  readonly sendVerificationEmail?: SendVerificationEmail;
+  /** Required when `config.enablePasswordReset` is on. */
+  readonly sendPasswordResetEmail?: SendPasswordResetEmail;
+  /** Required when `config.enableMagicLink` is on. */
+  readonly sendMagicLinkEmail?: SendMagicLinkEmail;
+  /** Required when `config.enableTwoFactorEmailOtp` is on. */
+  readonly sendTwoFactorOtpEmail?: SendTwoFactorOtpEmail;
   /**
    * Routes this deployment's OAuth round trip through a production origin.
    *
@@ -135,15 +203,41 @@ export interface AuthInstanceOptions extends AuthDatabaseOptions {
 }
 
 /**
+ * Organization endpoints this package never exposes.
+ *
+ * The organization plugin ships its own invitation flow (an `invitation` row, an emailed id, an
+ * accept endpoint). Code Zero invites through Better Enrollment instead, which covers the same
+ * ground with proof of mailbox access, public links, and seat limits, so serving both would give
+ * one concept two models and two sets of rules. The organization plugin has no option to turn its
+ * flow off, so the endpoints are removed from the plugin before it is registered: they are absent
+ * from `auth.api` and their routes answer 404, rather than existing behind a guard someone could
+ * later relax.
+ */
+export const ORGANIZATION_INVITATION_ENDPOINTS = [
+  'createInvitation',
+  'acceptInvitation',
+  'rejectInvitation',
+  'cancelInvitation',
+  'getInvitation',
+  'listInvitations',
+  'listUserInvitations',
+] as const;
+
+/**
  * Build the database, policy, and provider portion of the Better Auth options.
  *
  * Deliberately excludes `secret`, `baseURL`, and `trustedOrigins`: a same-origin host (a Nuxt
  * module hosting Better Auth in-process, for example) resolves those itself and must not have a
  * second, potentially divergent source for them.
+ *
+ * Every capability is decided by `options.config`, read when this runs rather than when the app
+ * was built, and every capability that needs something to work — a mail transport, a relying
+ * party, a secret — refuses to construct without it instead of registering endpoints that fail on
+ * their first request. The refusals name what is missing and never echo a configured value.
  */
 export function authBetterAuthOptions(options: AuthDatabaseOptions): Pick<
   BetterAuthOptions,
-  'database' | 'emailAndPassword' | 'session' | 'socialProviders' | 'user'
+  'database' | 'emailAndPassword' | 'emailVerification' | 'session' | 'socialProviders' | 'user'
 > & {
   // Declared here rather than picked from `BetterAuthOptions`: that interface's own `plugins`
   // field is typed `... | undefined` explicitly, which trips `exactOptionalPropertyTypes` at
@@ -153,13 +247,7 @@ export function authBetterAuthOptions(options: AuthDatabaseOptions): Pick<
   plugins: BetterAuthPlugin[];
 } {
   const { config } = options;
-
-  // Fail at construction rather than at the first private enrollment invitation: its link is not
-  // returned to the creator, so without delivery it would be unreachable.
-  if (config.enableInvitations && !options.sendPrivateInvitationEmail)
-    throw new Error('invitations are enabled but no sendPrivateInvitationEmail was provided');
-  if (config.enableInvitations && !options.dashboardUrl)
-    throw new Error('invitations are enabled but no dashboardUrl was provided');
+  assertCapabilitiesAreDeliverable(options);
 
   const plugins = authPlugins(options);
 
@@ -174,27 +262,98 @@ export function authBetterAuthOptions(options: AuthDatabaseOptions): Pick<
     { provider: 'pg', schema },
   );
 
+  const { sendVerificationEmail, sendPasswordResetEmail } = options;
+
   return {
     database,
     emailAndPassword: {
       enabled: config.enablePasswordLogin,
       minPasswordLength: config.minimumPasswordLength,
+      maxPasswordLength: config.maximumPasswordLength,
       disableSignUp: !config.enableSignup,
+      requireEmailVerification: config.requireEmailVerification,
+      // A reset proves control of the mailbox, not of the sessions the old password opened, so
+      // every one of them ends with it.
+      revokeSessionsOnPasswordReset: true,
+      ...(config.enablePasswordReset && sendPasswordResetEmail
+        ? {
+            sendResetPassword: async ({ user, url }) => {
+              await sendPasswordResetEmail({ to: user.email, name: user.name, resetUrl: url });
+            },
+          }
+        : {}),
     },
+    ...(config.enableEmailVerification && sendVerificationEmail
+      ? {
+          emailVerification: {
+            sendOnSignUp: true,
+            autoSignInAfterVerification: true,
+            sendVerificationEmail: async ({ user, url }) => {
+              await sendVerificationEmail({ to: user.email, name: user.name, verifyUrl: url });
+            },
+          },
+        }
+      : {}),
     session: {
       expiresIn: config.sessionMaximumAgeSeconds,
     },
-    // Declared unconditionally, because the column exists in every deployment's store whether or
-    // not invitations are enabled, and a field the adapter does not know about is one it silently
-    // drops on write. Better Auth keeps multiple roles in this one comma-separated string, so any
-    // code that sets it must send the full set: a partial write is a silent revocation, not a
-    // merge. Invitation redemption is the only path that merges rather than replaces.
-    user: { additionalFields: { role: { type: 'string', required: false, input: false } } },
-    ...(options.github
-      ? { socialProviders: { github: { ...options.github, disableSignUp: !config.enableSignup } } }
-      : {}),
+    ...socialProviders(options),
     plugins,
   };
+}
+
+/** The refusal for a capability turned on without what it needs. Names the need, never a value. */
+function missing(capability: string, requirement: string): Error {
+  return new Error(`cannot enable ${capability} without ${requirement}`);
+}
+
+/**
+ * Refuse a policy that turns on a capability nothing can deliver.
+ *
+ * Each of these would otherwise register endpoints that accept a request and then fail, or worse
+ * succeed without the message the visitor is waiting for. Failing at startup is the one place an
+ * operator is guaranteed to see it.
+ */
+function assertCapabilitiesAreDeliverable(options: AuthDatabaseOptions): void {
+  const { config } = options;
+  const entitlements = options.entitlements ?? NO_ENTITLEMENTS;
+
+  // Fail at construction rather than at the first private enrollment invitation: its link is not
+  // returned to the creator, so without delivery it would be unreachable.
+  if (config.enableInvitations && !options.sendPrivateInvitationEmail)
+    throw missing('invitations', 'sendPrivateInvitationEmail');
+  if (config.enableInvitations && !options.dashboardUrl)
+    throw missing('invitations', 'dashboardUrl');
+  if (config.enableEmailVerification && !options.sendVerificationEmail)
+    throw missing('email verification', 'sendVerificationEmail');
+  if (config.enablePasswordReset && !options.sendPasswordResetEmail)
+    throw missing('password reset', 'sendPasswordResetEmail');
+  if (config.enableMagicLink && !options.sendMagicLinkEmail)
+    throw missing('magic link sign-in', 'sendMagicLinkEmail');
+  if (config.enableTwoFactor && config.enableTwoFactorEmailOtp && !options.sendTwoFactorOtpEmail)
+    throw missing('two-factor email codes', 'sendTwoFactorOtpEmail');
+  if (config.enablePasskey && !options.passkey) throw missing('passkeys', 'relying party');
+  if (entitlements.scim && !options.scim) throw missing('SCIM', 'SCIM_CREDENTIAL_HASH_SECRET');
+  // Checked here, by length only, so the plugin's own refusal can never be the one that reports
+  // it: that message is not ours to keep free of the value.
+  if (entitlements.scim && (options.scim?.credentialHashSecret.length ?? 0) < 32)
+    throw new Error('SCIM_CREDENTIAL_HASH_SECRET must be at least 32 characters');
+}
+
+/**
+ * The social providers whose credentials are configured.
+ *
+ * Each one closes sign-up exactly when the password form does: a provider that could create an
+ * account the form refuses would make `enableSignup` a suggestion.
+ */
+function socialProviders(options: AuthDatabaseOptions): Pick<BetterAuthOptions, 'socialProviders'> {
+  const disableSignUp = !options.config.enableSignup;
+  const providers: NonNullable<BetterAuthOptions['socialProviders']> = {
+    ...(options.github ? { github: { ...options.github, disableSignUp } } : {}),
+    ...(options.gitlab ? { gitlab: { ...options.gitlab, disableSignUp } } : {}),
+    ...(options.google ? { google: { ...options.google, disableSignUp } } : {}),
+  };
+  return Object.keys(providers).length > 0 ? { socialProviders: providers } : {};
 }
 
 /**
@@ -206,6 +365,7 @@ export function authBetterAuthOptions(options: AuthDatabaseOptions): Pick<
  */
 function authPlugins(options: AuthDatabaseOptions): BetterAuthPlugin[] {
   const { config, dashboardUrl, sendPrivateInvitationEmail, sendPublicInvitationEmail } = options;
+  const entitlements = options.entitlements ?? NO_ENTITLEMENTS;
   const plugins: BetterAuthPlugin[] = [];
 
   // Unconditional: it registers no route and mints nothing. It records which method an account
@@ -220,6 +380,70 @@ function authPlugins(options: AuthDatabaseOptions): BetterAuthPlugin[] {
   // console is routinely driven from a personal account and a shared break-glass one, and
   // without this the second sign-in silently evicts the first.
   plugins.push(multiSession({ maximumSessions: config.maximumDeviceSessions }));
+
+  // Unconditional, because it is the authority for a column every deployment has: `user.role`.
+  // It decides which values administer the deployment (`adminRoles`), and every endpoint it adds
+  // — ban, impersonate, set a role, list users — requires a session holding one of them, so it
+  // opens nothing to anyone else. The control plane asks it rather than parsing the role itself.
+  plugins.push(
+    admin({
+      defaultRole: config.defaultUserRole,
+      adminRoles: [...config.adminRoles],
+      impersonationSessionDuration: config.impersonationSessionSeconds,
+    }),
+  );
+
+  // TOTP with backup codes and trusted devices. Registering it does not weaken sign-in: an
+  // account has to re-enter its password, enroll a secret, and verify a first code before
+  // `twoFactorEnabled` is set, and failed challenges count toward the plugin's account lockout.
+  if (config.enableTwoFactor) {
+    const send = config.enableTwoFactorEmailOtp ? options.sendTwoFactorOtpEmail : undefined;
+    plugins.push(
+      twoFactor({
+        issuer: TWO_FACTOR_ISSUER,
+        trustDeviceMaxAge: config.trustedDeviceMaxAgeSeconds,
+        ...(send
+          ? {
+              otpOptions: {
+                sendOTP: async ({ user, otp }) => {
+                  await send({ to: user.email, name: user.name, code: otp });
+                },
+              },
+            }
+          : {}),
+      }),
+    );
+  }
+
+  // WebAuthn. Registration needs a session, so this adds a stronger way in for an account that
+  // opted in and none for anyone else. The relying party comes from configuration only (see
+  // `PasskeyRelyingParty`); the guard above refuses the capability without one.
+  if (config.enablePasskey && options.passkey) {
+    plugins.push(
+      passkey({
+        rpID: options.passkey.rpID,
+        rpName: options.passkey.rpName,
+        origin: options.passkey.origin,
+      }),
+    );
+  }
+
+  // Passwordless sign-in by mail. It closes sign-up exactly when the password form does, which is
+  // also what lets Better Enrollment's `auto` mode see one consistent policy below.
+  if (config.enableMagicLink && options.sendMagicLinkEmail) {
+    const send = options.sendMagicLinkEmail;
+    plugins.push(
+      magicLink({
+        disableSignUp: !config.enableSignup,
+        expiresIn: config.magicLinkExpiresInSeconds,
+        // A dump of the verification table must not be a list of working sign-in links.
+        storeToken: 'hashed',
+        sendMagicLink: async ({ email, url }) => {
+          await send({ to: email, signInUrl: url });
+        },
+      }),
+    );
+  }
 
   // Only on the deployments that need it — a preview or local origin the OAuth provider has no
   // callback registered for. `oauthProxyFromEnvironment` withholds the settings unless both the
@@ -305,12 +529,90 @@ function authPlugins(options: AuthDatabaseOptions): BetterAuthPlugin[] {
 
   if (config.enableOrganizations) {
     plugins.push(
-      organization({
-        allowUserToCreateOrganization: config.allowUserToCreateOrganization,
-        membershipLimit: config.organizationMembershipLimit,
-        invitationExpiresIn: config.invitationExpiresInSeconds,
-        ...organizationInvitationDelivery(options),
+      withoutEndpoints(
+        organization({
+          ac: accessControl,
+          roles: organizationRoles,
+          allowUserToCreateOrganization: config.allowUserToCreateOrganization,
+          membershipLimit: config.organizationMembershipLimit,
+          organizationHooks: {
+            // Defense in depth behind the removed endpoints: a server-side caller that reached the
+            // plugin's invitation path some other way is refused rather than served.
+            beforeCreateInvitation: () => {
+              throw new APIError('FORBIDDEN', {
+                message: 'organization invitations are issued through enrollment invites',
+              });
+            },
+          },
+        }),
+        ORGANIZATION_INVITATION_ENDPOINTS,
+      ),
+    );
+
+    // Organization-owned keys for CI and the GitHub Action, registered after the organization
+    // plugin whose permissions they are checked against (`apiKey: [...]` in `access.ts`). Every
+    // property a caller could use to widen a key — rate limits, remaining uses, permissions — is
+    // server-only in the plugin, and the key is stored hashed: its plaintext is returned once.
+    if (config.enableApiKeys) {
+      plugins.push(
+        apiKey({
+          references: 'organization',
+          defaultPrefix: API_KEY_PREFIX,
+          requireName: true,
+          disableKeyHashing: false,
+          // An API key never doubles as a browser session: it authenticates the control plane's
+          // machine routes, not `/api/auth/**`.
+          enableSessionForAPIKeys: false,
+          keyExpiration: {
+            // Seconds, despite the option's own documentation saying milliseconds: 1.7 applies
+            // it with `getDate(value, "sec")`. A test pins the resulting expiry, so a release
+            // that changes the unit fails here instead of minting keys that live 1000x longer.
+            defaultExpiresIn: config.apiKeyExpiresInSeconds,
+            // Days, unlike its sibling: the plugin compares it with `expiresIn / (3600 * 24)`.
+            maxExpiresIn: config.apiKeyMaximumExpiresInDays,
+          },
+          // What a key may do on the control plane, which reads it in `packages/api`. Submitting
+          // tasks is the only grant, and it stays within the non-writable modes there; a key that
+          // needs more waits for organization-scoped run policy.
+          permissions: { defaultPermissions: API_KEY_DEFAULT_PERMISSIONS },
+          rateLimit: {
+            enabled: true,
+            timeWindow: config.apiKeyRateLimitWindowSeconds * 1000,
+            maxRequests: config.apiKeyRateLimitMaxRequests,
+          },
+        }),
+      );
+    }
+  }
+
+  // Enterprise single sign-on, present only where the deployment is entitled to it. Without the
+  // entitlement the plugin is not registered at all, so its endpoints — provider registration
+  // included — do not exist rather than refusing at a guard.
+  if (entitlements.sso) {
+    plugins.push(
+      sso({
+        // A provider routes an email domain to itself, so the domain has to be proven first:
+        // otherwise any organization could claim `example.com` and receive its users.
+        domainVerification: { enabled: true },
+        // The same sign-up policy as every other method: on an invite-only deployment an SSO
+        // identity signs in to an account that already exists, and does not create one.
+        disableImplicitSignUp: !config.enableSignup,
+        organizationProvisioning: { defaultRole: 'member' },
       }),
+    );
+  }
+
+  // Enterprise directory provisioning, under the same rule as SSO. Connections and their bearer
+  // credentials are managed per organization in the database, and only an HMAC of each credential
+  // is stored, keyed by a secret of its own.
+  if (entitlements.scim && options.scim) {
+    plugins.push(
+      withDefinedSchema(
+        scim({
+          connections: [],
+          managedConnections: { credentialHashSecret: options.scim.credentialHashSecret },
+        }),
+      ),
     );
   }
 
@@ -325,7 +627,7 @@ function authPlugins(options: AuthDatabaseOptions): BetterAuthPlugin[] {
       mode: 'auto',
       validRoles: [...config.userRoles],
       defaultRole: config.defaultUserRole,
-      adminRoles: [...config.inviteAdminRoles],
+      adminRoles: [...config.adminRoles],
       expiresIn: config.inviteExpiresInSeconds,
       publicExpiresIn: config.inviteExpiresInSeconds,
       buildInviteUrl: ({ token }) => inviteRedeemUrl(dashboardUrl, token),
@@ -359,6 +661,11 @@ function authPlugins(options: AuthDatabaseOptions): BetterAuthPlugin[] {
       ...(config.enableOrganizations
         ? {
             organization: {
+              ac: accessControl,
+              // The same roles the organization plugin enforces, so "may this member invite into
+              // the organization" has one answer: Better Enrollment checks
+              // `invitation: ["create"]` against exactly these.
+              roles: enrollmentRoles(),
               // Seats and memberships are the same cap seen from two sides, so they read from
               // one setting: a deployment cannot end up rejecting an invitation for an
               // organization that still has room, or the reverse.
@@ -368,84 +675,71 @@ function authPlugins(options: AuthDatabaseOptions): BetterAuthPlugin[] {
         : {}),
     });
 
-    // The plugin declares the table groups it adds conditionally — `organization` and `user`
-    // appear only when org features or additional user fields are configured — as
-    // `?: ... | undefined`, and under `exactOptionalPropertyTypes` an explicit `undefined` is not
-    // assignable to Better Auth's merely-optional entries. Dropping the absent groups rather than
-    // asserting the type away keeps the check honest and says the same thing at runtime: a table
-    // group that is not there should be missing, not present and undefined.
-    plugins.push({
-      ...enrollment,
-      schema: Object.fromEntries(
-        Object.entries(enrollment.schema).filter(
-          (entry): entry is [string, NonNullable<(typeof entry)[1]>] => entry[1] !== undefined,
-        ),
-      ),
-    });
+    plugins.push(withDefinedSchema(enrollment));
   }
 
   return plugins;
 }
 
 /**
- * Decide what the organization plugin does with its own member invitations.
+ * Return `plugin` with only the table groups it actually declares.
  *
- * Better Auth mints an invitation id and nothing else: it builds no link, and the dashboard never
- * shows one to the inviter, so `sendInvitationEmail` is the only path an organization invitation
- * travels. Wiring it to the same delivery this package already declares for private enrollment
- * invitations keeps one contract for "an invitation addressed to a mailbox", and keeps
- * `packages/auth` free of any dependency on `packages/mail`.
- *
- * Without a transport or a dashboard origin the capability is closed at creation instead: an
- * invitation nobody can be told about is a pending row that silently consumes a seat and leaves
- * its recipient waiting for mail that is never sent. Organizations themselves stay available on
- * such a deployment — pre-provisioned memberships, roles, and switching are unaffected — which is
- * why this is a refusal at the endpoint rather than a startup guard like the enrollment one.
+ * Better Enrollment and SCIM both declare the table groups they add conditionally — enrollment's
+ * `organization` and `user` appear only when org features or additional user fields are
+ * configured, SCIM's catalog tables only with managed connections — as `?: ... | undefined`, and
+ * under `exactOptionalPropertyTypes` an explicit `undefined` is not assignable to Better Auth's
+ * merely-optional entries. Dropping the absent groups rather than asserting the type away keeps
+ * the check honest and says the same thing at runtime: a table group that is not there should be
+ * missing, not present and undefined.
  */
-function organizationInvitationDelivery(
-  options: AuthDatabaseOptions,
-): Pick<OrganizationOptions, 'organizationHooks' | 'sendInvitationEmail'> {
-  const { dashboardUrl, sendPrivateInvitationEmail: send } = options;
-
-  if (!send || !dashboardUrl) {
-    return {
-      organizationHooks: {
-        beforeCreateInvitation: () => {
-          throw new APIError('SERVICE_UNAVAILABLE', {
-            code: ORGANIZATION_INVITATION_DELIVERY_UNAVAILABLE,
-            message: 'organization invitations require a configured invitation delivery transport',
-          });
-        },
-      },
-    };
+function withDefinedSchema(
+  plugin: Omit<BetterAuthPlugin, 'schema'> & { schema: Record<string, unknown> },
+): BetterAuthPlugin {
+  const tables: NonNullable<BetterAuthPlugin['schema']> = {};
+  for (const [model, table] of Object.entries(plugin.schema)) {
+    if (isTableSchema(table)) tables[model] = table;
   }
+  return { ...plugin, schema: tables };
+}
 
-  return {
-    sendInvitationEmail: async (data) => {
-      await send({
-        to: data.email,
-        // Better Auth invites an address rather than a person: the recipient may have no account
-        // yet, and the inviter is never asked for a name to go with the address.
-        name: null,
-        inviterName: data.inviter.user.name,
-        organizationName: data.organization.name,
-        acceptUrl: organizationInvitationUrl(dashboardUrl, data.id),
-      });
-    },
-  };
+/** Narrow one plugin table group at the runtime boundary, without asserting it into shape. */
+function isTableSchema(table: unknown): table is NonNullable<BetterAuthPlugin['schema']>[string] {
+  return typeof table === 'object' && table !== null && 'fields' in table;
 }
 
 /**
- * Build the link an organization invitation points at.
+ * The organization roles in the shape Better Enrollment reads them.
  *
- * The id is path-encoded rather than interpolated raw: it comes back from the store, and a link is
- * the one place a stray `/` or `?` would change what the recipient's browser asks for.
+ * The same role objects, adapted at one seam: Better Auth's `authorize` reports success as
+ * `{ success: true, error?: undefined }`, which `exactOptionalPropertyTypes` will not match against
+ * the plugin's `error?: string`. Restating the result keeps every decision in `access.ts`.
  */
-function organizationInvitationUrl(dashboardUrl: string, invitationId: string): string {
-  return new URL(
-    `/organizations/accept-invitation/${encodeURIComponent(invitationId)}`,
-    dashboardUrl,
-  ).toString();
+function enrollmentRoles() {
+  return Object.fromEntries(
+    Object.entries(organizationRoles).map(([name, role]) => [
+      name,
+      {
+        authorize: (permissions: Record<string, string[]>, connector?: 'OR' | 'AND') => {
+          const result = role.authorize(permissions, connector);
+          return result.success ? { success: true } : { success: false, error: result.error };
+        },
+      },
+    ]),
+  );
+}
+
+/**
+ * Return a copy of `plugin` without the named endpoints.
+ *
+ * Better Auth mounts a route for every entry in a plugin's `endpoints` and exposes each on
+ * `auth.api`, so an entry that is not there is a route that does not exist. The plugin's own
+ * object is left untouched.
+ */
+function withoutEndpoints(plugin: BetterAuthPlugin, names: readonly string[]): BetterAuthPlugin {
+  const endpoints = Object.fromEntries(
+    Object.entries(plugin.endpoints ?? {}).filter(([name]) => !names.includes(name)),
+  );
+  return { ...plugin, endpoints };
 }
 
 /**
@@ -491,9 +785,14 @@ function requireEnvironmentValue(
 /**
  * Resolve `authBetterAuthOptions` options from the environment.
  *
- * Deliberately does not read `AUTH_DASHBOARD_ORIGIN`: a caller that only needs the database and
- * policy shape (no signing, no origin) should not be made to supply one, and one that needs
- * invitation links resolves `dashboardUrl` through {@link authOptionsFromEnvironment} instead.
+ * Deliberately does not require `AUTH_DASHBOARD_ORIGIN`: a caller that only needs the database
+ * and policy shape (no signing, no origin) should not be made to supply one, and one that needs
+ * invitation links resolves `dashboardUrl` through {@link authOptionsFromEnvironment} instead. The
+ * passkey relying party reads it when it is set, and is simply absent when nothing names an origin.
+ *
+ * Entitlements are not read here: which edition a deployment runs is the composition root's
+ * decision, passed in as `entitlements`, so no environment variable alone can switch SSO or SCIM
+ * on.
  *
  * The connection string is resolved by `@code-zero/database` so the store has one variable
  * regardless of which process opens it; it accepts the pre-split `AUTH_DATABASE_URL` as well. The
@@ -504,12 +803,20 @@ export function authDatabaseOptionsFromEnvironment(
   environment: Readonly<Record<string, string | undefined>> = process.env,
 ): AuthDatabaseOptions {
   const github = githubCredentialsFromEnvironment(environment);
+  const gitlab = gitlabCredentialsFromEnvironment(environment);
+  const google = googleCredentialsFromEnvironment(environment);
+  const relyingParty = passkeyFromEnvironment(environment);
+  const scimSettings = scimFromEnvironment(environment);
   const oauthProxy = oauthProxyFromEnvironment(environment);
   const infra = infraFromEnvironment(environment);
   return {
     databaseUrl: databaseUrlFromEnvironment(environment),
     config: authConfigFromEnvironment(environment),
     ...(github ? { github } : {}),
+    ...(gitlab ? { gitlab } : {}),
+    ...(google ? { google } : {}),
+    ...(relyingParty ? { passkey: relyingParty } : {}),
+    ...(scimSettings ? { scim: scimSettings } : {}),
     ...(oauthProxy ? { oauthProxy } : {}),
     ...(infra ? { infra } : {}),
   };

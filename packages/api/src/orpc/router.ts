@@ -11,8 +11,7 @@ import { openapi } from '@orpc/openapi';
 import { ORPCError, os } from '@orpc/server';
 import { z } from 'zod';
 
-import type { Principal } from '../access.js';
-import type { AuditActor, AuditLogStore } from '../audit.js';
+import type { AuditLogStore } from '../audit.js';
 import type { TaskStore } from '../control-plane.js';
 import { dashboardOverview } from '../dashboard.js';
 import {
@@ -25,8 +24,21 @@ import {
   taskInput,
 } from '../operations.js';
 import type { RepositoryAdmin } from '../repositories.js';
+import type { DeploymentSettingsAuthority } from '../settings.js';
+import { principalActor } from './actor.js';
 import { authMiddleware, type BetterAuthContext } from './auth.js';
 import { useLogger } from './logging.js';
+import {
+  deploymentSettingsInput,
+  exportSettings,
+  organizationInput,
+  organizationLimitsInput,
+  readOrganizationSettings,
+  readSettings,
+  taskPolicy,
+  updateOrganizationSettings,
+  updateSettings,
+} from './settings.js';
 
 export interface RpcContext extends BetterAuthContext {
   store: TaskStore;
@@ -58,6 +70,13 @@ export interface RpcContext extends BetterAuthContext {
    * "nothing has happened".
    */
   auditLog?: AuditLogStore;
+  /**
+   * The deployment's settings: what they are, where they come from, and — when the dashboard is
+   * their source — where they are saved. Every task `tasks.create` starts is held to them.
+   * Optional like the capabilities above: an embedded caller without settings runs every task
+   * under the repository's own policy, as before settings existed.
+   */
+  settings?: DeploymentSettingsAuthority;
 }
 
 /**
@@ -89,6 +108,8 @@ function requireRepositoryAdmin(context: RpcContext): RepositoryAdmin {
 }
 
 const procedure = os.$context<RpcContext>();
+
+const API_KEY_APPROVAL_REFUSAL = 'An organization API key may not decide approvals';
 
 /**
  * Mutations require an authenticated principal; reads stay open for the dashboard.
@@ -181,9 +202,15 @@ export const rpcRouter = {
         // anything, so returning here without a record would leave a durable task nobody
         // authorised in the trail. The failure is audited under the attempted action, since no
         // task id is in hand to point at once the call rejected.
+        // Read after the identity checks above, so a caller with no grant learns nothing about the
+        // settings; refusals inside are audited under the same action.
+        const policy = await taskPolicy(context, {
+          repository: input.repository,
+          mode: input.mode,
+        });
         let task: Awaited<ReturnType<typeof createTask>>;
         try {
-          task = await createTask(input, context.store);
+          task = await createTask(input, context.store, undefined, policy);
         } catch (error) {
           useLogger().audit({
             actor,
@@ -323,6 +350,69 @@ export const rpcRouter = {
         });
       }),
   },
+  settings: {
+    /**
+     * The settings page's read model: the whole document for a self-hosted administrator, service
+     * status and limits for a managed-cloud customer.
+     */
+    get: authenticated
+      .meta(
+        openapi({
+          method: 'GET',
+          path: '/settings',
+          tags: ['Settings'],
+          summary: 'Read the deployment settings and the status of each service',
+        }),
+      )
+      .handler(({ context }) => readSettings(context)),
+    /** Replace the settings. Only where the dashboard is their source, and only for an admin. */
+    update: authenticated
+      .meta(
+        openapi({
+          method: 'PUT',
+          path: '/settings',
+          tags: ['Settings'],
+          summary: 'Replace the deployment settings when the dashboard is their source',
+        }),
+      )
+      .input(deploymentSettingsInput)
+      .handler(({ input, context }) => updateSettings(context, input)),
+    /** The settings as the YAML the deployment file would hold, with no credential in it. */
+    export: authenticated
+      .meta(
+        openapi({
+          method: 'GET',
+          path: '/settings/export',
+          tags: ['Settings'],
+          summary: 'Export the deployment settings as YAML',
+        }),
+      )
+      .handler(({ context }) => exportSettings(context)),
+    organization: {
+      get: authenticated
+        .meta(
+          openapi({
+            method: 'GET',
+            path: '/organizations/{organizationId}/settings',
+            tags: ['Settings'],
+            summary: "Read an organization's limits on the managed cloud",
+          }),
+        )
+        .input(organizationInput)
+        .handler(({ input, context }) => readOrganizationSettings(context, input)),
+      update: authenticated
+        .meta(
+          openapi({
+            method: 'PUT',
+            path: '/organizations/{organizationId}/settings',
+            tags: ['Settings'],
+            summary: "Lower an organization's limits below its plan",
+          }),
+        )
+        .input(organizationLimitsInput)
+        .handler(({ input, context }) => updateOrganizationSettings(context, input)),
+    },
+  },
   approvals: {
     decide: authenticated
       .meta(
@@ -335,9 +425,20 @@ export const rpcRouter = {
       )
       .input(approvalInput)
       .handler(async ({ input, context }) => {
-        // No denial branch to audit here: `decideApproval` refuses an unknown task or one that is
-        // not awaiting review by throwing before it touches the record, so nothing happened that
-        // a trail would have to explain.
+        // An approval records that a person reviewed the change, and it unblocks writable runs a
+        // key could never create. An organization API key is a credential pasted into a CI secret,
+        // so it may submit work but not sign off on it, whatever permissions it carries.
+        if (context.principal.kind === 'apiKey') {
+          useLogger().audit.deny(API_KEY_APPROVAL_REFUSAL, {
+            actor: principalActor(context.principal),
+            action: 'approval.decide',
+            target: { type: 'task', id: input.taskId, decision: input.decision },
+          });
+          throw new ORPCError('FORBIDDEN', { message: API_KEY_APPROVAL_REFUSAL });
+        }
+        // No other denial branch to audit here: `decideApproval` refuses an unknown task or one
+        // that is not awaiting review by throwing before it touches the record, so nothing
+        // happened that a trail would have to explain.
         const task = await decideApproval(
           input.taskId,
           input.decision,
@@ -360,17 +461,5 @@ export const rpcRouter = {
       }),
   },
 };
-
-/**
- * The audited identity of an authenticated caller; never the name the request asked to use.
- *
- * The two authentication sources stay distinguishable in the trail: a dashboard session is a
- * person, an operator token is a machine, and they are revoked through different channels. A
- * record that called both `principal` would leave a reader unable to tell which one to go turn
- * off — the same reason `AuditActorKind` carries `user` at all.
- */
-function principalActor(principal: Principal): AuditActor {
-  return { type: principal.kind === 'session' ? 'user' : 'api', id: principal.name };
-}
 
 export type RpcRouter = typeof rpcRouter;
