@@ -125,6 +125,9 @@ interface NavItem {
 const navItems: readonly NavItem[] = [
   { key: 'control', labelKey: 'dashboard.nav.control', icon: 'lucide:layout-dashboard', to: '/' },
   { key: 'audit', labelKey: 'dashboard.nav.audit', icon: 'lucide:scroll-text', to: '/audit' },
+  // Listed for every signed-in account: what the page shows depends on the edition and the role,
+  // and it explains a refusal itself rather than the nav guessing who may open it.
+  { key: 'settings', labelKey: 'dashboard.nav.settings', icon: 'lucide:settings', to: '/settings' },
 ];
 
 function isActive(item: NavItem): boolean {

@@ -51,6 +51,7 @@ export default defineEventHandler(async (event) => {
           apiKeys: apiKeyVerifier(serverAuth(event)),
         }),
         auditLog: auditLogStore,
+        settings: await settingsAuthority(),
       },
     });
     if (matched) return response;

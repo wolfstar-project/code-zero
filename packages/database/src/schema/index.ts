@@ -28,6 +28,7 @@ export { invite, inviteUse } from './enrollment.js';
 export { invitation, member, organization } from './organization.js';
 export { passkey } from './passkey.js';
 export { repository } from './repository.js';
+export { deploymentSetting, organizationSetting } from './settings.js';
 export {
   scimConnectionBinding,
   scimGroup,
