@@ -1,4 +1,5 @@
 import { githubTokenFromEnvironment, runTask } from '@code-zero/api';
+import { isModeAllowed } from '@code-zero/config';
 import { GitHubPullRequests } from '@code-zero/source-control';
 
 /**
@@ -39,6 +40,13 @@ export default defineNitroPlugin((nitroApp) => {
   let stopped = false;
 
   async function pass(): Promise<void> {
+    // Read on every pass, like the watch list: a settings change applies to the next pass, and a
+    // pass under invalid settings starts nothing rather than running on defaults nobody chose.
+    const policy = await deploymentRunPolicy();
+    if (!policy.ok) {
+      console.error('[poll] the deployment settings are invalid; not starting reviews');
+      return;
+    }
     const watched = await repositoryStore.watched();
     // Only a GitHub source exists in this process; a repository configured for another provider
     // would otherwise be queried through it under owner/repo coordinates that provider never
@@ -49,6 +57,12 @@ export default defineNitroPlugin((nitroApp) => {
       if (repository.provider !== 'github') {
         console.warn(
           `[poll] ${repository.owner}/${repository.name} is configured for '${repository.provider}', which this poller cannot query; skipping`,
+        );
+        return [];
+      }
+      if (!isModeAllowed(policy.value.settings.execution, repository.mode)) {
+        console.warn(
+          `[poll] ${repository.owner}/${repository.name} runs in ${repository.mode}, which the deployment settings do not allow; skipping`,
         );
         return [];
       }
@@ -68,7 +82,7 @@ export default defineNitroPlugin((nitroApp) => {
             source: request.source,
             pullRequest: request.pullRequest,
           },
-          { store: taskStore },
+          { store: taskStore, policy: policy.value },
         ),
       onError: (repository, error) => {
         console.error(`[poll] ${repository} failed`, error);

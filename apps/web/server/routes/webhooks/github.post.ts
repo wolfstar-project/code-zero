@@ -17,6 +17,11 @@ export default defineEventHandler(async (event) => {
   const checkoutPath = checkoutPathFromEnvironment(process.env);
   if (!checkoutPath) throw errors.misconfigured('CODE_ZERO_CHECKOUT_PATH');
 
+  // Refused while the settings are invalid, like every other run: a delivery must not start work on
+  // defaults nobody chose.
+  const policy = await deploymentRunPolicy();
+  if (!policy.ok) throw errors.unavailable('The deployment settings are invalid');
+
   const request = toWebRequest(event);
   let outcome;
   try {
@@ -31,6 +36,7 @@ export default defineEventHandler(async (event) => {
         store: taskStore,
         deliveryClaims: deliveryClaimStore,
         github: { token: githubTokenFromEnvironment() },
+        policy: policy.value,
       },
     );
   } catch (error) {
