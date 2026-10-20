@@ -20,6 +20,11 @@ const state = vi.hoisted(() => ({
   verify: vi.fn<(input: unknown) => void>(),
   refresh: vi.fn<(options?: { force?: boolean }) => Promise<void>>(),
   navigate: vi.fn<(to: string) => Promise<void>>(),
+  /** When set, `execute` stays pending until the test calls it. */
+  hold: undefined as (() => void) | undefined,
+  holdNext: false,
+  /** The query the page reads its return address from. */
+  query: {} as Record<string, string>,
 }));
 
 mockNuxtImport(
@@ -56,16 +61,25 @@ mockNuxtImport('useAuthClientAction', () => () => {
     status,
     error,
     data,
-    execute: (input?: unknown) => {
+    execute: async (input?: unknown) => {
       state.verify(input);
+      if (state.holdNext) {
+        state.holdNext = false;
+        status.value = 'pending';
+        await new Promise<void>((resolve) => {
+          state.hold = resolve;
+        });
+      }
       status.value = state.accepted ? 'success' : 'error';
       error.value = state.accepted ? null : { code: 'INVALID_CODE', status: 401 };
-      return Promise.resolve();
     },
   };
 });
 mockNuxtImport('useUserSession', () => () => ({ fetchSession: state.refresh }));
 mockNuxtImport('navigateTo', () => state.navigate);
+// Mocked rather than reached through `mountSuspended`'s `route` option: a real navigation runs the
+// auth module's global middleware, which needs the full session state this spec stubs out.
+mockNuxtImport('useRoute', () => () => ({ query: state.query }));
 
 async function submitCode(code: string) {
   const wrapper = await mountSuspended(TwoFactorPage);
@@ -79,6 +93,9 @@ describe('two-factor page', () => {
   beforeEach(() => {
     state.accepted = false;
     state.emailOtp = false;
+    state.holdNext = false;
+    state.hold = undefined;
+    state.query = {};
     vi.clearAllMocks();
   });
 
@@ -110,6 +127,49 @@ describe('two-factor page', () => {
     expect(wrapper.find('[role="alert"]').exists()).toBe(false);
     expect(state.refresh).toHaveBeenCalledWith({ force: true });
     expect(state.navigate).toHaveBeenCalledWith('/');
+  });
+
+  it('returns to the page the sign-in was started from, such as a CLI approval', async () => {
+    state.accepted = true;
+
+    state.query = { redirect: '/device?user_code=ABCD-EFGH' };
+
+    const wrapper = await submitCode('123456');
+
+    expect(state.navigate).toHaveBeenCalledWith('/device?user_code=ABCD-EFGH');
+    expect(wrapper.find('a[href^="/login"]').attributes('href')).toBe(
+      '/login?redirect=/device?user_code=ABCD-EFGH',
+    );
+  });
+
+  it('ignores a return address that leaves this app', async () => {
+    state.accepted = true;
+
+    state.query = { redirect: '//evil.example/' };
+
+    await submitCode('123456');
+
+    expect(state.navigate).toHaveBeenCalledWith('/');
+  });
+
+  it('keeps the method fixed while a code is being checked', async () => {
+    state.holdNext = true;
+    const wrapper = await mountSuspended(TwoFactorPage);
+    await wrapper.get('input[autocomplete="one-time-code"]').setValue('123456');
+    await wrapper.get('form').trigger('submit');
+    await flushPromises();
+
+    const toggle = wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'Use a backup code instead');
+    expect(toggle?.attributes('disabled')).toBeDefined();
+    expect(wrapper.get('button[type="submit"]').attributes('disabled')).toBeDefined();
+
+    state.hold?.();
+    await flushPromises();
+    expect(wrapper.get('[role="alert"]').text()).toBe(
+      'That code is not valid. Check it and try again.',
+    );
   });
 
   it('sends the trust-device choice only when it was ticked', async () => {

@@ -56,7 +56,12 @@
             : $t('auth.twoFactor.sendEmail')
         }}
       </button>
-      <button class="btn-link w-full text-center" type="button" @click="toggleBackupCode">
+      <button
+        class="btn-link w-full text-center"
+        :disabled="isPending"
+        type="button"
+        @click="toggleBackupCode"
+      >
         {{
           method === 'backup'
             ? $t('auth.twoFactor.useAuthenticator')
@@ -65,13 +70,15 @@
       </button>
     </div>
 
-    <NuxtLink class="btn-link mt-5 block w-full text-center" to="/login">
+    <NuxtLink class="btn-link mt-5 block w-full text-center" :to="signInLink">
       {{ $t('auth.twoFactor.toSignIn') }}
     </NuxtLink>
   </section>
 </template>
 
 <script setup lang="ts">
+import { REDIRECT_QUERY_KEY, safeLocalRedirect } from '../../../modules/auth/utils/redirect';
+
 /**
  * The second-factor challenge a password sign-in lands on when the account has two-factor
  * authentication turned on. The sign-in itself has already been accepted, but no session exists
@@ -120,8 +127,21 @@ const subtitle = computed(() => {
   return t('auth.twoFactor.subtitle');
 });
 
-const isPending = computed(
-  () => verification.value.status.value === 'pending' || sendOtp.status.value === 'pending',
+// Every action the page can start, not only the current method's: switching method while a check
+// is still running would otherwise read the new method's idle state, re-enable submission and
+// lose the first check's eventual answer. Method switches are disabled for the same span.
+const isPending = computed(() =>
+  [verifyTotp, verifyBackupCode, verifyOtp, sendOtp].some(
+    (action) => action.status.value === 'pending',
+  ),
+);
+
+// The page the sign-in was started from, carried here by the two-factor hook in
+// `app/auth.config.ts`; checked again because anyone can put a query in a link.
+const route = useRoute();
+const returnTo = computed(() => safeLocalRedirect(route.query[REDIRECT_QUERY_KEY]));
+const signInLink = computed(() =>
+  returnTo.value ? { path: '/login', query: { [REDIRECT_QUERY_KEY]: returnTo.value } } : '/login',
 );
 const errorMessage = computed(() => {
   const error = verification.value.error.value ?? sendOtp.error.value;
@@ -136,6 +156,7 @@ function switchTo(next: Method): void {
 }
 
 function toggleBackupCode(): void {
+  if (isPending.value) return;
   switchTo(method.value === 'backup' ? 'totp' : 'backup');
 }
 
@@ -144,6 +165,7 @@ function toggleBackupCode(): void {
  * may receive one; this page only offers the button when the deployment can deliver it.
  */
 async function onSendEmailCode(): Promise<void> {
+  if (isPending.value) return;
   await sendOtp.execute();
   if (sendOtp.status.value !== 'success') return;
   emailSent.value = true;
@@ -165,6 +187,6 @@ async function onSubmit(): Promise<void> {
   });
   if (action.status.value !== 'success') return;
   await fetchSession({ force: true });
-  await navigateTo('/');
+  await navigateTo(returnTo.value ?? '/');
 }
 </script>

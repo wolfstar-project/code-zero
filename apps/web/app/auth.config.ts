@@ -13,6 +13,8 @@ import {
   twoFactorClient,
 } from 'better-auth/client/plugins';
 
+import { REDIRECT_QUERY_KEY, safeLocalRedirect } from '../modules/auth/utils/redirect';
+
 /** The page `app/pages/(auth)/two-factor.vue` serves; a route rule keeps it guest-only. */
 const TWO_FACTOR_PATH = '/two-factor';
 
@@ -60,8 +62,20 @@ export default defineClientAuth(() => {
       // right and the second factor is still owed. Without this hook the sign-in page would show
       // a success it cannot act on, so the visitor is taken to the challenge page instead.
       twoFactorClient({
+        // The sign-in page may carry the page the visitor was sent from (`/device?user_code=…`
+        // for a CLI approval, say); it travels on through the challenge so verifying returns
+        // there instead of to the dashboard.
         onTwoFactorRedirect: async () => {
-          await nuxtApp.runWithContext(() => navigateTo(TWO_FACTOR_PATH));
+          await nuxtApp.runWithContext(() => {
+            const returnTo = safeLocalRedirect(
+              nuxtApp.$router.currentRoute.value.query[REDIRECT_QUERY_KEY],
+            );
+            return navigateTo(
+              returnTo
+                ? { path: TWO_FACTOR_PATH, query: { [REDIRECT_QUERY_KEY]: returnTo } }
+                : TWO_FACTOR_PATH,
+            );
+          });
         },
       }),
       passkeyClient(),
