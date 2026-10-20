@@ -1,4 +1,5 @@
 import { mockNuxtImport } from '@nuxt/test-utils/runtime';
+import { useNuxtApp } from 'nuxt/app';
 import { describe, expect, it, vi } from 'vitest';
 
 import createAppAuthClient from '~/auth.config';
@@ -58,6 +59,25 @@ describe('app/auth.config.ts', () => {
 
     expect(error).toBeNull();
     expect(navigate).toHaveBeenCalledWith('/two-factor');
+  });
+
+  it('carries the page the sign-in was started from through the challenge', async () => {
+    // A CLI approval sends the visitor to `/login?redirect=/device?user_code=…`; losing that on
+    // the way through `/two-factor` would sign them in and leave the CLI waiting.
+    await useNuxtApp().$router.push('/login?redirect=%2Fdevice%3Fuser_code%3DABCD-EFGH');
+    navigate.mockClear();
+    const client = createAppAuthClient('http://localhost:3000');
+
+    await client.signIn.email(
+      { email: 'ada@example.test', password: 'correct horse battery staple' },
+      { customFetchImpl: twoFactorChallenge },
+    );
+
+    expect(navigate).toHaveBeenCalledWith({
+      path: '/two-factor',
+      query: { redirect: '/device?user_code=ABCD-EFGH' },
+    });
+    await useNuxtApp().$router.push('/login');
   });
 
   it('constructs a client when it is not, so the gate cannot break a self-hosted install', () => {
