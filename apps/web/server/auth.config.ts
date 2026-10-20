@@ -39,50 +39,7 @@ const dashboardUrl = dashboardUrlFromEnvironment(process.env);
 const options = authBetterAuthOptions({
   ...authDatabaseOptionsFromEnvironment(authEnvironment()),
   ...(dashboardUrl ? { dashboardUrl } : {}),
-  ...(deliversMail
-    ? {
-        // Each of these is wired only because a template exists for it; enabling the matching
-        // policy flag without a transport is a startup error in `packages/auth`, not a no-op.
-        sendVerificationEmail: ({ to, name, verifyUrl }) =>
-          sendMail({ to, templateId: 'emailVerification', context: { name, verifyUrl } }),
-        sendPasswordResetEmail: ({ to, name, resetUrl }) =>
-          sendMail({ to, templateId: 'passwordReset', context: { name, resetUrl } }),
-        // The enrollment plugin deliberately never returns a private invitation's link to whoever
-        // created it, so this callback is the only path the token travels. The template renders
-        // the optional halves away rather than printing "null": an invitation with no invitee name
-        // or no organization is the ordinary app-wide case, not a missing value.
-        sendPrivateInvitationEmail: ({ to, name, inviterName, organizationName, acceptUrl }) =>
-          sendMail({
-            to,
-            templateId: 'privateInvitation',
-            context: {
-              name: name ?? '',
-              inviterName,
-              organizationName: organizationName ?? '',
-              acceptUrl,
-            },
-          }),
-        sendPublicInvitationEmail: ({
-          to,
-          inviterName,
-          organizationName,
-          shareUrl,
-          maxUses,
-          expiresAt,
-        }) =>
-          sendMail({
-            to,
-            templateId: 'publicInvitation',
-            context: {
-              inviterName,
-              organizationName: organizationName ?? '',
-              shareUrl,
-              maxUses: maxUses === null ? 'Unlimited' : String(maxUses),
-              expiresAt: expiresAt?.toISOString() ?? 'Never',
-            },
-          }),
-      }
-    : {}),
+  ...(deliversMail ? authMailDelivery(sendMail) : {}),
 });
 
 /**

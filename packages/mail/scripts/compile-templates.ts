@@ -88,7 +88,7 @@ export async function compileMailTemplates(): Promise<
 
     for (const filled of fieldSubsets(conditionalFields)) {
       // Sequential rather than concurrent: each render starts its own Vite SSR server, and there
-      // are eight of them in total — a pool would cost more to coordinate than it saves.
+      // are ten of them in total — a pool would cost more to coordinate than it saves.
       variants[filled.join('+')] = await renderVariant(id, filled);
     }
 
