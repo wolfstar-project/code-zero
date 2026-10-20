@@ -212,7 +212,7 @@
         "maxConcurrentTasks": "Task eseguiti insieme da questo deployment; gli altri attendono in coda. Da {min} a {max}.",
         "commandTimeoutMinutes": "Minuti dopo i quali un singolo comando del repository viene fermato. Non limita un'intera esecuzione, che può lanciare più comandi. Da {min} a {max}.",
         "allowedModes": "Observe è sempre consentita: non scrive mai.",
-        "maxNetwork": "L'accesso di rete più ampio concesso a un'esecuzione. Un repository può restringerlo, mai allargarlo.",
+        "maxNetwork": "L'accesso di rete più ampio concesso a un'esecuzione. Un repository può restringerlo, mai allargarlo. Sotto Completo, un'esecuzione deve essere isolata: richiede la sandbox container o una sandbox hosted, e un repository che sceglie l'isolamento locale viene rifiutato.",
         "model": "Le credenziali del provider restano nell'ambiente del server.",
         "runner": "Da qui si può imporre solo l'isolamento in container."
       },

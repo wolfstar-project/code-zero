@@ -23,7 +23,9 @@ import {
   secretValuesFromEnvironment,
   taskId,
   type IssueRef,
+  type NetworkPolicy,
   type ReviewInput,
+  type RunnerDescription,
   type TaskResult,
 } from '@code-zero/shared';
 import {
@@ -163,6 +165,27 @@ function modeRefusal(mode: ReviewInput['mode']): string {
 const ISOLATION_UNAVAILABLE =
   'This deployment runs repository work only inside an isolated sandbox, and none is configured for this run';
 
+/** Why a run stopped before executing anything: the runner built for it cannot enforce the deployment network policy. */
+const NETWORK_CEILING_UNENFORCEABLE =
+  'This deployment caps the network a run may reach, and the selected runner cannot enforce the deployment network policy; only a container sandbox or a hosted sandbox can hold a run to it';
+
+/** Network policies ordered from the narrowest to the widest. */
+const NETWORK_WIDTH: Readonly<Record<NetworkPolicy, number>> = { none: 0, restricted: 1, full: 2 };
+
+/**
+ * Whether the runner actually built can hold the run to the network it was given.
+ *
+ * A ceiling below `full` is an enforcement requirement, not a label. `LocalRunner` carries the
+ * policy without enforcing it and says so (`isolated: false`), and a hosted provider may hand
+ * back a runner with wider access than the lease asked for. `network` is the run's effective
+ * policy — the repository's own, narrowed to the deployment's ceiling — so a runner whose access
+ * is wider than that, and in particular anything but `none` when the run must have none, is
+ * refused before the agent starts.
+ */
+function holdsNetworkPolicy(description: RunnerDescription, network: NetworkPolicy): boolean {
+  return description.isolated && NETWORK_WIDTH[description.network] <= NETWORK_WIDTH[network];
+}
+
 /**
  * Whether a run that must be isolated has any sandbox to reach: the deployment's container sandbox,
  * or a hosted sandbox provider's pool. Decided before anything is recorded, because without either
@@ -237,6 +260,17 @@ export async function runTask(
         if (policy?.isolationRequired && !runner.describe().isolated) {
           if (lease) await options.runnerPool?.release(lease.id);
           throw new Error(ISOLATION_UNAVAILABLE);
+        }
+        // Under a ceiling below `full` the run's network is a deployment policy, and a runner that
+        // cannot enforce it — the host's, or a hosted one wider than the lease — is refused on the
+        // same terms as a missing sandbox. Without a ceiling the repository's own choice stands.
+        if (
+          execution &&
+          execution.maxNetwork !== 'full' &&
+          !holdsNetworkPolicy(runner.describe(), config.permissions.network)
+        ) {
+          if (lease) await options.runnerPool?.release(lease.id);
+          throw new Error(NETWORK_CEILING_UNENFORCEABLE);
         }
         // Refuses claude-code under container isolation when no CLI container image is configured,
         // and outright under a RunnerPool lease regardless of runner.isolation: SandboxProvider

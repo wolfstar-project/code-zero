@@ -299,6 +299,73 @@ describe('runTask under deployment settings', () => {
     expect(result.runner).toMatchObject({ kind: 'container', isolated: true, network: 'none' });
   });
 
+  it.each(['none', 'restricted'] as const)(
+    'refuses local execution when the deployment requires %s networking',
+    async (maxNetwork) => {
+      await writeFile(
+        join(checkout, '.code-zero.yml'),
+        'version: 1\nrunner:\n  isolation: local\n',
+      );
+      await expect(
+        runTask(
+          { repository: checkout, feedback: 'load() is wrong', mode: 'observe' },
+          {
+            policy: {
+              settings: {
+                ...defaultDeploymentSettings,
+                execution: { ...defaultDeploymentSettings.execution, maxNetwork },
+              },
+            },
+          },
+        ),
+      ).rejects.toThrow('cannot enforce the deployment network policy');
+      const { tasks: recorded } = await listTasks();
+      expect(recorded[0]?.status).toBe('failed');
+    },
+  );
+
+  it('releases a hosted runner that exceeds the deployment network ceiling before using it', async () => {
+    const provider = sandboxProvider();
+    const stopped: string[] = [];
+    const pool = new RunnerPool(
+      {
+        ...provider,
+        provision: async (request) => {
+          const sandbox = await provider.provision(request);
+          return {
+            ...sandbox,
+            runner: {
+              ...sandbox.runner,
+              describe: () => ({ ...sandbox.runner.describe(), network: 'full' as const }),
+              context: async () => {
+                throw new Error('Unsafe runner was used');
+              },
+            },
+          };
+        },
+        stop: async (externalId) => {
+          stopped.push(externalId);
+        },
+      },
+      { maxActive: 1, maxActivePerRepository: 1, maxLeaseMs: 3_600_000 },
+    );
+    await expect(
+      runTask(
+        { repository: checkout, feedback: 'load() is wrong', mode: 'observe' },
+        {
+          runnerPool: pool,
+          policy: {
+            settings: {
+              ...defaultDeploymentSettings,
+              execution: { ...defaultDeploymentSettings.execution, maxNetwork: 'none' },
+            },
+          },
+        },
+      ),
+    ).rejects.toThrow('cannot enforce the deployment network policy');
+    expect(stopped).toHaveLength(1);
+  });
+
   it('sends a hosted sandbox the network ceiling and the command timeout as its lease', async () => {
     await writeFile(
       join(checkout, '.code-zero.yml'),
