@@ -5,11 +5,6 @@ import {
   type Database,
 } from '@code-zero/database';
 
-/** The part of a Hyperdrive binding this app reads: where to connect for the current request. */
-interface HyperdriveBinding {
-  readonly connectionString: string;
-}
-
 /**
  * Connections a single request may open through Hyperdrive.
  *
@@ -18,25 +13,6 @@ interface HyperdriveBinding {
  */
 const REQUEST_MAXIMUM_CONNECTIONS = 5;
 
-/** The client opened for each request that reached Postgres through Hyperdrive. */
-const requestClients = new WeakMap<object, Database>();
-
-/** Narrows what Nitro leaves untyped on `event.context.cloudflare` to the binding this app reads. */
-function hyperdriveBinding(cloudflare: unknown): HyperdriveBinding | undefined {
-  if (typeof cloudflare !== 'object' || cloudflare === null || !('env' in cloudflare)) {
-    return undefined;
-  }
-  const { env } = cloudflare;
-  if (typeof env !== 'object' || env === null || !('HYPERDRIVE' in env)) return undefined;
-  const { HYPERDRIVE: binding } = env;
-  if (typeof binding !== 'object' || binding === null || !('connectionString' in binding)) {
-    return undefined;
-  }
-  return typeof binding.connectionString === 'string'
-    ? { connectionString: binding.connectionString }
-    : undefined;
-}
-
 /** The request being served, or nothing when none is in progress or the host keeps no context. */
 function requestEvent() {
   try {
@@ -44,26 +20,6 @@ function requestEvent() {
   } catch {
     return undefined;
   }
-}
-
-function requestDatabase(): Database | undefined {
-  const event = requestEvent();
-  const binding = hyperdriveBinding(event?.context.cloudflare);
-  if (!event || !binding) return undefined;
-
-  let client = requestClients.get(event);
-  if (!client) {
-    // A new client for every request: a socket opened while serving one cannot be used by the next,
-    // which is why a Worker cannot share the process-wide pool below. Hyperdrive keeps the
-    // connections to Postgres warm, so opening a client here is cheap.
-    client = createDatabase({
-      connectionString: binding.connectionString,
-      maximumConnections: REQUEST_MAXIMUM_CONNECTIONS,
-      fetchTypes: false,
-    });
-    requestClients.set(event, client);
-  }
-  return client;
 }
 
 /**
@@ -88,12 +44,24 @@ function processDatabase(): Database {
 /**
  * The database every caller shares, which resolves to the right client at the moment it is used.
  *
- * A request served through a Hyperdrive binding gets a client of its own (`requestDatabase`); every
+ * A request served through a Hyperdrive binding gets a client of its own (`createRequestDatabase`); every
  * other request, and anything running outside one, uses the process-wide pool. The answer is a
  * property of the call and not of the module, so this single object is safe to hand to a library
  * that keeps it for good, as Better Auth does.
  */
-const scopedDatabase = createScopedDatabase(() => requestDatabase() ?? processDatabase());
+const scopedDatabase = createScopedDatabase(
+  createRequestDatabase({
+    request: requestEvent,
+    // Hyperdrive keeps the connections to Postgres warm, so opening a client here is cheap.
+    open: (connectionString) =>
+      createDatabase({
+        connectionString,
+        maximumConnections: REQUEST_MAXIMUM_CONNECTIONS,
+        fetchTypes: false,
+      }),
+    fallback: processDatabase,
+  }),
+);
 
 export function database(): Database {
   return scopedDatabase;
