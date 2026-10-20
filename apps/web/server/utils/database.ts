@@ -5,6 +5,8 @@ import {
   type Database,
 } from '@code-zero/database';
 
+import { createRequestDatabase } from './request-database.js';
+
 /**
  * Connections a single request may open through Hyperdrive.
  *
