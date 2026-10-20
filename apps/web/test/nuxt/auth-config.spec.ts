@@ -1,5 +1,5 @@
 import { mockNuxtImport } from '@nuxt/test-utils/runtime';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import createAppAuthClient from '~/auth.config';
 
@@ -26,10 +26,38 @@ const authCapabilities = { enableInfra: true, infraKvUrl: 'https://kv.example.te
 
 mockNuxtImport('useAppConfig', () => () => ({ auth: authCapabilities }));
 
+const navigate = vi.hoisted(() => vi.fn<(to: string) => Promise<void>>());
+mockNuxtImport('navigateTo', () => navigate);
+
+/** What the auth server answers a correct password with when the account owes a second factor. */
+function twoFactorChallenge(): Promise<Response> {
+  return Promise.resolve(
+    new Response(JSON.stringify({ twoFactorRedirect: true, twoFactorMethods: ['totp'] }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    }),
+  );
+}
+
 describe('app/auth.config.ts', () => {
   it('constructs a client when the deployment is cloud-managed', () => {
     // The branch that adds `sentinelClient()`, which reads `identifyUrl` as it initialises.
     expect(createAppAuthClient('http://localhost:3000')).toBeDefined();
+  });
+
+  it('sends a sign-in the server challenges for a second factor to /two-factor', async () => {
+    // The challenge is not an error — the password was right — and it is not a session either,
+    // so without this hook the sign-in page would be left showing a success it cannot act on.
+    // The fetch is answered in-process, so the client's own two-factor hook is what runs here.
+    const client = createAppAuthClient('http://localhost:3000');
+
+    const { error } = await client.signIn.email(
+      { email: 'ada@example.test', password: 'correct horse battery staple' },
+      { customFetchImpl: twoFactorChallenge },
+    );
+
+    expect(error).toBeNull();
+    expect(navigate).toHaveBeenCalledWith('/two-factor');
   });
 
   it('constructs a client when it is not, so the gate cannot break a self-hosted install', () => {

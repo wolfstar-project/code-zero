@@ -232,6 +232,10 @@ export default defineNuxtConfig({
     '/settings': { appLayout: 'default', auth: { only: 'user' } },
     '/login': { auth: { only: 'guest' } },
     '/signin': { auth: { only: 'guest' } },
+    // The second-factor challenge belongs to a sign-in that has not produced a session yet, so it
+    // is a guest page like `/login`; the server's short-lived challenge cookie, not the URL, is
+    // what makes the verification endpoints accept a code.
+    '/two-factor': { auth: { only: 'guest' } },
     '/organizations': { appLayout: 'default', auth: { only: 'user' } },
     // Approving a device request mints a session for a client that never sees this browser, so the
     // approval has to be attributable: a signed-out visitor is sent to sign in and back rather
