@@ -40,6 +40,18 @@ export interface MailTemplateContext {
     readonly name: string;
     readonly resetUrl: string;
   };
+  readonly magicLink: {
+    /**
+     * Absolute URL that signs the recipient in. Carries the only copy of the token, so this
+     * message is the credential: nothing else is printed that could identify the account.
+     */
+    readonly signInUrl: string;
+  };
+  readonly twoFactorOtp: {
+    readonly name: string;
+    /** The one-time second-factor code. Short-lived and single-use; it is printed, never logged. */
+    readonly code: string;
+  };
 }
 
 export type MailTemplateId = keyof MailTemplateContext;
@@ -111,6 +123,16 @@ export const mailTemplates: {
     subject: 'Reset your password',
     fields: { name: 'interpolated', resetUrl: 'interpolated' },
   },
+  magicLink: {
+    file: 'MagicLink.vue',
+    subject: 'Sign in to Code Zero',
+    fields: { signInUrl: 'interpolated' },
+  },
+  twoFactorOtp: {
+    file: 'TwoFactorOtp.vue',
+    subject: 'Your Code Zero verification code',
+    fields: { name: 'interpolated', code: 'interpolated' },
+  },
 };
 
 /**
@@ -125,6 +147,8 @@ export const mailTemplateIds = [
   'publicInvitation',
   'emailVerification',
   'passwordReset',
+  'magicLink',
+  'twoFactorOtp',
 ] as const satisfies readonly MailTemplateId[];
 
 /**

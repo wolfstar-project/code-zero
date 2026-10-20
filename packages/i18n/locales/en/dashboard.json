@@ -212,7 +212,7 @@
         "maxConcurrentTasks": "Tasks this deployment runs at once; the rest wait in the queue. From {min} to {max}.",
         "commandTimeoutMinutes": "Minutes before one repository command is stopped. Not a limit on a whole run, which can run several commands. From {min} to {max}.",
         "allowedModes": "Observe is always allowed: it never writes.",
-        "maxNetwork": "The widest network access any run may have. A repository may narrow it, never widen it.",
+        "maxNetwork": "The widest network access any run may have. A repository may narrow it, never widen it. Below Full, a run must be isolated: it needs the container sandbox or a hosted sandbox, and a repository that chooses local isolation is refused.",
         "model": "The provider's credentials stay in the server environment.",
         "runner": "Only container isolation can be enforced from here."
       },

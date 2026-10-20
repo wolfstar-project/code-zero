@@ -12,6 +12,8 @@ const CLASS_ATTRIBUTE_PATTERN = /class="([^"]*)"/g;
 const DARK_VARIANT_CLASS_PATTERN = /^dark-/;
 const WHITESPACE_PATTERN = /\s+/;
 const MISSING_MAIL_FROM_PATTERN = /MAIL_FROM/;
+/** An anchor whose target carries the second-factor code the test sends. */
+const CODE_IN_LINK_PATTERN = /href="[^"]*482913/u;
 
 /** Every class token left in the markup, so the assertion can name the offender it found. */
 function classTokens(html: string): string[] {
@@ -126,6 +128,52 @@ describe('sendEmail', () => {
     expect(mail.text).toContain('Hello,');
     expect(mail.text).toContain('Dana invited you to create an account on Code Zero.');
     expect(mail.text).not.toContain('join');
+  });
+
+  it('carries a magic link in both halves of the message and nothing that names the account', async () => {
+    // Possession of the link is the credential, so the message has to carry it where every client
+    // can reach it: the button, and the pasteable text for clients that strip anchors. It names no
+    // account because the address is typed by whoever asks, before any account is looked up.
+    const { sent, provider } = recordingProvider();
+    const signInUrl = 'https://dashboard.example.com/verify?token=abc&callbackURL=%2F';
+
+    await sendEmail(
+      { to: 'ada@example.com', templateId: 'magicLink', context: { signInUrl } },
+      { provider, from: 'noreply@example.com' },
+    );
+
+    const [mail] = sent;
+    assertSent(mail);
+    expect(mail.subject).toBe('Sign in to Code Zero');
+    expect(mail.html).toContain(
+      'https://dashboard.example.com/verify?token=abc&amp;callbackURL=%2F',
+    );
+    expect(mail.text).toContain(signInUrl);
+    expect(mail.text).not.toContain('Hello');
+  });
+
+  it('prints a second-factor code once, as text, never inside a link', async () => {
+    // The code is a credential too, but a short-lived one the recipient types by hand: it goes in
+    // as text in both halves, and no anchor in the message carries it, so nothing in the mail
+    // signs anyone in on its own.
+    const { sent, provider } = recordingProvider();
+
+    await sendEmail(
+      {
+        to: 'ada@example.com',
+        templateId: 'twoFactorOtp',
+        context: { name: 'Ada', code: '482913' },
+      },
+      { provider, from: 'noreply@example.com' },
+    );
+
+    const [mail] = sent;
+    assertSent(mail);
+    expect(mail.subject).toBe('Your Code Zero verification code');
+    expect(mail.text).toContain('Hello Ada,');
+    expect(mail.text).toContain('482913');
+    expect(mail.html).toContain('482913');
+    expect(mail.html).not.toMatch(CODE_IN_LINK_PATTERN);
   });
 
   it('inlines styles so the message survives clients that drop stylesheets', async () => {

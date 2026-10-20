@@ -1,8 +1,8 @@
 import type { AuthCapabilities } from '@code-zero/auth/config';
 import { mockNuxtImport, mountSuspended } from '@nuxt/test-utils/runtime';
-import type { VueWrapper } from '@vue/test-utils';
-import { beforeEach, describe, expect, it } from 'vitest';
-import { computed } from 'vue';
+import { flushPromises, type VueWrapper } from '@vue/test-utils';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { computed, ref } from 'vue';
 
 import LoginPage from '~/pages/(auth)/login.vue';
 
@@ -40,6 +40,27 @@ mockNuxtImport(
       })),
     ),
 );
+
+/**
+ * The sign-in handles the page drives, resolving every email sign-in with what the auth server
+ * answers a correct password with when the account owes a second factor: no error, and no
+ * session either. The fetch stub in test/nuxt/setup.ts never reaches this far, so the module's
+ * action handle is mocked at the composable boundary.
+ */
+const signInEmail = vi.hoisted(() => vi.fn<(input: unknown) => void>());
+mockNuxtImport('useSignIn', () => () => {
+  const status = ref<'idle' | 'pending' | 'success' | 'error'>('idle');
+  return {
+    status,
+    error: ref(null),
+    data: ref<unknown>(null),
+    execute: (input: unknown) => {
+      signInEmail(input);
+      status.value = 'success';
+      return Promise.resolve();
+    },
+  };
+});
 
 function getButtonByText(wrapper: VueWrapper, text: string) {
   const button = wrapper.findAll('button').find((candidate) => candidate.text() === text);
@@ -81,5 +102,23 @@ describe('login page', () => {
     const wrapper = await mountSuspended(LoginPage);
 
     expect(getButtonByText(wrapper, 'Continue with GitHub').exists()).toBe(true);
+  });
+
+  it('shows no error for a sign-in the server answers with a second-factor challenge', async () => {
+    // The password was right and no session exists yet: the challenge is a success the page
+    // cannot act on, and `app/auth.config.ts` turns it into a navigation (see auth-config.spec).
+    // What this page owes is to leave the form clean rather than call that a failed sign-in.
+    const wrapper = await mountSuspended(LoginPage);
+    await wrapper.get('input[type="email"]').setValue('ada@example.test');
+    await wrapper.get('input[type="password"]').setValue('correct horse battery staple');
+    await wrapper.get('form').trigger('submit');
+    await flushPromises();
+
+    expect(signInEmail).toHaveBeenCalledWith({
+      email: 'ada@example.test',
+      password: 'correct horse battery staple',
+    });
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false);
+    expect(getButtonByText(wrapper, 'Sign in').attributes('disabled')).toBeUndefined();
   });
 });

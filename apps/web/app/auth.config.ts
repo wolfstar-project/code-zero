@@ -13,6 +13,9 @@ import {
   twoFactorClient,
 } from 'better-auth/client/plugins';
 
+/** The page `app/pages/(auth)/two-factor.vue` serves; a route rule keeps it guest-only. */
+const TWO_FACTOR_PATH = '/two-factor';
+
 // Better Auth is mounted in this app's own server (`server/auth.config.ts`), so every request is
 // same-origin: no explicit `baseURL` or credentialed CORS is needed.
 //
@@ -28,6 +31,9 @@ import {
 // from `/api/capabilities` instead.
 export default defineClientAuth(() => {
   const { auth } = useAppConfig();
+  // Captured here, while the factory runs inside the Nuxt app, because the two-factor redirect
+  // below fires from a fetch hook with no component or plugin context of its own.
+  const nuxtApp = useNuxtApp();
 
   return {
     // Registered unconditionally: these client plugins only add callable methods, and whether the
@@ -50,7 +56,14 @@ export default defineClientAuth(() => {
       lastLoginMethodClient(),
       multiSessionClient(),
       adminClient(),
-      twoFactorClient(),
+      // A sign-in the server answers with `twoFactorRedirect` has no session yet: the password was
+      // right and the second factor is still owed. Without this hook the sign-in page would show
+      // a success it cannot act on, so the visitor is taken to the challenge page instead.
+      twoFactorClient({
+        onTwoFactorRedirect: async () => {
+          await nuxtApp.runWithContext(() => navigateTo(TWO_FACTOR_PATH));
+        },
+      }),
       passkeyClient(),
       magicLinkClient(),
       apiKeyClient(),
