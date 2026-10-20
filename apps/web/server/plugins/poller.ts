@@ -29,6 +29,14 @@ import { GitHubPullRequests } from '@code-zero/source-control';
  * webhook route.
  */
 export default defineNitroPlugin((nitroApp) => {
+  // A Worker is frozen between requests, so a timer scheduled here would fire only while some
+  // unrelated request happened to be in flight. Polling on Cloudflare is a scheduled trigger's job;
+  // webhooks, the push-based path, work there as everywhere else.
+  if (isCloudflareWorker()) {
+    console.info('[poll] running on Cloudflare Workers; not polling from inside the Worker');
+    return;
+  }
+
   const token = githubTokenFromEnvironment();
   if (!token) {
     console.warn('[poll] GITHUB_TOKEN is not configured; not polling');

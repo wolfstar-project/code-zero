@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { databaseUrlFromEnvironment, optionalDatabaseUrlFromEnvironment } from './client.js';
+import {
+  createScopedDatabase,
+  databaseUrlFromEnvironment,
+  optionalDatabaseUrlFromEnvironment,
+} from './client.js';
 import { schema } from './schema/index.js';
 
 const CONNECTION_STRING = 'postgres://postgres:postgres@localhost:5432/code_zero';
@@ -113,5 +117,63 @@ describe('schema', () => {
       'user',
       'verification',
     ]);
+  });
+});
+
+// A stand-in with the one thing the proxy relies on: members that read `this`. Nothing here
+// opens a socket, which is what keeps the test deterministic.
+interface Probe {
+  readonly name: string;
+  describe(): string;
+}
+
+function probe(name: string): Probe {
+  return {
+    name,
+    describe() {
+      return this.name;
+    },
+  };
+}
+
+describe('createScopedDatabase', () => {
+  it('answers from whichever client is current when a member is read', () => {
+    let current = probe('first');
+    const scoped = createScopedDatabase(() => current);
+
+    expect(scoped.name).toBe('first');
+    current = probe('second');
+    expect(scoped.name).toBe('second');
+  });
+
+  it('runs a method against the client it was read from, even when called detached', () => {
+    let current = probe('first');
+    const scoped = createScopedDatabase(() => current);
+
+    // Detached on purpose: this is the case under test.
+    // oxlint-disable-next-line typescript/unbound-method -- reading the method off the proxy is the point
+    const detached = scoped.describe;
+    current = probe('second');
+
+    expect(detached()).toBe('first');
+    expect(scoped.describe()).toBe('second');
+  });
+
+  it('opens nothing until a member is used', () => {
+    let resolutions = 0;
+    createScopedDatabase(() => {
+      resolutions += 1;
+      return probe('unused');
+    });
+
+    expect(resolutions).toBe(0);
+  });
+
+  it('lets a failure to resolve a client reach the caller', () => {
+    const scoped = createScopedDatabase((): Probe => {
+      throw new Error('no request in progress');
+    });
+
+    expect(() => scoped.name).toThrow('no request in progress');
   });
 });

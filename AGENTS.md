@@ -184,6 +184,7 @@ aube run build
 | `ci.yaml`                    | Lint, repository metadata, typecheck, tests, build, i18n  | PR, push to `main`, merge group       |
 | `cd.yml`                     | Builds and publishes the dashboard image to GHCR          | Push to `main`, `vX.Y.Z` tags, manual |
 | `deploy-sites.yml`           | Deploys marketing and docs to Cloudflare Workers          | Push to `main` (site paths), manual   |
+| `deploy-dashboard.yml`       | Deploys the dashboard to Cloudflare Workers               | Manual                                |
 | `autofix.yml`                | Pushes formatting and lint fixes back to the pull request | PR, merge group                       |
 | `zizmor.yaml`                | Static analysis of GitHub Actions workflows               | PR, push to `main`, merge group       |
 | `semantic-pull-requests.yml` | Validates PR titles against Conventional Commits          | PR opened, edited, synchronized       |
