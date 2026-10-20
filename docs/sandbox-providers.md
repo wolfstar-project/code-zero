@@ -1,6 +1,6 @@
 # Hosted sandbox provider evaluation
 
-Code Zero v0.3 defines the vendor-neutral lifecycle in `packages/runner`: provision a credential-free request, expose the resulting checkout only as a `Runner`, stop it explicitly, and expire bounded leases. A provider adapter owns its client and credentials privately. No SDK response or secret is copied into agent state, task history, lease snapshots, or logs.
+Code Zero v0.3 defines the vendor-neutral lifecycle in `packages/core/runner`: provision a credential-free request, expose the resulting checkout only as a `Runner`, stop it explicitly, and expire bounded leases. A provider adapter owns its client and credentials privately. No SDK response or secret is copied into agent state, task history, lease snapshots, or logs.
 
 ## Evaluation
 

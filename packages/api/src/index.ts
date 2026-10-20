@@ -29,6 +29,7 @@ export {
 } from './operations.js';
 export {
   accessFromEnvironment,
+  apiKeyPrincipal,
   authenticate,
   sessionPrincipal,
   type ControlPlaneAccess,
@@ -47,6 +48,7 @@ export {
   type DeliveryClaim,
   type DeliveryClaimStore,
   type KeyValueStorage,
+  type ScheduleLimits,
   type SchedulerOptions,
   type SchedulerSnapshot,
   type StoredTask,
@@ -70,6 +72,7 @@ export { dashboardOverview, type DashboardOverview } from './dashboard.js';
 export {
   authMiddleware,
   betterAuthPrincipal,
+  type ApiKeyVerifier,
   type BetterAuthContext,
   type BetterAuthSessionApi,
 } from './orpc/auth.js';
@@ -81,4 +84,18 @@ export type {
   RepositoryMode,
   RepositoryRecord,
 } from './repositories.js';
+export { deploymentServices } from './settings.js';
+export type {
+  DashboardSettingsAuthority,
+  DeploymentConnections,
+  DeploymentSettingsAuthority,
+  FileSettingsAuthority,
+  OrganizationMembership,
+  OrganizationSettingsStore,
+  RunPolicy,
+  ServiceName,
+  ServiceStatus,
+  SettingsState,
+} from './settings.js';
+export type { OrganizationSettingsView, SettingsView } from './orpc/settings.js';
 export { FileKeyValueStorage } from './storage.js';

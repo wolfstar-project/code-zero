@@ -1,0 +1,14 @@
+{
+  // The marketing site is prerendered end to end (`nuxt generate`) and has no server routes, so the
+  // Worker only serves the generated files: no script, no bindings, nothing to keep warm.
+  "name": "code-zero-marketing",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": ".output/public",
+    // `nuxt generate` writes `404.html`; serve it with a 404 status for unknown paths.
+    "not_found_handling": "404-page",
+    "html_handling": "drop-trailing-slash",
+  },
+  "routes": [{ "pattern": "code-zero.dev", "custom_domain": true }],
+  "workers_dev": true,
+}

@@ -88,7 +88,7 @@ jobs:
 
       - name: 📦 Verify package version
         run: |
-          node --input-type=module --eval "Promise.all([import('./packages/shared/dist/index.mjs'), import('./packages/shared/package.json', { with: { type: 'json' } })]).then(([built, pkg]) => { if (built.version !== pkg.default.version) { console.error('Injected version', built.version, 'does not match package.json version', pkg.default.version); process.exit(1) } })"
+          node --input-type=module --eval "Promise.all([import('./packages/core/shared/dist/index.mjs'), import('./packages/core/shared/package.json', { with: { type: 'json' } })]).then(([built, pkg]) => { if (built.version !== pkg.default.version) { console.error('Injected version', built.version, 'does not match package.json version', pkg.default.version); process.exit(1) } })"
 
   knip:
     name: 🧹 Unused code check

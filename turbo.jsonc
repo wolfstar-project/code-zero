@@ -17,7 +17,7 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".output/**", "*.tsbuildinfo"],
     },
-    "@code-zero/dashboard#build": {
+    "@code-zero/web#build": {
       "dependsOn": ["^build"],
       // NITRO_PRESET and VITEHUB_HOSTING select the deployment target (config/env.ts), which
       // fixes both the Nitro preset the build emits and the KV driver it resolves. Strict env mode
@@ -86,6 +86,7 @@
       "env": [
         "MARKETING_SITE_URL",
         "MARKETING_DASHBOARD_URL",
+        "NUXT_SITE_URL",
         "NITRO_PRESET",
         // Read by packages/build-env to resolve what the build is (version, commit, branch,
         // deploy channel). Declared so strict env mode does not hide them from `nuxt build`, and
@@ -133,9 +134,13 @@
       "dependsOn": ["^build"],
       // The canonical architecture and provider references are pulled in from the
       // repository-root docs/ directory by the @include hook in nuxt.config.ts.
-      "env": ["NUXT_APP_BASE_URL"],
+      // NUXT_SITE_URL is the absolute origin in the sitemap and canonical links; NITRO_PRESET and
+      // VERCEL pick the output layout, so a Vercel build never reuses a Cloudflare one or back.
+      "env": ["NUXT_APP_BASE_URL", "NUXT_SITE_URL", "NITRO_PRESET", "VERCEL"],
       "inputs": ["$TURBO_DEFAULT$", ".env*", "../../docs/*.md"],
-      "outputs": [".output/**"],
+      // `.vercel/output/**` is where the `vercel` preset writes; without it a cache hit on Vercel
+      // restores no bundle and the deployment fails looking for a `dist` directory.
+      "outputs": [".output/**", ".vercel/output/**"],
     },
     "typecheck": {
       "dependsOn": ["^build"],

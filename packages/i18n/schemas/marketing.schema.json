@@ -172,69 +172,6 @@
           },
           "additionalProperties": false
         },
-        "testimonials": {
-          "type": "object",
-          "properties": {
-            "title": {
-              "type": "string"
-            },
-            "subtitle": {
-              "type": "string"
-            },
-            "items": {
-              "type": "object",
-              "properties": {
-                "one": {
-                  "type": "object",
-                  "properties": {
-                    "quote": {
-                      "type": "string"
-                    },
-                    "author": {
-                      "type": "string"
-                    },
-                    "role": {
-                      "type": "string"
-                    }
-                  },
-                  "additionalProperties": false
-                },
-                "two": {
-                  "type": "object",
-                  "properties": {
-                    "quote": {
-                      "type": "string"
-                    },
-                    "author": {
-                      "type": "string"
-                    },
-                    "role": {
-                      "type": "string"
-                    }
-                  },
-                  "additionalProperties": false
-                },
-                "three": {
-                  "type": "object",
-                  "properties": {
-                    "quote": {
-                      "type": "string"
-                    },
-                    "author": {
-                      "type": "string"
-                    },
-                    "role": {
-                      "type": "string"
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              },
-              "additionalProperties": false
-            }
-          },
-          "additionalProperties": false
-        },
         "pricing": {
           "type": "object",
           "properties": {

@@ -3,11 +3,11 @@ import process from 'node:process';
 import { defaultLocale, i18nLocalesFor, localeCookieName } from '@code-zero/i18n';
 import { defineNuxtConfig } from 'nuxt/config';
 
-import { featureCards, logoCloud } from './config/content.js';
+import { logoCloud } from './config/content.js';
 
 // Only the scopes this app renders: every listed file is deep-merged into the bundle whether or
 // not a key from it is read, so the dashboard's auth/organizations copy has no business being
-// here — the reverse of the reason `apps/dashboard/nuxt.config.ts` doesn't load `marketing.json`.
+// here — the reverse of the reason `apps/web/nuxt.config.ts` doesn't load `marketing.json`.
 const marketingLocales = i18nLocalesFor(['common.json', 'errors.json', 'marketing.json']);
 
 // `crawlLinks` only discovers a route by following a crawlable `<a href>` it finds while
@@ -49,7 +49,7 @@ export default defineNuxtConfig({
     '@nuxtjs/color-mode',
     '@vite-pwa/nuxt',
   ],
-  css: ['~/assets/css/main.css'],
+  css: ['@code-zero/ui/tokens.css', '~/assets/css/main.css'],
 
   $test: {
     debug: {
@@ -75,7 +75,7 @@ export default defineNuxtConfig({
       // The scanner cannot see icons that reach `<Icon>` through a `:name` binding, so the ones
       // that live in `config/content.ts` are listed from that same source. Deriving the list
       // instead of retyping it means adding a card cannot silently ship a missing icon.
-      icons: [...featureCards.map((card) => card.icon), ...logoCloud.map((entry) => entry.icon)],
+      icons: logoCloud.map((entry) => entry.icon),
     },
   },
 

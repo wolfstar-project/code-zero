@@ -11,7 +11,7 @@ export type RepositoryMode = 'observe' | 'suggest';
  *
  * Defined here rather than imported from `@code-zero/database`: this package composes adapters
  * into the control-plane API and does not talk to a store directly, so the contract it needs is
- * the shape a store returns, not the store itself. `apps/dashboard`'s Drizzle-backed store
+ * the shape a store returns, not the store itself. `apps/web`'s Drizzle-backed store
  * satisfies this structurally, with no import back the other way.
  */
 export interface RepositoryRecord {

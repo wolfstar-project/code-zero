@@ -32,7 +32,7 @@ Feedback is never treated as truth merely because it came from a human or an AI 
 - **Confidence and impact gates** &ndash; automatic fixes require confidence, an allowed change-risk class, repository permission, and verification.
 - **Issues become reviewable pull requests** &ndash; a labeled, repository-scoped issue can be investigated, implemented on an isolated branch, verified, and published as a pull request that carries its acceptance criteria and evidence; never as a direct commit.
 - **`observe` by default** &ndash; the safe mode inspects and reports, and never writes to a target repository.
-- **One execution boundary** &ndash; `packages/runner` is the only code allowed to run commands or mutate a checkout.
+- **One execution boundary** &ndash; `packages/core/runner` is the only code allowed to run commands or mutate a checkout.
 - **Adapters at the edges** &ndash; the runtime stays independent of HTTP, source-control platforms, terminal UI, and model providers.
 
 ---
@@ -56,17 +56,17 @@ Nuxt dashboard ─── UI, oRPC + OpenAPI routes, and Better Auth, one app ─
 
 | Package                                                | Responsibility                                                                             |
 | ------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
-| [`packages/agent`](./packages/agent)                   | Orchestration and state transitions                                                        |
-| [`packages/runner`](./packages/runner)                 | The only boundary that executes commands or mutates a checkout                             |
-| [`packages/models`](./packages/models)                 | Model-provider abstractions                                                                |
+| [`packages/core/agent`](./packages/core/agent)         | Orchestration and state transitions                                                        |
+| [`packages/core/runner`](./packages/core/runner)       | The only boundary that executes commands or mutates a checkout                             |
+| [`packages/core/models`](./packages/core/models)       | Model-provider abstractions                                                                |
 | [`packages/source-control`](./packages/source-control) | Provider-neutral source-control contracts and adapters (GitHub, GitLab, Bitbucket, Gitea)  |
-| [`packages/config`](./packages/config)                 | Configuration parsing and policy                                                           |
-| [`packages/shared`](./packages/shared)                 | Stable cross-package contracts                                                             |
+| [`packages/core/config`](./packages/core/config)       | Configuration parsing and policy                                                           |
+| [`packages/core/shared`](./packages/core/shared)       | Stable cross-package contracts                                                             |
 | [`packages/cli`](./packages/cli)                       | Argument parsing and terminal presentation                                                 |
 | [`packages/database`](./packages/database)             | Schema, Drizzle client, and checked-in migrations; the only package that talks to Postgres |
 | [`packages/auth`](./packages/auth)                     | Authentication policy and the Better Auth options factory                                  |
 | [`packages/api`](./packages/api)                       | oRPC router and control-plane operations                                                   |
-| [`apps/dashboard`](./apps/dashboard)                   | The single deployable app: UI, `/rpc/**` + `/api/v1/**`, and `/api/auth/**`                |
+| [`apps/web`](./apps/web)                               | The single deployable app: UI, `/rpc/**` + `/api/v1/**`, and `/api/auth/**`                |
 | [`apps/marketing`](./apps/marketing)                   | Nuxt public marketing site; frontend only, no persistence                                  |
 
 Adapters depend on the runtime; the runtime never depends on adapters. See [docs/architecture.md](./docs/architecture.md) for the full dependency rules.
@@ -77,7 +77,7 @@ Each app's `aube --filter <name> run dev` binds a fixed port, so they can all ru
 
 | App                                        | Port   | `aube --filter` name      |
 | ------------------------------------------ | ------ | ------------------------- |
-| [`apps/dashboard`](./apps/dashboard)       | `3000` | `@code-zero/dashboard`    |
+| [`apps/web`](./apps/web)                   | `3000` | `@code-zero/web`          |
 | [`apps/marketing`](./apps/marketing)       | `3001` | `@code-zero/marketing`    |
 | [`apps/docs`](./apps/docs)                 | `3002` | `@code-zero/docs`         |
 | [`apps/mail-preview`](./apps/mail-preview) | `3005` | `@code-zero/mail-preview` |
@@ -92,7 +92,7 @@ Requirements: Node.js 24.2+ and [aube](https://aube.jdx.dev), the package manage
 mise install            # or: npm install -g --ignore-scripts=false @endevco/aube
 aube ci
 cp .env.example .env
-cp apps/dashboard/.env.example apps/dashboard/.env
+cp apps/web/.env.example apps/web/.env
 aube test
 aube run zero doctor
 aube run zero review --feedback "Possible null dereference in src/user.ts"
@@ -101,10 +101,10 @@ aube run dev
 ```
 
 The root `.env` configures the CLI. Each app loads its own file: the dashboard uses
-`apps/dashboard/.env`, while the docs app optionally uses `apps/docs/.env` for `NUXT_APP_BASE_URL`.
+`apps/web/.env`, while the docs app optionally uses `apps/docs/.env` for `NUXT_APP_BASE_URL`.
 
 The dashboard needs Postgres. It stores accounts, sessions, and the repositories a task may
-target, so point `DATABASE_URL` in `apps/dashboard/.env` at a database and apply the schema before
+target, so point `DATABASE_URL` in `apps/web/.env` at a database and apply the schema before
 the first start — there is no in-memory mode to fall back on:
 
 ```bash
@@ -112,7 +112,7 @@ aube run db:migrate
 aube run dev             # http://localhost:3000, then sign up at /signup
 ```
 
-Set `AUTH_ENABLE_SIGNUP=true` in `apps/dashboard/.env` to create the first account, then turn it
+Set `AUTH_ENABLE_SIGNUP=true` in `apps/web/.env` to create the first account, then turn it
 back off. Self-registration grants the `user` role, not `admin`, and configuring repositories
 (`repositories.save`, reached from the dashboard) requires `admin` — the same gate `audit.list`
 uses — so promote that first account once, directly in the database:
@@ -164,7 +164,7 @@ The CLI parses arguments with [`@bomb.sh/args`](https://github.com/bomb-sh/args)
 | `/api/v1/**`   | The same router over OpenAPI/REST; interactive docs at `/api/v1/docs`, spec at `/api/v1/openapi.json`        |
 | `/api/auth/**` | The Better Auth handler (mounted by `@onmax/nuxt-better-auth` from `server/auth.config.ts`)                  |
 
-`/rpc/**` and `/api/v1/**` are the same `rpcRouter` from [`packages/api`](./packages/api) served over two wire protocols, so authorization behaves identically either way. Reads are open for the dashboard; mutations (`tasks.create`, `approvals.decide`) fail closed. `CODE_ZERO_CONTROL_PLANE_TOKENS` holds comma-separated `name:token` bearer credentials — the one half of this policy that is a secret, and so the one half still in the environment. Which execution modes each principal may request is `control_plane.modes` in `code-zero.deployment.yml`; without a grant a principal may only request the non-writable `observe` and `suggest` modes, so `fix` and `autonomous` require an explicit operator grant. Which checkouts `tasks.create` may target is neither a secret nor fixed for the life of the process, so it is the `repository` table an operator edits from the dashboard; with none configured every task creation is refused. The approval actor is the authenticated principal's name, never a wire-supplied value. This bearer-token scheme authorizes the control-plane API and is independent of the Better Auth session that protects the dashboard UI.
+`/rpc/**` and `/api/v1/**` are the same `rpcRouter` from [`packages/api`](./packages/api) served over two wire protocols, so authorization behaves identically either way. Reads are open for the dashboard; mutations (`tasks.create`, `approvals.decide`) fail closed. `CODE_ZERO_CONTROL_PLANE_TOKENS` holds comma-separated `name:token` bearer credentials — the one half of this policy that is a secret, and so the one half still in the environment. Which execution modes each principal may request is `control_plane.modes` in the instance file, `config.yml`; without a grant a principal may only request the non-writable `observe` and `suggest` modes, so `fix` and `autonomous` require an explicit operator grant. Which checkouts `tasks.create` may target is neither a secret nor fixed for the life of the process, so it is the `repository` table an operator edits from the dashboard; with none configured every task creation is refused. The approval actor is the authenticated principal's name, never a wire-supplied value. This bearer-token scheme authorizes the control-plane API and is independent of the Better Auth session that protects the dashboard UI.
 
 Typed clients infer their shape from the router rather than redeclaring request and response types:
 
@@ -187,9 +187,9 @@ await client.approvals.decide({ taskId: tasks[0]!.id, decision: 'approved' });
 
 Non-TypeScript or external callers can use plain HTTP against `/api/v1/**` instead — for example `curl http://localhost:3000/api/v1/tasks` — with the same bearer-token rules; the interactive reference at `/api/v1/docs` documents every route from the generated OpenAPI spec.
 
-The transport is Nuxt's own Nitro server: routes live in `apps/dashboard/server/`, and `nuxt build` emits a self-contained `.output/` bundle started with `node .output/server/index.mjs`. Task history persists through a `KeyValueStorage` contract backed by the ViteHub KV Runtime Helper (registered from `apps/dashboard/nuxt.config.ts`): filesystem-backed `fs-lite` by default, with Cloudflare KV, Deno KV, or Upstash dropping in as driver configuration without touching application code. Records are redacted before they are written and never contain review input or checkout paths. `TaskScheduler` bounds work globally and per repository, so a burst queues instead of fanning out unbounded runs.
+The transport is Nuxt's own Nitro server: routes live in `apps/web/server/`, and `nuxt build` emits a self-contained `.output/` bundle started with `node .output/server/index.mjs`. Task history persists through a `KeyValueStorage` contract backed by the ViteHub KV Runtime Helper (registered from `apps/web/nuxt.config.ts`): filesystem-backed `fs-lite` by default, with Cloudflare KV, Deno KV, or Upstash dropping in as driver configuration without touching application code. Records are redacted before they are written and never contain review input or checkout paths. `TaskScheduler` bounds work globally and per repository, so a burst queues instead of fanning out unbounded runs.
 
-Authentication is mounted in-process at `/api/auth/**` by `apps/dashboard/server/auth.config.ts`, the one route in the app that resolves `packages/auth`'s environment options — including the connection string, through [`packages/database`](./packages/database) — and therefore the only place in the repository that opens a connection to Postgres. `packages/database` declares the tables with [Drizzle](https://orm.drizzle.team) rather than Better Auth's own migration tool, so the session store's schema lives in this repository as reviewable, checked-in SQL. The dashboard renders with SSR: the session cookie is same-origin, so the server resolves it directly and a signed-out visitor never flashes protected content before redirecting.
+Authentication is mounted in-process at `/api/auth/**` by `apps/web/server/auth.config.ts`, the one route in the app that resolves `packages/auth`'s environment options — including the connection string, through [`packages/database`](./packages/database) — and therefore the only place in the repository that opens a connection to Postgres. `packages/database` declares the tables with [Drizzle](https://orm.drizzle.team) rather than Better Auth's own migration tool, so the session store's schema lives in this repository as reviewable, checked-in SQL. The dashboard renders with SSR: the session cookie is same-origin, so the server resolves it directly and a signed-out visitor never flashes protected content before redirecting.
 
 Point `DATABASE_URL` at a Postgres database, then apply the schema once before the first run
 (`db:generate` only needs to run again after editing `packages/database/src/schema/`):
@@ -206,18 +206,17 @@ off until you turn them on, so a fresh deployment cannot be signed up for by a s
 | `NUXT_BETTER_AUTH_SECRET`                   | yes      | –       | Session signing secret. Required under this name in production; `BETTER_AUTH_SECRET` is a development-only fallback |
 | `DATABASE_URL`                              | yes      | –       | Postgres connection string                                                                                          |
 | `AUTH_ENABLE_SIGNUP`                        | no       | `false` | Set to `true` to allow self-registration                                                                            |
-| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | no       | –       | Enables the GitHub button when both are set                                                                         |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | no       | –       | Enables the GitHub button when both are set; GitLab (`GITLAB_*`) and Google (`GOOGLE_*`) follow the same rule       |
 | `NUXT_PUBLIC_SITE_URL`                      | no       | –       | Base URL override for a custom domain or deterministic OAuth callbacks; auto-detected from the request otherwise    |
 
 `AUTH_DATABASE_URL` is still read when `DATABASE_URL` is unset, so a deployment configured before
 the store moved into `packages/database` keeps starting; prefer `DATABASE_URL` for new ones.
 
-Sign-in lives at `/login` and self-registration at `/signup`; the methods each page offers are
-derived at build time from the same policy variables `server/auth.config.ts` reads at runtime
-(`AUTH_ENABLE_SIGNUP`, `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`), and no runtime override can
-change them. The flip side of that build-time capture is a deployment contract: whenever you change
-those policy variables, rebuild the app, or the auth pages will keep advertising the old
-capabilities (the server still enforces its own policy either way).
+Sign-in lives at `/login` and self-registration at `/signup`. The methods each page offers are
+read at runtime from `/api/capabilities`, which the server derives from the same policy variables
+`server/auth.config.ts` builds Better Auth from, so changing them needs a restart rather than a
+rebuild. Every variable is listed, with its default, in `apps/web/.env.example`; the full policy is
+described in the [authentication guide](apps/docs/content/1.guide/11.authentication/1.overview.md).
 
 The interface ships English and Italian through `@nuxtjs/i18n`, with dictionaries split by scope in
 `packages/i18n/locales/<locale>/` and shared with the marketing site; each app loads only the
@@ -229,7 +228,7 @@ source; it reads git history, so it needs the dictionaries committed.
 Playwright suite against `server/auth.config.ts` running with an in-memory Better Auth adapter and
 signup enabled (`AUTH_E2E_MEMORY=true`, set only for that preview server), so the suite creates and
 signs in its own throwaway account through the real `/api/auth/**` endpoints instead of a live
-database. Use `aube --filter @code-zero/dashboard run test:browser:ui` for Playwright UI mode.
+database. Use `aube --filter @code-zero/web run test:browser:ui` for Playwright UI mode.
 
 Hosted execution is available through the provider-neutral `RunnerPool`: every lease has a maximum lifetime, quota checks run before provisioning, expired sandboxes are stopped, and the agent receives only the ordinary `Runner` contract. See [the sandbox provider evaluation](./docs/sandbox-providers.md).
 
@@ -280,7 +279,7 @@ Known limits, all of which follow from the session being local:
 - **Host-bound.** The run must execute where `claude login` / `codex login` was completed, and the
   Code Zero process must be allowed to spawn subprocesses.
 - **`codex-cli`'s process is not runner-routed.** `claude-code`'s CLI process is spawned through
-  `packages/runner`'s `spawnManagedProcess`, the same boundary as every repository check; a
+  `packages/core/runner`'s `spawnManagedProcess`, the same boundary as every repository check; a
   composition root wires this in (`modelFromEnvironment`'s `ClaudeCodeProcessSpawner` parameter).
   `ai-sdk-provider-codex-cli` exposes no equivalent hook, so Codex's process is always spawned by
   the vendor SDK directly. Its read-only sandbox, disabled approvals, and disabled MCP servers are
@@ -420,9 +419,9 @@ also tagged with its full commit SHA, and `vX.Y.Z` tags matching the dashboard v
 
 ```bash
 docker build -t code-zero .
-docker run --rm -p 3000:3000 --env-file apps/dashboard/.env \
+docker run --rm -p 3000:3000 --env-file apps/web/.env \
   -v code-zero-data:/app/.data \
-  -v "$PWD/code-zero.deployment.yml:/app/code-zero.deployment.yml:ro" \
+  -v "$PWD/config.yml:/app/config.yml:ro" \
   code-zero
 ```
 
@@ -437,8 +436,8 @@ environment sets. Apply migrations against `DATABASE_URL` with
 root needs `RAILWAY_RUN_UID=0`, since the image runs as the unprivileged `node` user).
 
 The image carries only `.output/`, so the deployment policy has to be supplied: mount
-`code-zero.deployment.yml` at `/app/code-zero.deployment.yml` as above, or mount it elsewhere and
-point `CODE_ZERO_CONFIG` at it. Without it the process falls back to the closed defaults (no CORS
+`config.yml` at `/app/config.yml` as above (see [`config.example.yml`](./config.example.yml)), or
+mount it elsewhere and point `CODE_ZERO_CONFIG` at it. Without it the process falls back to the closed defaults (no CORS
 origins, no `fix` or `autonomous` grants). The image ships `git` for the host runner but no
 container engine, so `runner.isolation: container` is not supported by it: tasks that require
 container isolation fail closed instead of running on the host. Deploy the `.output/` bundle on a
@@ -451,7 +450,7 @@ host with Docker or Podman when you need that mode.
 - **[aube](https://aube.jdx.dev)** &ndash; package manager, pinned through `packageManager`, reusing the pnpm lockfile and workspace files.
 - **[typescript-native-bridge](https://github.com/johnsoncodehk/typescript-native-bridge)** &ndash; overrides `typescript` repo-wide, so `tsc` keeps the classic package surface while the checker runs on tsgo in-process. The override lives in `pnpm-workspace.yaml` and is pinned exactly; the fork only publishes prerelease versions.
 - **[Turborepo](https://turborepo.dev)** &ndash; schedules workspace tasks in dependency order and caches tsdown build outputs.
-- **[tsdown](https://tsdown.dev)** &ndash; builds publishable packages as ESM and CommonJS with matching declarations and source maps, through the shared [tsdown configuration](./scripts/tsdown.config.ts). The Nuxt dashboard uses the Nuxt build pipeline instead.
+- **[tsdown](https://tsdown.dev)** &ndash; builds every package as ESM only, with matching declarations and source maps, through the shared [tsdown configuration](./scripts/tsdown.config.ts). The Nuxt dashboard uses the Nuxt build pipeline instead.
 - **[Oxlint](https://oxc.rs) + [Oxfmt](https://oxc.rs)** &ndash; type-aware linting and repository-wide formatting, extended with [`@e18e/eslint-plugin`](https://github.com/e18e/eslint-plugin) for modernization, module-replacement, and performance rules.
 - **[Knip](https://knip.dev)** &ndash; detects unused files, exports, and dependencies across the workspace as part of `lint:ci`.
 - **[`@arethetypeswrong/cli`](https://github.com/arethetypeswrong/arethetypeswrong.github.io) + [Publint](https://publint.dev)** &ndash; validate every package build.
@@ -463,7 +462,7 @@ GitHub Actions run typecheck, build/export validation, Oxlint, Oxfmt, tests, and
 
 ## Security model
 
-The included `LocalRunner` is intended for trusted local development. Production deployments must place it inside Docker, a microVM, or another ephemeral sandbox with CPU, memory, filesystem, and network policies. Only `packages/runner` may invoke shell commands.
+The included `LocalRunner` is intended for trusted local development. Production deployments must place it inside Docker, a microVM, or another ephemeral sandbox with CPU, memory, filesystem, and network policies. Only `packages/core/runner` may invoke shell commands.
 
 Report vulnerabilities privately as described in [SECURITY.md](./SECURITY.md). Do not open a public issue.
 

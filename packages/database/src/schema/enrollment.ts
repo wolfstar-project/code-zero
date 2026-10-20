@@ -72,6 +72,9 @@ export const invite = pgTable(
     index('invite_email_idx').on(table.email),
     index('invite_status_idx').on(table.status),
     index('invite_organization_id_idx').on(table.organizationId),
+    // The plugin resolves a pending private invite from the inert account it pre-created, which is
+    // how the email lock recognises that account on every sign-in path.
+    index('invite_pre_created_user_id_idx').on(table.preCreatedUserId),
     index('invite_created_by_user_id_idx').on(table.createdByUserId),
     index('invite_expires_at_idx').on(table.expiresAt),
   ],

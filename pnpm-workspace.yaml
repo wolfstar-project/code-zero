@@ -1,6 +1,7 @@
 packages:
   - apps/*
   - packages/*
+  - packages/core/*
 
 # Drop-in `typescript` replacement whose checker runs on tsgo in-process.
 # Must be an exact version: the fork only publishes prerelease versions, which
@@ -8,11 +9,21 @@ packages:
 overrides:
   typescript: npm:typescript-native-bridge@6.0.3-bridge.12.tsgo.7.0.2
   # Both nuxt-site-config-kit (transitive via @nuxtjs/seo -> nuxt-site-config, apps/marketing and
-  # apps/dashboard) and @redstardev/unplugin-version-injector pin an older @nuxt/schema than the
+  # apps/web) and @redstardev/unplugin-version-injector pin an older @nuxt/schema than the
   # nuxt@4.5.2 this repo actually runs. Two @nuxt/schema instances means two nominally different
   # `DefineNuxtConfig` types, so `defineNuxtConfig(...)` type-checks as "not callable" wherever the
   # older one wins resolution.
   '@nuxt/schema': npm:@nuxt/schema@4.5.2
+  # @onmax/nuxt-better-auth@0.1.2 pins the `auth` CLI to the exact prerelease it was built against
+  # (1.7.0-rc.5), which in turn pins better-auth and @better-auth/core to that prerelease. The
+  # module only imports `generateDrizzleSchema` from it, so the stable release of the same line is a
+  # drop-in, and pinning it here keeps one better-auth resolution in the graph instead of two.
+  '@onmax/nuxt-better-auth>auth': 1.7.10
+  # Same reason, two more paths into an older line: `@vite-hub/auth` asks for `^1.6.23` and
+  # `@better-auth/infra` declares `@better-auth/core` as a `>=1.4.0` peer, and both kept resolving
+  # to the 1.6 copy the lockfile already held.
+  '@vite-hub/auth>better-auth': 1.7.10
+  '@better-auth/core': 1.7.10
 
 onlyBuiltDependencies:
   - esbuild

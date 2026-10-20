@@ -10,7 +10,7 @@ This policy exists because of a growing volume of low-quality, AI-generated cont
 Understand your code, test it, and be ready to explain why it is correct and how it interacts with the rest of the system — without re-prompting a model. This is no different from what we expect of any contribution; AI just makes it easier to skip the work. Please do not skip the work.
 
 **Respect the boundaries.**
-This repository is a set of deliberate package boundaries, and models are good at quietly crossing them. Before you submit, check your diff against the [architecture boundaries](AGENTS.md#architecture-boundaries) and the matching skill in `.agents/skills/`. A change that reaches the database from outside `packages/database`, executes a command outside `packages/runner`, or makes the runtime depend on an adapter will be closed regardless of how well it is written.
+This repository is a set of deliberate package boundaries, and models are good at quietly crossing them. Before you submit, check your diff against the [architecture boundaries](AGENTS.md#architecture-boundaries) and the matching skill in `.agents/skills/`. A change that reaches the database from outside `packages/database`, executes a command outside `packages/core/runner`, or makes the runtime depend on an adapter will be closed regardless of how well it is written.
 
 **Prove it works.**
 Before submitting, verify the change actually works end to end. Do not rely on "it compiles" or "tests pass" alone. Run the full check set:

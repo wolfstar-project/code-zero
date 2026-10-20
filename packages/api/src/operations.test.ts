@@ -5,7 +5,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 
-import { RunnerPool, type Runner, type SandboxProvider } from '@code-zero/runner';
+import { defaultDeploymentSettings, type DeploymentSettings } from '@code-zero/config';
+import {
+  RunnerPool,
+  type Runner,
+  type SandboxProvider,
+  type SandboxRequest,
+} from '@code-zero/runner';
 import type { EvidenceBundle } from '@code-zero/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -35,6 +41,8 @@ import {
 
 const secret = 'webhook-secret-value';
 const MODE_ERROR = /mode/i;
+const ISOLATION_ERROR = /isolated sandbox/;
+const MODE_REFUSED_ERROR = /not allowed by the deployment settings/;
 
 function sign(body: string): string {
   return `sha256=${createHmac('sha256', secret).update(body).digest('hex')}`;
@@ -219,7 +227,7 @@ describe('runTask', () => {
       // nothing to degrade to and the run fails outright rather than spawning the CLI unisolated
       // on the host. `modelFromEnvironment` proves the companion guarantee — that a configured
       // fallback IS honored here instead of being skipped — at the unit level in
-      // packages/models/src/index.test.ts ("preserves a configured fallback when a composition
+      // packages/core/models/src/index.test.ts ("preserves a configured fallback when a composition
       // root refuses the transport"), since exercising a real fallback provider end to end here
       // would require a live model call.
       expect(result.state).toBe('failed');
@@ -229,6 +237,213 @@ describe('runTask', () => {
       if (original === undefined) delete process.env.CODE_ZERO_ENABLE_CLAUDE_CODE_PROVIDER;
       else process.env.CODE_ZERO_ENABLE_CLAUDE_CODE_PROVIDER = original;
     }
+  });
+});
+
+describe('runTask under deployment settings', () => {
+  const observeOnly: DeploymentSettings = {
+    ...defaultDeploymentSettings,
+    execution: { ...defaultDeploymentSettings.execution, allowedModes: ['observe'] },
+  };
+
+  it('refuses a mode the settings do not allow before recording anything', async () => {
+    await expect(
+      runTask(
+        { repository: checkout, feedback: 'load() is wrong', mode: 'suggest' },
+        { policy: { settings: observeOnly } },
+      ),
+    ).rejects.toThrow(MODE_REFUSED_ERROR);
+    await expect(listTasks()).resolves.toEqual({ tasks: [] });
+  });
+
+  it('refuses a mode an organization narrowed away even though the plan allows it', async () => {
+    await expect(
+      runTask(
+        { repository: checkout, feedback: 'load() is wrong', mode: 'suggest' },
+        {
+          policy: {
+            settings: defaultDeploymentSettings,
+            organization: {
+              id: 'org-a',
+              limits: {
+                maxConcurrentTasks: null,
+                commandTimeoutMinutes: null,
+                allowedModes: ['observe'],
+              },
+            },
+          },
+        },
+      ),
+    ).rejects.toThrow(MODE_REFUSED_ERROR);
+  });
+
+  it('runs inside the deployment sandbox with the narrower network, whatever the repository says', async () => {
+    await writeFile(
+      join(checkout, '.code-zero.yml'),
+      'version: 1\npermissions:\n  network: full\nrunner:\n  isolation: local\n',
+      'utf8',
+    );
+    const result = await runTask(
+      { repository: checkout, feedback: 'load() is wrong', mode: 'observe' },
+      {
+        policy: {
+          settings: {
+            ...defaultDeploymentSettings,
+            execution: { ...defaultDeploymentSettings.execution, maxNetwork: 'none' },
+            runner: { isolation: 'container', engine: 'docker', image: 'ghcr.io/acme/runner:1' },
+          },
+        },
+      },
+    );
+
+    expect(result.runner).toMatchObject({ kind: 'container', isolated: true, network: 'none' });
+  });
+
+  it.each(['none', 'restricted'] as const)(
+    'refuses local execution when the deployment requires %s networking',
+    async (maxNetwork) => {
+      await writeFile(
+        join(checkout, '.code-zero.yml'),
+        'version: 1\nrunner:\n  isolation: local\n',
+      );
+      await expect(
+        runTask(
+          { repository: checkout, feedback: 'load() is wrong', mode: 'observe' },
+          {
+            policy: {
+              settings: {
+                ...defaultDeploymentSettings,
+                execution: { ...defaultDeploymentSettings.execution, maxNetwork },
+              },
+            },
+          },
+        ),
+      ).rejects.toThrow('cannot enforce the deployment network policy');
+      const { tasks: recorded } = await listTasks();
+      expect(recorded[0]?.status).toBe('failed');
+    },
+  );
+
+  it('releases a hosted runner that exceeds the deployment network ceiling before using it', async () => {
+    const provider = sandboxProvider();
+    const stopped: string[] = [];
+    const pool = new RunnerPool(
+      {
+        ...provider,
+        provision: async (request) => {
+          const sandbox = await provider.provision(request);
+          return {
+            ...sandbox,
+            runner: {
+              ...sandbox.runner,
+              describe: () => ({ ...sandbox.runner.describe(), network: 'full' as const }),
+              context: async () => {
+                throw new Error('Unsafe runner was used');
+              },
+            },
+          };
+        },
+        stop: async (externalId) => {
+          stopped.push(externalId);
+        },
+      },
+      { maxActive: 1, maxActivePerRepository: 1, maxLeaseMs: 3_600_000 },
+    );
+    await expect(
+      runTask(
+        { repository: checkout, feedback: 'load() is wrong', mode: 'observe' },
+        {
+          runnerPool: pool,
+          policy: {
+            settings: {
+              ...defaultDeploymentSettings,
+              execution: { ...defaultDeploymentSettings.execution, maxNetwork: 'none' },
+            },
+          },
+        },
+      ),
+    ).rejects.toThrow('cannot enforce the deployment network policy');
+    expect(stopped).toHaveLength(1);
+  });
+
+  it('sends a hosted sandbox the network ceiling and the command timeout as its lease', async () => {
+    await writeFile(
+      join(checkout, '.code-zero.yml'),
+      'version: 1\npermissions:\n  network: full\n',
+      'utf8',
+    );
+    const requests: SandboxRequest[] = [];
+    const provider = sandboxProvider();
+    const pool = new RunnerPool(
+      {
+        ...provider,
+        provision: (request) => {
+          requests.push(request);
+          return provider.provision(request);
+        },
+      },
+      { maxActive: 1, maxActivePerRepository: 1, maxLeaseMs: 3_600_000 },
+    );
+
+    await runTask(
+      { repository: checkout, feedback: 'load() is wrong', mode: 'observe' },
+      {
+        runnerPool: pool,
+        policy: {
+          settings: {
+            ...defaultDeploymentSettings,
+            execution: {
+              ...defaultDeploymentSettings.execution,
+              commandTimeoutMinutes: 5,
+              maxNetwork: 'restricted',
+            },
+          },
+        },
+      },
+    );
+
+    expect(requests).toMatchObject([{ network: 'restricted', leaseMs: 300_000 }]);
+  });
+
+  it('refuses a run that must be isolated when the hosted sandbox hands back an unisolated runner', async () => {
+    const provider = sandboxProvider();
+    const stopped: string[] = [];
+    const pool = new RunnerPool(
+      {
+        ...provider,
+        provision: async (request) => {
+          const sandbox = await provider.provision(request);
+          const unisolated = () => ({ ...sandbox.runner.describe(), isolated: false });
+          return { ...sandbox, runner: { ...sandbox.runner, describe: unisolated } };
+        },
+        stop: (externalId) => {
+          stopped.push(externalId);
+          return Promise.resolve();
+        },
+      },
+      { maxActive: 1, maxActivePerRepository: 1, maxLeaseMs: 3_600_000 },
+    );
+
+    await expect(
+      runTask(
+        { repository: checkout, feedback: 'load() is wrong', mode: 'observe' },
+        {
+          runnerPool: pool,
+          policy: { settings: defaultDeploymentSettings, isolationRequired: true },
+        },
+      ),
+    ).rejects.toThrow(ISOLATION_ERROR);
+    expect(stopped).toHaveLength(1);
+  });
+
+  it('refuses a run that must be isolated when no sandbox exists, before recording it', async () => {
+    await expect(
+      runTask(
+        { repository: checkout, feedback: 'load() is wrong', mode: 'observe' },
+        { policy: { settings: defaultDeploymentSettings, isolationRequired: true } },
+      ),
+    ).rejects.toThrow(ISOLATION_ERROR);
+    await expect(listTasks()).resolves.toEqual({ tasks: [] });
   });
 });
 
@@ -364,6 +579,38 @@ describe('ingestWebhook', () => {
     await expect(getTaskEvidence(outcome.result.id)).resolves.toContain('proactive finding');
   });
 
+  it('ignores a proactive review in a mode the deployment settings do not allow', async () => {
+    await writeFile(
+      join(checkout, '.code-zero.yml'),
+      'version: 1\nproactive:\n  enabled: true\nmode: suggest\n',
+      'utf8',
+    );
+    const body = JSON.stringify({
+      action: 'opened',
+      repository: { name: 'app', owner: { login: 'acme' } },
+      pull_request: {
+        number: 7,
+        base: { sha: 'b'.repeat(40) },
+        head: { sha: 'a'.repeat(40) },
+      },
+    });
+    const outcome = await ingestWebhook(githubDelivery('pull_request', body), {
+      ...options(),
+      policy: {
+        settings: {
+          ...defaultDeploymentSettings,
+          execution: { ...defaultDeploymentSettings.execution, allowedModes: ['observe'] },
+        },
+      },
+    });
+
+    expect(outcome).toEqual({
+      status: 'ignored',
+      reason: 'The deployment settings do not allow suggest runs',
+    });
+    expect(tasks.size).toBe(0);
+  });
+
   it('replays the recorded outcome for a redelivered proactive review rather than running it twice', async () => {
     await writeFile(
       join(checkout, '.code-zero.yml'),
@@ -396,7 +643,7 @@ describe('ingestWebhook', () => {
       'version: 1\nproactive:\n  enabled: true\nmode: observe\n',
       'utf8',
     );
-    // The same key `apps/dashboard`'s poller claims for the identical commit — this is what makes
+    // The same key `apps/web`'s poller claims for the identical commit — this is what makes
     // the two channels share one outcome instead of each running its own review.
     const claimedKey = reviewDeliveryKey({
       provider: 'github',

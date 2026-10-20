@@ -11,7 +11,7 @@ Use this skill when changing build entries, output formats, declarations, packag
 
 - The base configuration is `scripts/tsdown.config.ts`.
 - Every workspace built with tsdown keeps a small `tsdown.config.ts` that imports the shared factory. The Nuxt dashboard uses the Nuxt build pipeline and does not keep a tsdown config.
-- Publishable packages output ESM and CommonJS with declarations and source maps.
+- Packages output ESM only (`.mjs`, `.d.mts`) with declarations and source maps; `attw` runs with the `esm-only` profile.
 - Apps and the CLI output ESM executables without publishable-library declarations unless explicitly needed.
 - Publishable package builds must keep `publint` and `attw` validation enabled.
 - Build-time Node.js is 22.18 or newer; generated bundles target Node.js 20.11 unless a package documents a stricter runtime.
@@ -32,4 +32,4 @@ Use this skill when changing build entries, output formats, declarations, packag
 
 - If packing uses an invalid Windows temp path under WSL, export `TMPDIR=/tmp` in the shell before running the build; the root scripts no longer set it.
 - If declarations expose private or adapter-specific types, move the contract to the correct package instead of suppressing declaration errors.
-- If ESM/CJS validation fails, align `exports`, extensions, and declarations rather than disabling validation.
+- If `publint` or `attw` fails, align `exports`, extensions, and declarations rather than disabling validation. Do not reintroduce a CommonJS build.

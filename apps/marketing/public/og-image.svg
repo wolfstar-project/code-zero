@@ -26,12 +26,12 @@
     <path class="ink-s" d="M106.4,76.64A21.76,21.76 0 0 1 128.16,98.4L128.16,125.6A21.76,21.76 0 0 1 84.64,125.6L84.64,98.4A21.76,21.76 0 0 1 106.4,76.64Z" stroke="#f3f7f1" stroke-dasharray="0 25.563 20.546 27.235 20.546 3.345 20.546 27.235 20.546 25.563"/>
   </g>
   <g class="acc" clip-path="url(#cliplogo)" fill="#8ee34a"><rect x="46.4" y="108.195" width="120" height="7.61" transform="rotate(-62 106.4 112)"/></g>
-  <text x="155" y="123" fill="#f3f7f1" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="30" font-weight="700">Code Zero</text>
+  <text x="155" y="123" fill="#f3f7f1" font-family="Geist, ui-sans-serif, system-ui, sans-serif" font-size="30" font-weight="700">Code Zero</text>
 
-  <text x="80" y="300" fill="#f3f7f1" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="66" font-weight="750">The autonomous engineer</text>
-  <text x="80" y="378" fill="#f3f7f1" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="66" font-weight="750">that never merges a guess</text>
+  <text x="80" y="300" fill="#f3f7f1" font-family="Geist, ui-sans-serif, system-ui, sans-serif" font-size="66" font-weight="750">Find the problem.</text>
+  <text x="80" y="378" fill="#f3f7f1" font-family="Geist, ui-sans-serif, system-ui, sans-serif" font-size="66" font-weight="750">Prove the fix.</text>
 
-  <text x="80" y="452" fill="#9fb5a6" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="28">Finds, fixes, and verifies problems in pull requests.</text>
+  <text x="80" y="452" fill="#9fb5a6" font-family="Geist, ui-sans-serif, system-ui, sans-serif" font-size="28">Finds, fixes, and verifies problems in pull requests.</text>
 
-  <text x="80" y="540" fill="#8ee34a" font-family="ui-monospace, SFMono-Regular, Consolas, monospace" font-size="24">$ zero review --mode observe</text>
+  <text x="80" y="540" fill="#8ee34a" font-family="ui-monospace, SFMono-Regular, Consolas, monospace" font-size="24">$ zero review --proactive</text>
 </svg>

@@ -1,0 +1,12 @@
+/* Shared tokens come from `@code-zero/ui/tokens.css`, loaded before this file. The console keeps
+   only its page background here. */
+body {
+  margin: 0;
+  min-width: 320px;
+  background:
+    linear-gradient(var(--cz-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--cz-grid) 1px, transparent 1px), var(--cz-canvas);
+  background-size: 32px 32px;
+  color: var(--cz-ink);
+  line-height: 1.5;
+}

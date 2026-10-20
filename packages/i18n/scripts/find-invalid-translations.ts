@@ -17,9 +17,9 @@ import {
   loadMergedLocale,
 } from './utils/i18n-locale-files.ts';
 
-// apps/dashboard is this package's only current consumer; extend this list if a second one starts
+// apps/web is this package's only current consumer; extend this list if a second one starts
 // shipping translations here.
-const VUE_FILES_GLOB = '../../apps/dashboard/app/**/*.?(vue|ts|js)';
+const VUE_FILES_GLOB = '../../apps/web/app/**/*.?(vue|ts|js)';
 
 function printSection(
   title: string,

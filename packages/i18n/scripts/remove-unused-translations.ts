@@ -20,9 +20,9 @@ import {
   type NestedObject,
 } from './utils/i18n-locale-files.ts';
 
-// apps/dashboard is this package's only current consumer; extend this list if a second one starts
+// apps/web is this package's only current consumer; extend this list if a second one starts
 // shipping translations here.
-const VUE_FILES_GLOB = '../../apps/dashboard/app/**/*.?(vue|ts|js)';
+const VUE_FILES_GLOB = '../../apps/web/app/**/*.?(vue|ts|js)';
 
 /** Removes a key path (e.g. "foo.bar.baz") from a nested object. Cleans up empty parents. */
 function removeKey(obj: NestedObject, path: string): boolean {

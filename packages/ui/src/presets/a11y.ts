@@ -1,0 +1,77 @@
+// Ported from npmx.dev (https://github.com/npmx-dev/npmx.dev, MIT license).
+import type { Theme } from '@unocss/preset-wind4/theme';
+import type { Preset } from 'unocss';
+
+// Rule matchers, compiled once at module load rather than per preset instance.
+const ARBITRARY_PX_TEXT = /^text-\[(\d+(\.\d+)?)(px)?\]$/;
+const ARBITRARY_EM_TEXT = /^text-\[(\d+(\.\d+)?)em\]$/;
+
+type CollectorChecker = (warning: string, rule: string) => void;
+
+// Track warnings to avoid duplicates
+const warnedClasses = new Set<string>();
+
+function warnOnce(message: string, key: string) {
+  if (!warnedClasses.has(key)) {
+    warnedClasses.add(key);
+    // oxlint-disable-next-line no-console -- warn logging
+    console.warn(message);
+  }
+}
+
+const textPxToClass: Record<number, string> = {
+  10: 'text-3xs',
+  9: 'text-4xs',
+};
+
+function reportTextSizeWarning(match: string, suggestion: string, checker?: CollectorChecker) {
+  const message = `[a11y] Avoid using '${match}', ${suggestion}.`;
+  if (checker) {
+    checker(message, match);
+  } else {
+    warnOnce(message, match);
+  }
+}
+
+export function presetA11y(checker?: CollectorChecker): Preset<Theme> {
+  return {
+    name: 'a11y-preset',
+    // text-[N] (arbitrary where N is a size in px or em): recommend the theme's text-<size>
+    // classes or rem values instead of hardcoded pixel values.
+    rules: [
+      [
+        ARBITRARY_PX_TEXT,
+        ([match = '', numStr], context) => {
+          const num = Number(numStr);
+          const fullClass = context.rawSelector || match;
+          const suggestedClass = textPxToClass[num];
+          if (suggestedClass) {
+            reportTextSizeWarning(fullClass, `use '${suggestedClass}' instead`, checker);
+          } else {
+            reportTextSizeWarning(
+              fullClass,
+              'use text-<size> classes or rem values instead of custom values',
+              checker,
+            );
+          }
+          return [['font-size', `${num}px`]];
+        },
+        { autocomplete: 'text-[<num>]' },
+      ],
+      [
+        ARBITRARY_EM_TEXT,
+        ([match = '', numStr], context) => {
+          const num = Number(numStr);
+          const fullClass = context.rawSelector || match;
+          reportTextSizeWarning(
+            fullClass,
+            'use text-<size> classes or rem values instead of custom values',
+            checker,
+          );
+          return [['font-size', `${num}em`]];
+        },
+        { autocomplete: 'text-[<num>]em' },
+      ],
+    ],
+  };
+}

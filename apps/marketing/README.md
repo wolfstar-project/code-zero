@@ -3,19 +3,19 @@
 The public marketing site: the landing page, pricing, contact routes, and the legal documents.
 
 Frontend only. It owns no persistence, holds no credentials, and imports no runtime package.
-Unlike `apps/dashboard` — the single deployable app that also serves the API and authentication —
+Unlike `apps/web` — the single deployable app that also serves the API and authentication —
 this site has nothing behind it: it links to the dashboard by origin and renders on the server only
 because it exists to be crawled, prerendering every route rather than serving a live request.
 
 ## Boundaries
 
-| Rule                             | Why                                                                                               |
-| -------------------------------- | ------------------------------------------------------------------------------------------------- |
-| No runtime-package imports       | Nothing here may reach `packages/agent`, `packages/runner`, or any other runtime package.         |
-| No persistence, no auth handlers | Sign-in links out to the dashboard origin; this app never sees a session.                         |
-| No secrets                       | Everything in `config/` is public by construction and ships in the client bundle.                 |
-| Nitro is for rendering only      | The only server routes are the ones `@nuxtjs/seo` generates (`/robots.txt`, sitemaps).            |
-| Contact form has no backend      | `ContactForm` builds a `mailto:` link client-side; nothing is submitted to or stored by this app. |
+| Rule                             | Why                                                                                                 |
+| -------------------------------- | --------------------------------------------------------------------------------------------------- |
+| No runtime-package imports       | Nothing here may reach `packages/core/agent`, `packages/core/runner`, or any other runtime package. |
+| No persistence, no auth handlers | Sign-in links out to the dashboard origin; this app never sees a session.                           |
+| No secrets                       | Everything in `config/` is public by construction and ships in the client bundle.                   |
+| Nitro is for rendering only      | The only server routes are the ones `@nuxtjs/seo` generates (`/robots.txt`, sitemaps).              |
+| Contact form has no backend      | `ContactForm` builds a `mailto:` link client-side; nothing is submitted to or stored by this app.   |
 
 `@nuxt/content` keeps a local SQLite index of `content/` at build/dev time to serve queries — that
 is a build-time content cache, not application persistence: it holds no user data and no
@@ -69,7 +69,7 @@ documents carry valid frontmatter.
 
 There is no `config/app.ts`: site identity (`app.config.ts`, `useAppConfig()`) and the two
 environment-derived URLs (read directly in `nuxt.config.ts`, each used exactly once) don't share
-enough to justify a wrapper module, and `apps/dashboard` already sets the precedent of using
+enough to justify a wrapper module, and `apps/web` already sets the precedent of using
 `appConfig` directly rather than inventing one.
 
 ## Environment
@@ -126,7 +126,7 @@ Two deliberate exclusions:
 
 Icons reached through a `:name` binding cannot be found by the icon scanner. When a new icon comes
 from `config/content.ts`, add its list to `icon.clientBundle.icons` in `nuxt.config.ts` the way
-`featureCards` and `logoCloud` already are, or it will silently render as an empty box.
+`logoCloud` already is, or it will silently render as an empty box.
 
 ## Adding or editing a legal document
 

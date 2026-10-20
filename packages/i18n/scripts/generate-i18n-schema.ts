@@ -76,7 +76,7 @@ async function main(): Promise<void> {
     await writeFile(schemaFilePath, `${JSON.stringify(schema, null, 2)}\n`, 'utf-8');
 
     // Point every locale's copy of this feature at the matching schema. The `$schema` key never
-    // reaches the bundle: apps/dashboard/modules/i18n-strip-empty strips it at build time.
+    // reaches the bundle: apps/web/modules/i18n-strip-empty strips it at build time.
     const schemaRef = `../../schemas/${schemaFileName}`;
     for (const localeDirectory of localeDirectories) {
       const featurePath = join(LOCALES_DIRECTORY, localeDirectory, featureFile);

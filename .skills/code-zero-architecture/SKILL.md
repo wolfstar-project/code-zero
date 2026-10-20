@@ -23,6 +23,7 @@ Keep dependency direction explicit while changing the monorepo.
   exposes no equivalent hook — so that one transport's process is always spawned by the vendor SDK
   directly; its read-only sandbox and disabled MCP/approvals are the containment there instead.
 - `source-control`: provider-neutral source-control contracts, webhook normalization, capability detection, and the GitHub, GitLab, Bitbucket, and Gitea adapters, including GitHub's issue-to-PR publication (branch and pull-request creation through the Git data API).
+- `forge`: the replacement source-control boundary on the `forges` library (GitHub, GitLab, Gitea, Forgejo, Bitbucket Cloud, Azure DevOps): connection registry, webhook ingestion, change-request discovery, status and comment publication, and issue-to-PR publication behind `can()` checks. Not wired into `api` or `apps/web` yet; `source-control` stays until it is.
 - `runner`: command execution and checkout mutation boundary, plus the policy-to-boundary factory.
   Also the only exporter of a live process handle (`spawnManagedProcess`, alongside the bounded
   `execFileProcessRunner`) for an adapter that must hand a real child process to code it does not
@@ -51,7 +52,7 @@ Keep dependency direction explicit while changing the monorepo.
 - `api`: the oRPC router and control-plane operations (task persistence, scheduling). Composes the
   runtime, GitHub, models, and config packages; nothing composes into it, and it does not depend on
   `auth`. Holds no HTTP host of its own.
-- `apps/dashboard`: the single deployable app and composition root. A Nuxt app that constructs a
+- `apps/web`: the single deployable app and composition root. A Nuxt app that constructs a
   runner and, from its `server/` directory, serves `packages/api`'s router over `/rpc/**` (RPC) and
   `/api/v1/**` (OpenAPI), and mounts Better Auth in-process at `/api/auth/**` via
   `server/auth.config.ts` (`@onmax/nuxt-better-auth`, full mode, SSR-aware). The only process that
@@ -77,5 +78,5 @@ Keep dependency direction explicit while changing the monorepo.
 - Cross-package imports from another package's `src/` directory.
 - A capability package importing another capability package. When `runner` needs policy, it declares the fields it needs structurally instead of importing `config`. `auth` depending on `database` is the one sanctioned exception: persistence is a layer beneath policy, and the dependency runs only in that direction.
 - A table declared, a connection opened, or a migration written outside `packages/database`.
-- Direct filesystem or `child_process` access outside `packages/runner`, including in the agent's discovery step.
+- Direct filesystem or `child_process` access outside `packages/core/runner`, including in the agent's discovery step.
 - A second place that decides whether a run may write, or whether a run is verified. Both have exactly one home.

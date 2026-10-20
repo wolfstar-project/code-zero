@@ -169,6 +169,60 @@
           },
           "additionalProperties": false
         },
+        "twoFactor": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string"
+            },
+            "subtitle": {
+              "type": "string"
+            },
+            "backupSubtitle": {
+              "type": "string"
+            },
+            "emailSubtitle": {
+              "type": "string"
+            },
+            "code": {
+              "type": "string"
+            },
+            "backupCode": {
+              "type": "string"
+            },
+            "trustDevice": {
+              "type": "string"
+            },
+            "submit": {
+              "type": "string"
+            },
+            "submitPending": {
+              "type": "string"
+            },
+            "useBackupCode": {
+              "type": "string"
+            },
+            "useAuthenticator": {
+              "type": "string"
+            },
+            "sendEmail": {
+              "type": "string"
+            },
+            "sendEmailPending": {
+              "type": "string"
+            },
+            "emailSent": {
+              "type": "string"
+            },
+            "invalid": {
+              "type": "string"
+            },
+            "toSignIn": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
         "session": {
           "type": "object",
           "properties": {
@@ -230,6 +284,39 @@
               "type": "string"
             },
             "ORG_DISABLED": {
+              "type": "string"
+            },
+            "INVALID_CODE": {
+              "type": "string"
+            },
+            "INVALID_BACKUP_CODE": {
+              "type": "string"
+            },
+            "OTP_HAS_EXPIRED": {
+              "type": "string"
+            },
+            "TOO_MANY_ATTEMPTS_REQUEST_NEW_CODE": {
+              "type": "string"
+            },
+            "INVALID_TWO_FACTOR_COOKIE": {
+              "type": "string"
+            },
+            "ACCOUNT_TEMPORARILY_LOCKED": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "brand": {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "description": {
               "type": "string"
             }
           },

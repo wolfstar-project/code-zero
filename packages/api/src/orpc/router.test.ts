@@ -6,7 +6,7 @@ import type { Principal } from '../access.js';
 import { MemoryAuditLogStore, type AuditEvent } from '../audit.js';
 import { MemoryTaskStore, type StoredTask } from '../control-plane.js';
 import type { RepositoryAdmin, RepositoryInput, RepositoryRecord } from '../repositories.js';
-import type { BetterAuthSessionApi } from './auth.js';
+import type { ApiKeyVerifier, BetterAuthSessionApi } from './auth.js';
 import { requestLoggerStorage } from './logging.js';
 import { rpcRouter } from './router.js';
 
@@ -57,6 +57,7 @@ const FORBIDDEN_ERROR = /not allow-listed/i;
 const MODE_ERROR = /not granted/i;
 const STORAGE_ERROR = /storage unavailable/i;
 const ADMIN_ERROR = /admin role/i;
+const API_KEY_APPROVAL_ERROR = /may not decide approvals/i;
 const NO_AUDIT_LOG_ERROR = /keeps no audit log/i;
 const NO_REPOSITORY_STORE_ERROR = /keeps no repository store/i;
 
@@ -72,6 +73,8 @@ let audited: MockAudit;
 interface ClientOptions {
   principal?: Principal;
   auth?: BetterAuthSessionApi;
+  presentedApiKey?: string;
+  apiKeys?: ApiKeyVerifier;
   reqHeaders?: Headers;
   allowRepository?: boolean;
 }
@@ -84,6 +87,10 @@ function client(options: ClientOptions = {}) {
       ...(options.principal ? { principal: options.principal } : {}),
       ...(options.auth ? { auth: options.auth } : {}),
       ...(options.reqHeaders ? { reqHeaders: options.reqHeaders } : {}),
+      ...(options.presentedApiKey === undefined
+        ? {}
+        : { presentedApiKey: options.presentedApiKey }),
+      ...(options.apiKeys ? { apiKeys: options.apiKeys } : {}),
       mayTargetRepository: () => options.allowRepository ?? false,
       repositories,
       auditLog,
@@ -107,6 +114,10 @@ function failingStoreClient(options: ClientOptions = {}) {
         save: () => Promise.reject(new Error('storage unavailable')),
       },
       ...(options.principal ? { principal: options.principal } : {}),
+      ...(options.presentedApiKey === undefined
+        ? {}
+        : { presentedApiKey: options.presentedApiKey }),
+      ...(options.apiKeys ? { apiKeys: options.apiKeys } : {}),
       mayTargetRepository: () => options.allowRepository ?? false,
       auditLog,
     },
@@ -161,15 +172,47 @@ function operator() {
   });
 }
 
-/** A Better Auth instance stubbed down to the one endpoint the integration calls. */
-function betterAuth(user: { email: string; role: string } | null): BetterAuthSessionApi {
+/**
+ * A Better Auth instance stubbed down to the endpoints the integration calls.
+ *
+ * `userHasPermission` answers the way the admin plugin's default access control does: an account
+ * administers the deployment when any of its comma-separated roles is `admin`. `administers`
+ * overrides that answer, to show the decision is the plugin's and not the role string's.
+ */
+function betterAuth(
+  user: { email: string; role: string } | null,
+  administers?: boolean,
+): BetterAuthSessionApi {
   return {
     api: {
       getSession: () =>
         Promise.resolve(
           user === null ? null : { session: { id: 'sess_1' }, user: { id: 'usr_1', ...user } },
         ),
+      userHasPermission: ({ body }) =>
+        Promise.resolve({
+          success:
+            administers ??
+            (body.role ?? '')
+              .split(',')
+              .map((role) => role.trim())
+              .includes('admin'),
+        }),
     },
+  };
+}
+
+/** An API-key verifier that knows one key, owned by `org_1`, carrying `permissions`. */
+function apiKeys(
+  permissions: Record<string, string[]> | null = { task: ['create'] },
+): ApiKeyVerifier {
+  return {
+    verifyApiKey: ({ body }) =>
+      Promise.resolve(
+        body.key === 'cz_valid'
+          ? { valid: true, key: { id: 'key_1', referenceId: 'org_1', permissions } }
+          : { valid: false, key: null },
+      ),
   };
 }
 
@@ -349,6 +392,103 @@ describe('rpc router', () => {
     await expect(store.list()).resolves.toEqual([]);
   });
 
+  it('lets an organization API key submit a non-writable task', async () => {
+    // The store refuses to persist, so the call stops right after the authentication and mode
+    // gates instead of starting a run; reaching the store is what proves both let the key in.
+    const keyed = failingStoreClient({
+      presentedApiKey: 'cz_valid',
+      apiKeys: apiKeys(),
+      allowRepository: true,
+    });
+
+    await expect(
+      instrumented(() => keyed.tasks.create({ repository: '.', feedback: 'x', mode: 'observe' })),
+    ).rejects.toThrow(STORAGE_ERROR);
+    // Recorded as a machine caller, named by the key and the organization that can revoke it.
+    expect(audited.events).toMatchObject([
+      { actor: { type: 'api', id: 'api-key:key_1@org_1' }, action: 'task.create' },
+    ]);
+  });
+
+  it('holds an organization API key to the non-writable execution modes', async () => {
+    const keyed = client({
+      presentedApiKey: 'cz_valid',
+      apiKeys: apiKeys(),
+      allowRepository: true,
+    });
+
+    await expect(
+      instrumented(() => keyed.tasks.create({ repository: '.', feedback: 'x', mode: 'fix' })),
+    ).rejects.toThrow(MODE_ERROR);
+    await expect(store.list()).resolves.toEqual([]);
+  });
+
+  it('grants no mode to a key that may not create tasks', async () => {
+    const keyed = client({
+      presentedApiKey: 'cz_valid',
+      apiKeys: apiKeys(null),
+      allowRepository: true,
+    });
+
+    await expect(
+      instrumented(() => keyed.tasks.create({ repository: '.', feedback: 'x', mode: 'observe' })),
+    ).rejects.toThrow(MODE_ERROR);
+  });
+
+  it.each(['approved', 'rejected'] as const)(
+    'refuses to let an organization API key record an approval (%s)',
+    async (decision) => {
+      await store.save(awaiting('cz_1'));
+      const keyed = client({ presentedApiKey: 'cz_valid', apiKeys: apiKeys() });
+
+      await expect(
+        instrumented(() => keyed.approvals.decide({ taskId: 'cz_1', decision })),
+      ).rejects.toThrow(API_KEY_APPROVAL_ERROR);
+      await expect(store.get('cz_1')).resolves.toMatchObject({ status: 'needs-human' });
+      expect(audited.events).toMatchObject([
+        {
+          actor: { type: 'api', id: 'api-key:key_1@org_1' },
+          action: 'approval.decide',
+          outcome: 'denied',
+        },
+      ]);
+    },
+  );
+
+  it('refuses a presented key that does not verify, without falling back to the session', async () => {
+    const keyed = client({
+      presentedApiKey: 'cz_revoked',
+      apiKeys: apiKeys(),
+      auth: betterAuth({ email: 'ops@example.test', role: 'admin' }),
+      reqHeaders: new Headers(),
+      allowRepository: true,
+    });
+
+    await expect(
+      instrumented(() => keyed.tasks.create({ repository: '.', feedback: 'x', mode: 'observe' })),
+    ).rejects.toThrow(UNAUTHORIZED_ERROR);
+  });
+
+  it('refuses a presented key where the deployment verifies none', async () => {
+    const keyed = client({ presentedApiKey: 'cz_valid', allowRepository: true });
+
+    await expect(
+      instrumented(() => keyed.tasks.create({ repository: '.', feedback: 'x', mode: 'observe' })),
+    ).rejects.toThrow(UNAUTHORIZED_ERROR);
+  });
+
+  it('refuses a key whose verification throws', async () => {
+    const keyed = client({
+      presentedApiKey: 'cz_valid',
+      apiKeys: { verifyApiKey: () => Promise.reject(new Error('store unavailable')) },
+      allowRepository: true,
+    });
+
+    await expect(
+      instrumented(() => keyed.tasks.create({ repository: '.', feedback: 'x', mode: 'observe' })),
+    ).rejects.toThrow(UNAUTHORIZED_ERROR);
+  });
+
   it('rejects a request whose session lookup finds nobody', async () => {
     const anonymous = client({ auth: betterAuth(null), reqHeaders: new Headers() });
     await expect(
@@ -515,6 +655,38 @@ describe('rpc audit trail', () => {
     ).resolves.toMatchObject({ events: [{ id: 'audit_1' }] });
   });
 
+  it('takes the administrator decision from the admin plugin, not from the role string', async () => {
+    await auditLog.append(auditRecord('audit_1', '2026-08-09T10:00:00.000Z'));
+
+    await expect(
+      instrumented(() =>
+        client({
+          auth: betterAuth({ email: 'ops@example.test', role: 'admin' }, false),
+          reqHeaders: new Headers(),
+        }).audit.list({}),
+      ),
+    ).rejects.toThrow(ADMIN_ERROR);
+    await expect(
+      instrumented(() =>
+        client({
+          auth: betterAuth({ email: 'ops@example.test', role: 'operator' }, true),
+          reqHeaders: new Headers(),
+        }).audit.list({}),
+      ),
+    ).resolves.toMatchObject({ events: [{ id: 'audit_1' }] });
+  });
+
+  it('grants no administrator modes when the admin plugin is absent', async () => {
+    const { userHasPermission: _absent, ...api } = betterAuth({
+      email: 'ops@example.test',
+      role: 'admin',
+    }).api;
+
+    await expect(
+      instrumented(() => client({ auth: { api }, reqHeaders: new Headers() }).audit.list({})),
+    ).rejects.toThrow(ADMIN_ERROR);
+  });
+
   it('refuses a signed-in reader who is not an administrator', async () => {
     await expect(
       instrumented(() =>
@@ -634,6 +806,38 @@ describe('rpc repositories', () => {
       {},
       { action: 'repository.removed', outcome: 'success', target: { id: saved.id } },
     ]);
+  });
+
+  it('takes the administrator decision from the admin plugin, not from the role string', async () => {
+    await auditLog.append(auditRecord('audit_1', '2026-08-09T10:00:00.000Z'));
+
+    await expect(
+      instrumented(() =>
+        client({
+          auth: betterAuth({ email: 'ops@example.test', role: 'admin' }, false),
+          reqHeaders: new Headers(),
+        }).audit.list({}),
+      ),
+    ).rejects.toThrow(ADMIN_ERROR);
+    await expect(
+      instrumented(() =>
+        client({
+          auth: betterAuth({ email: 'ops@example.test', role: 'operator' }, true),
+          reqHeaders: new Headers(),
+        }).audit.list({}),
+      ),
+    ).resolves.toMatchObject({ events: [{ id: 'audit_1' }] });
+  });
+
+  it('grants no administrator modes when the admin plugin is absent', async () => {
+    const { userHasPermission: _absent, ...api } = betterAuth({
+      email: 'ops@example.test',
+      role: 'admin',
+    }).api;
+
+    await expect(
+      instrumented(() => client({ auth: { api }, reqHeaders: new Headers() }).audit.list({})),
+    ).rejects.toThrow(ADMIN_ERROR);
   });
 
   it('refuses a signed-in reader who is not an administrator', async () => {

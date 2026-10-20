@@ -1,5 +1,5 @@
 import VersionInjector from '@redstardev/unplugin-version-injector/rolldown';
-import { defineConfig, type OutExtensionContext, type UserConfig } from 'tsdown';
+import { defineConfig, type UserConfig } from 'tsdown';
 
 const baseConfig = {
   entry: ['src/index.ts'],
@@ -24,18 +24,11 @@ const baseConfig = {
 
 const packageConfig = {
   ...baseConfig,
-  format: ['esm', 'cjs'],
-  checks: {
-    ...baseConfig.checks,
-    // Packages intentionally dual-publish ESM and CJS. With a node24.2 target
-    // (which supports require(esm)), tsdown escalates its legacy-CJS
-    // recommendation to an error under failOnWarn, so opt out of that check.
-    legacyCjs: false,
-  },
-  outExtensions: (context: OutExtensionContext) => ({
-    js: context.format === 'es' ? '.mjs' : '.cjs',
-    dts: context.format === 'es' ? '.d.mts' : '.d.cts',
-  }),
+  // ESM only. Every consumer is a Node 24 process or a Vite/Nitro build, and `forges` (the
+  // source-control boundary's client) publishes no CommonJS build, so a CJS output here would only
+  // add an interop surface nothing loads.
+  format: ['esm'],
+  outExtensions: () => ({ js: '.mjs', dts: '.d.mts' }),
   dts: {
     sourcemap: true,
   },
@@ -43,7 +36,7 @@ const packageConfig = {
     entrypoints: ['.'],
     enabled: true,
     level: 'error',
-    profile: 'node16',
+    profile: 'esm-only',
   },
   publint: {
     enabled: true,
