@@ -1,6 +1,7 @@
 import { symlink, unlink } from 'node:fs/promises';
 import { basename } from 'node:path';
 import process from 'node:process';
+import { fileURLToPath } from 'node:url';
 
 // Read from `@code-zero/auth/config` rather than restated here, so the build-time flag below and
 // the server plugins in `server/auth.config.ts` cannot drift. That subpath carries policy only,
@@ -9,7 +10,11 @@ import { infraFromEnvironment } from '@code-zero/auth/config';
 import { defaultLocale, i18nLocalesFor, localeCookieName } from '@code-zero/i18n';
 import { defineNuxtConfig } from 'nuxt/config';
 
-import { viteHubPresetFromEnvironment, viteHubVercelEntryAlias } from './config/env.js';
+import {
+  viteHubPresetFromEnvironment,
+  viteHubVercelEntryAlias,
+  type ViteHubPreset,
+} from './config/env.js';
 
 // The sign-in policy is deliberately not read here. Pages ask `/api/capabilities` at runtime, which
 // derives it from the same environment `server/auth.config.ts` builds Better Auth from, so changing
@@ -29,6 +34,11 @@ const infraKvUrl = infra?.kvUrl ?? '';
 // deployment target has to be resolved here rather than detected later: `node` emits the
 // self-hosted `.output/` bundle, `vercel` emits `.vercel/output`. See `config/env.ts`.
 const viteHubPreset = viteHubPresetFromEnvironment();
+
+// The ViteHub integration, except where the build emits a Worker: see the comment on the module
+// list below for why Cloudflare goes without it.
+const viteHubModules: [string, { preset: ViteHubPreset; kv: true }][] =
+  viteHubPreset === 'cloudflare' ? [] : [['vite-hub/nuxt', { preset: viteHubPreset, kv: true }]];
 
 // Set by the `compiled` listener below and consumed by `close`, which removes the bridge again.
 let viteHubVercelEntry: string | undefined;
@@ -68,7 +78,11 @@ export default defineNuxtConfig({
     // its resolved default (`fs-lite` under `.data/kv` when self-hosted, the host's own driver —
     // Upstash on Vercel — otherwise): ViteHub picks the driver from the deployment preset, and a
     // serverless function has no writable filesystem to keep task history on.
-    ['vite-hub/nuxt', { preset: viteHubPreset, kv: true }],
+    //
+    // Not registered for Cloudflare: its KV runtime cannot be resolved by the Nitro build that
+    // emits a Worker, so that target aliases `vite-hub/kv` to a Workers KV adapter (see `nitro`
+    // below) and has no use for the rest of the integration.
+    ...viteHubModules,
     // Publishes what this build is (version, commit, branch, deploy channel) under
     // `runtimeConfig.public.buildInfo`. On Vercel the values are resolved while the build runs;
     // every other target resolves what it can and the server completes the rest at boot, so a
@@ -187,6 +201,45 @@ export default defineNuxtConfig({
   },
 
   nitro: {
+    ...(viteHubPreset === 'cloudflare'
+      ? {
+          // A Worker, not Pages: the dashboard has server routes and a custom domain of its own.
+          preset: 'cloudflare_module',
+          // The scoped database (`server/utils/database.ts`) finds the Hyperdrive binding of the
+          // request being served through `useEvent()`, which needs the request kept in async
+          // context. Only this target pays for it.
+          experimental: { asyncContext: true },
+          // `deployConfig` merges `wrangler.jsonc` into `.output/server/wrangler.json`, the file
+          // `wrangler deploy` reads; `nodeCompat` makes the build target `nodejs_compat`, which the
+          // database driver and Better Auth rely on.
+          cloudflare: { deployConfig: true, nodeCompat: true },
+          // The passkey verifier (`@peculiar/x509` → `tsyringe`) needs `reflect-metadata` to run
+          // before it, and imports it only for that effect. Left to tree-shaking, the bundle keeps
+          // the code but never runs it, and the Worker refuses to start.
+          moduleSideEffects: ['reflect-metadata'],
+          // `store.ts` keeps importing `kv` from `vite-hub/kv`; on Cloudflare that name resolves to
+          // an adapter over the Worker's own KV binding.
+          // Packages that cannot run in a Worker, replaced by modules that say why. `resend` loads
+          // a React renderer Code Zero does not use, the two subscription providers drive a local
+          // CLI, and `safer-buffer` throws while the bundle starts. A bundle cannot leave an import
+          // unresolved, so each one points at a stand-in.
+          alias: {
+            'safer-buffer': fileURLToPath(
+              new URL('./server/cloudflare/safer-buffer.ts', import.meta.url),
+            ),
+            'ai-sdk-provider-claude-code': fileURLToPath(
+              new URL('./server/cloudflare/subscription-provider.ts', import.meta.url),
+            ),
+            'ai-sdk-provider-codex-cli': fileURLToPath(
+              new URL('./server/cloudflare/subscription-provider.ts', import.meta.url),
+            ),
+            'vite-hub/kv': fileURLToPath(new URL('./server/cloudflare/kv.ts', import.meta.url)),
+            '@react-email/render': fileURLToPath(
+              new URL('./server/cloudflare/react-email-render.ts', import.meta.url),
+            ),
+          },
+        }
+      : {}),
     // Registered as a Nitro module rather than through `nitro.hooks`: a handler under that key
     // replaces the preset's own handler for the same hook, and the `vercel` preset writes
     // `config.json` and each function's `.vc-config.json` from its `compiled` hook — losing it

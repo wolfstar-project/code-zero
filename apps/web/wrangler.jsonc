@@ -1,0 +1,28 @@
+{
+  // The managed cloud's dashboard, as one Worker: the Nuxt server (typed RPC, REST, Better Auth)
+  // and the prerendered assets. `nuxt build` with the Cloudflare preset merges this file into
+  // `.output/server/wrangler.json`, which is what `wrangler deploy` reads.
+  "name": "code-zero-app",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "routes": [{ "pattern": "app.code-zero.dev", "custom_domain": true }],
+  "workers_dev": true,
+  "observability": { "enabled": true },
+  "vars": {
+    // Stated, never inferred from the host: see `CODE_ZERO_EDITION` in the deployment guide.
+    "CODE_ZERO_EDITION": "cloud",
+    "NUXT_PUBLIC_SITE_URL": "https://app.code-zero.dev",
+  },
+  "hyperdrive": [
+    {
+      // Postgres, through Cloudflare's pool. Query caching is off on this configuration: sessions
+      // and permissions must never be read from a cache.
+      "binding": "HYPERDRIVE",
+      "id": "1f4f5b071333498380c36ec60edbbcb8",
+    },
+  ],
+  "kv_namespaces": [
+    // Task history, behind the `KeyValueStorage` contract.
+    { "binding": "KV", "id": "ab02095fe00f450587bf2ee731aa6838" },
+  ],
+}
