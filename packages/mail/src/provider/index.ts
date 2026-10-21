@@ -1,15 +1,21 @@
+import { createCloudflareProvider, type CloudflareEmailBinding } from './cloudflare.js';
 import { createConsoleProvider } from './console.js';
 import { createResendProvider } from './resend.js';
 import { createSmtpProvider } from './smtp.js';
 import type { MailProvider } from './types.js';
 
+export {
+  createCloudflareProvider,
+  type CloudflareEmailBinding,
+  type CloudflareProviderOptions,
+} from './cloudflare.js';
 export { createConsoleProvider } from './console.js';
 export { createResendProvider, type ResendProviderOptions } from './resend.js';
 export { createSmtpProvider, type SmtpProviderOptions } from './smtp.js';
 export type { MailProvider, OutgoingMail } from './types.js';
 
 /** Transports a deployment can select through `MAIL_PROVIDER`. */
-export const MAIL_PROVIDER_NAMES = ['console', 'resend', 'smtp'] as const;
+export const MAIL_PROVIDER_NAMES = ['console', 'resend', 'smtp', 'cloudflare'] as const;
 
 export type MailProviderName = (typeof MAIL_PROVIDER_NAMES)[number];
 
@@ -65,6 +71,15 @@ export function mailProviderNameFromEnvironment(
   return configured;
 }
 
+/** What the environment cannot name: values only the hosting platform can hand over. */
+export interface MailProviderBindings {
+  /**
+   * The Worker's `send_email` binding, resolved per request. Required to select `cloudflare`,
+   * which has no credential to read from the environment: the binding is the credential.
+   */
+  readonly cloudflareEmail?: () => CloudflareEmailBinding;
+}
+
 /**
  * Resolve the configured transport.
  *
@@ -75,8 +90,15 @@ export function mailProviderNameFromEnvironment(
  */
 export function mailProviderFromEnvironment(
   environment: Readonly<Record<string, string | undefined>> = process.env,
+  bindings: MailProviderBindings = {},
 ): MailProvider {
   const configured = mailProviderNameFromEnvironment(environment);
+
+  if (configured === 'cloudflare') {
+    if (!bindings.cloudflareEmail)
+      throw new Error('MAIL_PROVIDER=cloudflare needs a Cloudflare Worker send_email binding');
+    return createCloudflareProvider({ binding: bindings.cloudflareEmail });
+  }
 
   if (configured === 'resend')
     return createResendProvider({

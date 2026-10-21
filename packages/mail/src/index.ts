@@ -6,13 +6,17 @@ export {
   type SendEmailOptions,
 } from './mail.js';
 export {
+  createCloudflareProvider,
   createConsoleProvider,
   createResendProvider,
   createSmtpProvider,
   MAIL_PROVIDER_NAMES,
   mailProviderFromEnvironment,
   mailProviderNameFromEnvironment,
+  type CloudflareEmailBinding,
+  type CloudflareProviderOptions,
   type MailProvider,
+  type MailProviderBindings,
   type MailProviderName,
   type OutgoingMail,
   type ResendProviderOptions,
