@@ -1,4 +1,10 @@
 export {
+  parseInboundForwards,
+  routeInboundMail,
+  type InboundDecision,
+  type InboundForwards,
+} from './inbound.js';
+export {
   createMailer,
   sendEmail,
   type MailerOptions,
