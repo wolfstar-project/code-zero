@@ -205,10 +205,6 @@ export default defineNuxtConfig({
       ? {
           // A Worker, not Pages: the dashboard has server routes and a custom domain of its own.
           preset: 'cloudflare_module',
-          // Wraps the preset's own worker to settle inbound mail itself. The preset's `email` runs
-          // its hook under `waitUntil` and returns at once, which ends the event before a message
-          // has been forwarded or refused.
-          entry: fileURLToPath(new URL('./server/cloudflare/entry.ts', import.meta.url)),
           // The scoped database (`server/utils/database.ts`) finds the Hyperdrive binding of the
           // request being served through `useEvent()`, which needs the request kept in async
           // context. Only this target pays for it.
