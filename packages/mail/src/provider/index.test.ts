@@ -8,6 +8,7 @@ import {
 
 const INVALID_MAIL_PROVIDER_PATTERN = /invalid MAIL_PROVIDER/;
 const MISSING_RESEND_API_KEY_PATTERN = /RESEND_API_KEY/;
+const MISSING_CLOUDFLARE_BINDING_PATTERN = /send_email binding/;
 const MISSING_SMTP_HOST_PATTERN = /SMTP_HOST/;
 const MISSING_SMTP_PORT_PATTERN = /SMTP_PORT/;
 const LEAKED_SMTP_PASSWORD_PATTERN = /hunter2/;
@@ -32,6 +33,20 @@ describe('mailProviderFromEnvironment', () => {
     expect(() => mailProviderFromEnvironment({ MAIL_PROVIDER: 'resend' })).toThrow(
       MISSING_RESEND_API_KEY_PATTERN,
     );
+  });
+
+  it('requires the Worker binding before selecting Cloudflare', () => {
+    // There is no credential in the environment to fall back on, so a missing binding is a
+    // deployment error, not a reason to log or to pick another transport.
+    expect(() => mailProviderFromEnvironment({ MAIL_PROVIDER: 'cloudflare' })).toThrow(
+      MISSING_CLOUDFLARE_BINDING_PATTERN,
+    );
+    expect(() =>
+      mailProviderFromEnvironment(
+        { MAIL_PROVIDER: 'cloudflare' },
+        { cloudflareEmail: () => ({ send: () => Promise.resolve() }) },
+      ),
+    ).not.toThrow();
   });
 
   it('requires host and port before selecting SMTP', () => {
@@ -78,6 +93,7 @@ describe('mailProviderNameFromEnvironment', () => {
 
   it('reports the configured transport name', () => {
     expect(mailProviderNameFromEnvironment({ MAIL_PROVIDER: 'smtp' })).toBe('smtp');
+    expect(mailProviderNameFromEnvironment({ MAIL_PROVIDER: 'cloudflare' })).toBe('cloudflare');
   });
 
   it('rejects an unknown provider name instead of silently defaulting', () => {
