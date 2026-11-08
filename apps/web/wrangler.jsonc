@@ -12,7 +12,15 @@
     // Stated, never inferred from the host: see `CODE_ZERO_EDITION` in the deployment guide.
     "CODE_ZERO_EDITION": "cloud",
     "NUXT_PUBLIC_SITE_URL": "https://app.code-zero.dev",
+    // Mail goes out through the `EMAIL` binding below; the sender domain must be onboarded to
+    // Cloudflare Email Service first.
+    "MAIL_PROVIDER": "cloudflare",
+    "MAIL_FROM": "noreply@code-zero.dev",
   },
+  "send_email": [
+    // Transactional mail (verification, password reset, invitations) with no API key to manage.
+    { "name": "EMAIL" },
+  ],
   "hyperdrive": [
     {
       // Postgres, through Cloudflare's pool. Query caching is off on this configuration: sessions

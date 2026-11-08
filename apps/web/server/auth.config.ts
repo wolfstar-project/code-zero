@@ -1,11 +1,16 @@
 import { authBetterAuthOptions, authDatabaseOptionsFromEnvironment } from '@code-zero/auth';
 import { optionalDatabaseUrlFromEnvironment } from '@code-zero/database';
-import { createMailer, mailProviderNameFromEnvironment } from '@code-zero/mail';
+import {
+  createMailer,
+  mailProviderFromEnvironment,
+  mailProviderNameFromEnvironment,
+} from '@code-zero/mail';
 import { defineServerAuth } from '@onmax/nuxt-better-auth/config';
 import { memoryAdapter } from 'better-auth/adapters/memory';
 import { testUtils } from 'better-auth/plugins';
 
 import { database } from './utils/database.js';
+import { emailBinding } from './utils/mail-binding.js';
 
 // This module is the composition root for authentication, so it is where the mail transport is
 // bound and injected. `packages/auth` declares the delivery contract structurally and never
@@ -15,7 +20,14 @@ import { database } from './utils/database.js';
 // provider is useful for exercising invitation flows locally. Production still withholds the
 // callback for `console`, so `authBetterAuthOptions` fails startup instead of accepting invitations
 // that will never reach their recipients.
-const sendMail = createMailer();
+//
+// The transport is still resolved per message, as `createMailer()` does by default: only the
+// `cloudflare` provider needs something from outside the environment, a Worker's `send_email`
+// binding, and it is looked up from the request that sends.
+const sendMail = createMailer({
+  provider: (mail) =>
+    mailProviderFromEnvironment(process.env, { cloudflareEmail: emailBinding })(mail),
+});
 const deliversMail =
   mailProviderNameFromEnvironment() !== 'console' || process.env.NODE_ENV === 'development';
 
