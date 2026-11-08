@@ -251,16 +251,20 @@ function moveSelection(offset: number): void {
   selectedId.value = ids[next];
 }
 
+// Stands down while the new-task dialog is open, so keys meant for the form leave the board alone.
+const modalOpen = useModalDialogOpen();
+const notWhileModalOpen = { enabled: () => !modalOpen.value };
+
 // The sheet under `?` lists these; keep the two in step when either changes.
 useHotkeys([
-  { hotkey: 'J', callback: () => moveSelection(1) },
-  { hotkey: 'K', callback: () => moveSelection(-1) },
-  { hotkey: 'R', callback: refreshDashboard },
+  { hotkey: 'J', callback: () => moveSelection(1), options: notWhileModalOpen },
+  { hotkey: 'K', callback: () => moveSelection(-1), options: notWhileModalOpen },
+  { hotkey: 'R', callback: refreshDashboard, options: notWhileModalOpen },
   {
     hotkey: '/',
     callback: () => taskTable.value?.focusFilter(),
     // Otherwise the slash lands in the field it just focused.
-    options: { preventDefault: true },
+    options: { ...notWhileModalOpen, preventDefault: true },
   },
 ]);
 </script>

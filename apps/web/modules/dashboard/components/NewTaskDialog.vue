@@ -42,11 +42,17 @@ const open = defineModel<boolean>('open', { default: false });
 
 const dialog = useTemplateRef<HTMLDialogElement>('dialog');
 const titleId = useId();
+const modalOpen = useModalDialogOpen();
 
 watch(open, (isOpen) => {
+  modalOpen.value = isOpen;
   const element = dialog.value;
   if (!element) return;
   if (isOpen && !element.open) element.showModal();
   else if (!isOpen && element.open) element.close();
+});
+
+onBeforeUnmount(() => {
+  if (open.value) modalOpen.value = false;
 });
 </script>

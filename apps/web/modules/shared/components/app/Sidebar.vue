@@ -51,81 +51,84 @@
       </button>
     </div>
 
-    <nav
-      :aria-label="$t('dashboard.nav.aria')"
-      class="flex-1 overflow-y-auto overscroll-contain px-3 py-4"
-    >
-      <NuxtLink
-        v-for="item in navItems"
-        :key="item.key"
-        :to="item.to"
-        class="focus-ring mb-1 h-11 w-full flex items-center border-is-2 text-start text-sm font-600 transition md:h-9 md:text-xs"
-        :class="[
-          compact ? 'justify-center px-0' : 'px-3',
-          isActive(item)
-            ? 'border-accent bg-accent/8 text-ink'
-            : 'border-transparent text-muted hover:bg-raised hover:text-ink',
-        ]"
-        :aria-current="isActive(item) ? 'page' : undefined"
-        :title="compact ? $t(item.labelKey) : undefined"
-        :aria-label="compact ? $t(item.labelKey) : undefined"
-        @click="open = false"
-      >
-        <Icon
-          :name="item.icon"
-          aria-hidden="true"
-          class="h-4 w-4 shrink-0"
-          :class="[compact ? '' : 'me-2.5', isActive(item) ? 'text-accent' : '']"
-        />
-        <span v-if="!compact" class="truncate">{{ $t(item.labelKey) }}</span>
-      </NuxtLink>
-    </nav>
-
-    <ClientOnly>
-      <!-- Only rendered where the deployment actually enables organizations, as `/api/capabilities`
-           reports at runtime; the auth server enforces the same policy regardless. -->
-      <OrganizationsSwitcher v-if="!compact && enableOrganizations" />
-      <UserMenu v-if="!compact" />
-    </ClientOnly>
-
-    <!-- Preferences belong to the person, not to a page, so they sit with the account rather than
-         being repeated in every page header. -->
-    <div
-      class="flex items-center gap-2 border-t border-line"
-      :class="compact ? 'justify-center px-2 py-3' : 'p-3'"
-    >
-      <LocaleSwitcher v-if="!compact" class="min-w-0 flex-1 max-md:h-11" />
-      <ClientOnly>
-        <ColorModeToggle class="shrink-0 max-md:h-11 max-md:w-11" />
-        <template #fallback>
-          <span
-            class="h-9 w-9 shrink-0 border border-line bg-raised max-md:h-11 max-md:w-11"
+    <!-- Everything between the brand and the collapse button scrolls as one, so the account and
+         preferences stay reachable on a short screen, such as a phone held in landscape. -->
+    <div class="min-h-0 flex flex-1 flex-col overflow-y-auto overscroll-contain">
+      <nav :aria-label="$t('dashboard.nav.aria')" class="flex-1 px-3 py-4">
+        <NuxtLink
+          v-for="item in navItems"
+          :key="item.key"
+          :to="item.to"
+          class="focus-ring mb-1 h-11 w-full flex items-center border-is-2 text-start text-sm font-600 transition md:h-9 md:text-xs"
+          :class="[
+            compact ? 'justify-center px-0' : 'px-3',
+            isActive(item)
+              ? 'border-accent bg-accent/8 text-ink'
+              : 'border-transparent text-muted hover:bg-raised hover:text-ink',
+          ]"
+          :aria-current="isActive(item) ? 'page' : undefined"
+          :title="compact ? $t(item.labelKey) : undefined"
+          :aria-label="compact ? $t(item.labelKey) : undefined"
+          @click="open = false"
+        >
+          <Icon
+            :name="item.icon"
             aria-hidden="true"
+            class="h-4 w-4 shrink-0"
+            :class="[compact ? '' : 'me-2.5', isActive(item) ? 'text-accent' : '']"
           />
-        </template>
-      </ClientOnly>
-    </div>
+          <span v-if="!compact" class="truncate">{{ $t(item.labelKey) }}</span>
+        </NuxtLink>
+      </nav>
 
-    <div class="border-t border-line" :class="compact ? 'px-2 py-3' : 'p-4'">
-      <template v-if="!compact">
-        <p class="m-0 label-upper">{{ $t('common.system.label') }}</p>
-        <p class="m-0 mt-1.5 flex items-center gap-1.5 text-xs text-accent font-650">
-          <span class="h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_8px_var(--cz-accent-glow)]" />
-          {{ $t('common.system.healthy') }}
-        </p>
-        <p class="m-0 mt-3 label-upper">{{ $t('common.build.label') }}</p>
-        <!-- Sits directly under the signed-in user, where an operator reading a bug report looks
-             for what the deployment in front of them actually is. -->
-        <BuildEnvironment />
-      </template>
+      <ClientOnly>
+        <!-- Only rendered where the deployment actually enables organizations, as `/api/capabilities`
+           reports at runtime; the auth server enforces the same policy regardless. -->
+        <OrganizationsSwitcher v-if="!compact && enableOrganizations" />
+        <UserMenu v-if="!compact" />
+      </ClientOnly>
+
+      <!-- Preferences belong to the person, not to a page, so they sit with the account rather than
+         being repeated in every page header. -->
       <div
-        v-else
-        class="grid place-items-center py-1"
-        :title="$t('common.system.healthy')"
-        role="img"
-        :aria-label="`${$t('common.system.label')}: ${$t('common.system.healthy')}`"
+        class="flex items-center gap-2 border-t border-line"
+        :class="compact ? 'justify-center px-2 py-3' : 'p-3'"
       >
-        <span class="h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_8px_var(--cz-accent-glow)]" />
+        <LocaleSwitcher v-if="!compact" class="min-w-0 flex-1 max-md:h-11" />
+        <ClientOnly>
+          <ColorModeToggle class="shrink-0 max-md:h-11 max-md:w-11" />
+          <template #fallback>
+            <span
+              class="h-9 w-9 shrink-0 border border-line bg-raised max-md:h-11 max-md:w-11"
+              aria-hidden="true"
+            />
+          </template>
+        </ClientOnly>
+      </div>
+
+      <div class="border-t border-line" :class="compact ? 'px-2 py-3' : 'p-4'">
+        <template v-if="!compact">
+          <p class="m-0 label-upper">{{ $t('common.system.label') }}</p>
+          <p class="m-0 mt-1.5 flex items-center gap-1.5 text-xs text-accent font-650">
+            <span
+              class="h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_8px_var(--cz-accent-glow)]"
+            />
+            {{ $t('common.system.healthy') }}
+          </p>
+          <p class="m-0 mt-3 label-upper">{{ $t('common.build.label') }}</p>
+          <!-- Sits directly under the signed-in user, where an operator reading a bug report looks
+             for what the deployment in front of them actually is. -->
+          <BuildEnvironment />
+        </template>
+        <div
+          v-else
+          class="grid place-items-center py-1"
+          :title="$t('common.system.healthy')"
+          role="img"
+          :aria-label="`${$t('common.system.label')}: ${$t('common.system.healthy')}`"
+        >
+          <span class="h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_8px_var(--cz-accent-glow)]" />
+        </div>
       </div>
     </div>
 
