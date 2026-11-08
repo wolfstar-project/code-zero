@@ -1,5 +1,6 @@
 export {
   createDatabase,
+  createScopedDatabase,
   databaseUrlFromEnvironment,
   DATABASE_URL_VARIABLE,
   DEFAULT_MAXIMUM_CONNECTIONS,

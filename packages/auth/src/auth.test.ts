@@ -1,3 +1,4 @@
+import { createDatabase } from '@code-zero/database';
 import { betterAuth } from 'better-auth';
 import { memoryAdapter } from 'better-auth/adapters/memory';
 import { describe, expect, it } from 'vitest';
@@ -19,6 +20,8 @@ const completeEnvironment = {
   DATABASE_URL: 'postgres://postgres:postgres@localhost:5432/code_zero_auth',
 };
 
+const MISSING_STORE_PATTERN = /need a `database` or a `databaseUrl`/;
+const BOTH_STORES_PATTERN = /either `database` or `databaseUrl`/;
 const MISSING_URL_MESSAGE = /missing required environment variable: BETTER_AUTH_URL/;
 const MISSING_SEND_PRIVATE_INVITATION_PATTERN = /sendPrivateInvitationEmail/;
 const MISSING_DASHBOARD_URL_PATTERN = /dashboardUrl/;
@@ -160,6 +163,34 @@ describe('authOptionsFromEnvironment', () => {
     expect(
       authOptionsFromEnvironment({ ...environment, AUTH_DATABASE_URL: DATABASE_URL }).databaseUrl,
     ).toBe(DATABASE_URL);
+  });
+
+  it('does not read the connection string when the host owns the database', () => {
+    const { DATABASE_URL, ...environment } = completeEnvironment;
+    // Opens nothing: the client connects on its first query, and none is made here.
+    const database = createDatabase({ connectionString: completeEnvironment.DATABASE_URL });
+
+    const options = authDatabaseOptionsFromEnvironment(environment, database);
+
+    expect(options.database).toBe(database);
+    expect(options.databaseUrl).toBeUndefined();
+    expect(DATABASE_URL).toBeDefined();
+  });
+
+  it('refuses to build without a database or a connection string', () => {
+    expect(() => authBetterAuthOptions({ config: defaultAuthConfig })).toThrow(
+      MISSING_STORE_PATTERN,
+    );
+  });
+
+  it('refuses to build with both a database and a connection string', () => {
+    expect(() =>
+      authBetterAuthOptions({
+        config: defaultAuthConfig,
+        database: createDatabase({ connectionString: completeEnvironment.DATABASE_URL }),
+        databaseUrl: completeEnvironment.DATABASE_URL,
+      }),
+    ).toThrow(BOTH_STORES_PATTERN);
   });
 
   it('omits GitHub unless both credentials are configured', () => {

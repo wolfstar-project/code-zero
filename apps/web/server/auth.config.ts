@@ -1,8 +1,11 @@
 import { authBetterAuthOptions, authDatabaseOptionsFromEnvironment } from '@code-zero/auth';
+import { optionalDatabaseUrlFromEnvironment } from '@code-zero/database';
 import { createMailer, mailProviderNameFromEnvironment } from '@code-zero/mail';
 import { defineServerAuth } from '@onmax/nuxt-better-auth/config';
 import { memoryAdapter } from 'better-auth/adapters/memory';
 import { testUtils } from 'better-auth/plugins';
+
+import { database } from './utils/database.js';
 
 // This module is the composition root for authentication, so it is where the mail transport is
 // bound and injected. `packages/auth` declares the delivery contract structurally and never
@@ -37,7 +40,16 @@ const dashboardUrl = dashboardUrlFromEnvironment(process.env);
  * No entitlements are passed, so SSO and SCIM stay unregistered until an edition supplies them.
  */
 const options = authBetterAuthOptions({
-  ...authDatabaseOptionsFromEnvironment(authEnvironment()),
+  // A connection string means this process owns a pool, opened here as it always was. Without one
+  // the database comes from the host: on Cloudflare the connection is a Hyperdrive binding, which
+  // no environment variable carries and which only exists while a request is being served. The
+  // shared `database()` follows the request, so Better Auth, which keeps what it is given for the
+  // life of the process, never holds a socket that the next request could not use. A deployment
+  // that sets neither fails on its first query with the same message the pool would have raised.
+  ...authDatabaseOptionsFromEnvironment(
+    authEnvironment(),
+    optionalDatabaseUrlFromEnvironment(authEnvironment()) ? undefined : database(),
+  ),
   ...(dashboardUrl ? { dashboardUrl } : {}),
   ...(deliversMail ? authMailDelivery(sendMail) : {}),
 });

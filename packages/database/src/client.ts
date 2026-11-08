@@ -23,6 +23,14 @@ export interface DatabaseOptions {
    * whatever else shares it.
    */
   readonly maximumConnections?: number;
+  /**
+   * Whether `postgres` asks the server for its array types when it connects.
+   *
+   * It is on by default. Behind Hyperdrive it is turned off, as Cloudflare documents for this
+   * driver: the lookup costs a round trip on every new connection, and no table here has an array
+   * column whose type the driver would need to learn.
+   */
+  readonly fetchTypes?: boolean;
 }
 
 /** Matches the default cap Postgres ships with divided across a handful of processes. */
@@ -38,9 +46,43 @@ export const DEFAULT_MAXIMUM_CONNECTIONS = 10;
 export function createDatabase(options: DatabaseOptions): Database {
   const connection = postgres(options.connectionString, {
     max: options.maximumConnections ?? DEFAULT_MAXIMUM_CONNECTIONS,
+    ...(options.fetchTypes === undefined ? {} : { fetch_types: options.fetchTypes }),
   });
 
   return drizzle(connection, { schema });
+}
+
+/**
+ * A database that is looked up each time it is used, rather than opened once.
+ *
+ * A Cloudflare Worker cannot reuse a socket across requests: one opened while serving a request is
+ * unusable from the next, so a connection held in module state breaks on the second request.
+ * Libraries that take a database once, when they are built (Better Auth does), therefore need an
+ * object that stays the same while the client behind it follows the request. `resolve` returns the
+ * client for the work in progress; every property read and call goes to it, so the caller never
+ * holds a connection of its own.
+ *
+ * Functions are bound to the client they were read from, so a method detached from the proxy still
+ * runs against the client that was current when it was read.
+ */
+export function createScopedDatabase<Client extends object>(resolve: () => Client): Client {
+  // The target only has to be an object: every trap answers from `resolve()`, so nothing is ever
+  // read from it. Typing it as `Client` is the one place a proxy needs to claim a shape it does not
+  // have, which is also why this is generic, so callers and tests never assert anything themselves.
+  // oxlint-disable-next-line no-unsafe-type-assertion -- the traps answer from the resolved client
+  const target = {} as Client;
+  return new Proxy(target, {
+    get(_target, property) {
+      const client = resolve();
+      // Property reads are the proxy's whole job; the key is whatever the caller asked for.
+      // oxlint-disable-next-line anti-slop/no-reflect-get -- forwarding an arbitrary key to the client
+      const value: unknown = Reflect.get(client, property, client);
+      return typeof value === 'function' ? value.bind(client) : value;
+    },
+    has(_target, property) {
+      return Reflect.has(resolve(), property);
+    },
+  });
 }
 
 /**

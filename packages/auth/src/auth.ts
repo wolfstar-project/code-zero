@@ -3,7 +3,12 @@ import { dash, sentinel } from '@better-auth/infra';
 import { passkey } from '@better-auth/passkey';
 import { scim } from '@better-auth/scim';
 import { sso } from '@better-auth/sso';
-import { createDatabase, databaseUrlFromEnvironment, schema } from '@code-zero/database';
+import {
+  createDatabase,
+  databaseUrlFromEnvironment,
+  schema,
+  type Database,
+} from '@code-zero/database';
 import { betterEnrollment } from '@octopi-ai/better-enrollment';
 import { betterAuth } from 'better-auth';
 import type { BetterAuthOptions, BetterAuthPlugin } from 'better-auth';
@@ -133,9 +138,17 @@ export interface AuthDatabaseOptions {
    * Postgres connection string holding users and sessions.
    *
    * The pool is opened by `@code-zero/database`, which owns the schema and the migrations for
-   * those tables.
+   * those tables. Exactly one of this and `database` is given.
    */
-  readonly databaseUrl: string;
+  readonly databaseUrl?: string;
+  /**
+   * A database the caller already owns, used instead of opening a pool from `databaseUrl`.
+   *
+   * For a host whose connections cannot outlive a request, where the caller passes a database that
+   * follows the request (`createScopedDatabase`) rather than one pool that Better Auth would hold
+   * for the life of the process.
+   */
+  readonly database?: Database;
   readonly config: AuthConfig;
   readonly github?: GithubOauthCredentials;
   readonly gitlab?: GitlabOauthCredentials;
@@ -257,10 +270,10 @@ export function authBetterAuthOptions(options: AuthDatabaseOptions): Pick<
   // The client and the tables both come from `@code-zero/database`: this package owns
   // authentication policy, not the store, so the shape of `user` and `session` stays reviewable in
   // one place and any other consumer of those tables sees the same declarations.
-  const database: BetterAuthOptions['database'] = drizzleAdapter(
-    createDatabase({ connectionString: options.databaseUrl }),
-    { provider: 'pg', schema },
-  );
+  const database: BetterAuthOptions['database'] = drizzleAdapter(authDatabase(options), {
+    provider: 'pg',
+    schema,
+  });
 
   const { sendVerificationEmail, sendPasswordResetEmail } = options;
 
@@ -798,9 +811,14 @@ function requireEnvironmentValue(
  * regardless of which process opens it; it accepts the pre-split `AUTH_DATABASE_URL` as well. The
  * error messages name the variable but never echo its value, so a misconfigured deployment cannot
  * leak a secret or a connection string into a crash log.
+ *
+ * A host that owns its database passes it as `database`, and the connection string is then not
+ * read at all: on Cloudflare the connection comes from a Hyperdrive binding, which no environment
+ * variable carries.
  */
 export function authDatabaseOptionsFromEnvironment(
   environment: Readonly<Record<string, string | undefined>> = process.env,
+  database?: Database,
 ): AuthDatabaseOptions {
   const github = githubCredentialsFromEnvironment(environment);
   const gitlab = gitlabCredentialsFromEnvironment(environment);
@@ -810,7 +828,7 @@ export function authDatabaseOptionsFromEnvironment(
   const oauthProxy = oauthProxyFromEnvironment(environment);
   const infra = infraFromEnvironment(environment);
   return {
-    databaseUrl: databaseUrlFromEnvironment(environment),
+    ...(database ? { database } : { databaseUrl: databaseUrlFromEnvironment(environment) }),
     config: authConfigFromEnvironment(environment),
     ...(github ? { github } : {}),
     ...(gitlab ? { gitlab } : {}),
@@ -820,6 +838,24 @@ export function authDatabaseOptionsFromEnvironment(
     ...(oauthProxy ? { oauthProxy } : {}),
     ...(infra ? { infra } : {}),
   };
+}
+
+/**
+ * The database Better Auth reads and writes, from whichever of the two options was given.
+ *
+ * Both or neither is a deployment error, refused here for the same reason a missing secret is: a
+ * guess would send authentication to a store nobody chose. The message names the options and never
+ * echoes a connection string.
+ */
+function authDatabase(options: AuthDatabaseOptions): Database {
+  if (options.database && options.databaseUrl) {
+    throw new Error('pass either `database` or `databaseUrl` to the auth options, not both');
+  }
+  if (options.database) return options.database;
+  if (!options.databaseUrl) {
+    throw new Error('the auth options need a `database` or a `databaseUrl`');
+  }
+  return createDatabase({ connectionString: options.databaseUrl });
 }
 
 /**
