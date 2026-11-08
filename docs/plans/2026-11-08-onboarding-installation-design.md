@@ -124,10 +124,12 @@ was issued for, and expires in ten minutes, which closes the cross-site request 
 not single use: replaying one inside its window attaches the same installation again, which is a
 no-op, so a nonce store would add state without closing anything.
 
-Open item: from `app.code-zero.dev` the Worker currently gets HTTP 525 when it calls
-`https://github.com/login/oauth/access_token`, the same endpoint this exchange needs. The same Worker
-reached through `workers.dev` works. Until that is resolved, the install step cannot complete on the
-custom domain. The code can be built and tested against a fake provider meanwhile.
+Resolved: from `app.code-zero.dev` the Worker used to get HTTP 525 on every request to a host that is
+not behind Cloudflare, `https://github.com/login/oauth/access_token` included. The cause was the
+`code-zero.dev` zone's origin TLS compliance setting (`origin_tls_compliance_modes`), which required a
+post-quantum hybrid key exchange (`pqh`). Hosts behind Cloudflare negotiate it; GitHub, Wikipedia and
+AWS do not. The zone now keeps `fips` only. Anything that makes the Worker call a non-Cloudflare host
+(GitHub, a model provider, a mail API) depends on that setting staying without `pqh`.
 
 ## GitHub App **(owner: to be created)**
 
