@@ -7,6 +7,9 @@
   "compatibility_flags": ["nodejs_compat"],
   "routes": [{ "pattern": "app.code-zero.dev", "custom_domain": true }],
   "workers_dev": true,
+  // The workers.dev address stays, but its per-version preview URLs would expose unreleased builds of
+  // the dashboard on a public hostname, so they are off.
+  "preview_urls": false,
   "observability": { "enabled": true },
   "vars": {
     // Stated, never inferred from the host: see `CODE_ZERO_EDITION` in the deployment guide.
