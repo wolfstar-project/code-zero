@@ -1,72 +1,56 @@
 <template>
-  <header
-    class="h-16 flex items-center justify-between border-b border-line bg-canvas/92 px-4 backdrop-blur md:px-6"
-  >
-    <div>
-      <p class="m-0 text-3xs text-muted font-700 tracking-[0.18em] uppercase">
-        {{ $t('dashboard.header.eyebrow') }}
-      </p>
-      <h1 class="m-0 mt-1 text-lg font-650 tracking-tight">{{ $t('dashboard.header.title') }}</h1>
-    </div>
-
-    <div class="flex items-center gap-3">
-      <div class="hidden h-9 items-center gap-2 border border-line bg-raised px-3 lg:flex">
-        <span class="label-upper">{{ $t('dashboard.header.mode') }}</span>
-      </div>
-      <!--
-        Says whether the board is following the control plane right now. Without it a stalled
-        stream is indistinguishable from a quiet one, and a quiet board is exactly what an
-        operator would take as "nothing is happening".
-      -->
-      <ClientOnly>
-        <div
-          class="hidden h-9 items-center gap-2 border border-line bg-raised px-3 sm:flex"
-          :aria-label="live ? $t('dashboard.header.liveAria') : $t('dashboard.header.staleAria')"
-          role="status"
-        >
-          <span
-            aria-hidden="true"
-            class="h-1.5 w-1.5 rounded-full"
-            :class="live ? 'bg-accent' : 'bg-muted'"
-          />
-          <span class="label-upper">
-            {{ live ? $t('dashboard.header.live') : $t('dashboard.header.stale') }}
-          </span>
-        </div>
-      </ClientOnly>
-      <ClientOnly>
-        <div class="hidden h-9 items-center gap-2 border border-line bg-raised px-3 sm:flex">
-          <Icon aria-hidden="true" class="h-3.5 w-3.5 text-muted" name="lucide:clock-3" />
-          <span class="mono text-ink">{{ now.toISOString().slice(0, 19) }}Z</span>
-        </div>
-      </ClientOnly>
-      <LocaleSwitcher />
-      <ClientOnly>
-        <ColorModeToggle />
-        <template #fallback>
-          <span class="h-9 w-9 border border-line bg-raised" aria-hidden="true" />
-        </template>
-      </ClientOnly>
-      <button class="btn-subtle gap-2 px-3" type="button" @click="refreshDashboard">
-        <Icon aria-hidden="true" class="h-3.5 w-3.5" name="lucide:refresh-cw" />
-        {{ $t('common.actions.refresh') }}
-      </button>
+  <AppNavbar :title="$t('dashboard.header.title')">
+    <!--
+      Says whether the board is following the control plane right now. Without it a stalled
+      stream is indistinguishable from a quiet one, and a quiet board is exactly what an
+      operator would take as "nothing is happening". A dot alone on a phone, labelled from `sm`.
+    -->
+    <ClientOnly>
       <div
-        aria-hidden="true"
-        class="h-9 w-9 hidden place-items-center border border-accent/45 bg-accent/8 font-mono text-xs text-accent font-700 sm:grid"
+        class="h-9 flex items-center gap-2 sm:border sm:border-line sm:bg-raised sm:px-3"
+        :aria-label="live ? $t('dashboard.header.liveAria') : $t('dashboard.header.staleAria')"
+        role="status"
       >
-        AZ
+        <span
+          aria-hidden="true"
+          class="h-2 w-2 rounded-full sm:h-1.5 sm:w-1.5"
+          :class="live ? 'bg-accent' : 'bg-muted'"
+        />
+        <span class="label-upper max-sm:hidden">
+          {{ live ? $t('dashboard.header.live') : $t('dashboard.header.stale') }}
+        </span>
       </div>
-    </div>
-  </header>
+    </ClientOnly>
+    <ClientOnly>
+      <div class="hidden h-9 items-center gap-2 border border-line bg-raised px-3 xl:flex">
+        <Icon aria-hidden="true" class="h-3.5 w-3.5 text-muted" name="lucide:clock-3" />
+        <span class="mono text-ink">{{ now.toISOString().slice(0, 19) }}Z</span>
+      </div>
+    </ClientOnly>
+    <button
+      class="btn-subtle gap-2 px-3 max-sm:h-11 max-sm:w-11 max-sm:px-0"
+      type="button"
+      @click="refreshDashboard"
+    >
+      <Icon aria-hidden="true" class="h-3.5 w-3.5 max-sm:h-4 max-sm:w-4" name="lucide:refresh-cw" />
+      <span class="max-sm:sr-only">{{ $t('common.actions.refresh') }}</span>
+    </button>
+    <button
+      class="btn-primary gap-2 px-3 max-sm:h-11 max-sm:w-11 max-sm:px-0"
+      type="button"
+      aria-haspopup="dialog"
+      @click="newTaskOpen = true"
+    >
+      <Icon aria-hidden="true" class="h-3.5 w-3.5 max-sm:h-4 max-sm:w-4" name="lucide:plus" />
+      <span class="max-sm:sr-only">{{ $t('dashboard.newTask.title') }}</span>
+    </button>
+  </AppNavbar>
 
-  <div class="p-3 sm:p-4 md:p-5">
+  <div class="flex flex-col gap-4 p-4 sm:gap-6 sm:p-6">
     <RunnerMetrics :overview="overview" />
 
-    <NewTaskForm class="mt-4" :pending="createPending" :error="createError" @submit="createTask" />
-
-    <section class="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
-      <div class="min-w-0 space-y-4">
+    <section class="grid gap-4 sm:gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+      <div class="min-w-0 flex flex-col gap-4 sm:gap-6">
         <TaskTable
           ref="taskTable"
           :tasks="overview.tasks"
@@ -84,6 +68,13 @@
       />
     </section>
   </div>
+
+  <NewTaskDialog
+    v-model:open="newTaskOpen"
+    :pending="createPending"
+    :error="createError"
+    @submit="createTask"
+  />
 </template>
 
 <script setup lang="ts">
@@ -170,6 +161,12 @@ const decisionPending = ref(false);
 const decisionError = ref<string>();
 const createPending = ref(false);
 const createError = ref<string>();
+const newTaskOpen = ref(false);
+
+// A failure belongs to the attempt that produced it; reopening starts without it.
+watch(newTaskOpen, (isOpen) => {
+  if (isOpen) createError.value = undefined;
+});
 
 /**
  * Queues a task through the control plane.
@@ -184,6 +181,7 @@ async function createTask(request: NewTaskRequest): Promise<void> {
   createError.value = undefined;
   try {
     await $orpc.tasks.create(request);
+    newTaskOpen.value = false;
   } catch {
     // Refusals name a rule, not a value, but the server's text is still untrusted input this page
     // would render; the trail records which rule refused.
@@ -253,16 +251,20 @@ function moveSelection(offset: number): void {
   selectedId.value = ids[next];
 }
 
+// Stands down while the new-task dialog is open, so keys meant for the form leave the board alone.
+const modalOpen = useModalDialogOpen();
+const notWhileModalOpen = { enabled: () => !modalOpen.value };
+
 // The sheet under `?` lists these; keep the two in step when either changes.
 useHotkeys([
-  { hotkey: 'J', callback: () => moveSelection(1) },
-  { hotkey: 'K', callback: () => moveSelection(-1) },
-  { hotkey: 'R', callback: refreshDashboard },
+  { hotkey: 'J', callback: () => moveSelection(1), options: notWhileModalOpen },
+  { hotkey: 'K', callback: () => moveSelection(-1), options: notWhileModalOpen },
+  { hotkey: 'R', callback: refreshDashboard, options: notWhileModalOpen },
   {
     hotkey: '/',
     callback: () => taskTable.value?.focusFilter(),
     // Otherwise the slash lands in the field it just focused.
-    options: { preventDefault: true },
+    options: { ...notWhileModalOpen, preventDefault: true },
   },
 ]);
 </script>

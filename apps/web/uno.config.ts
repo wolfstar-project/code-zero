@@ -13,6 +13,9 @@ export default defineCodeZeroUno({
       'btn',
       'focus-ring h-9 flex items-center justify-center border text-xs text-ink font-650 transition disabled:cursor-wait disabled:opacity-60',
     ],
+    // The one solid control on a screen: queue a task, approve a run. Same treatment as the
+    // marketing site's primary action, at the console's density.
+    ['btn-primary', 'btn border-accent bg-accent text-canvas hover:bg-accent/88'],
     ['btn-link', 'focus-ring text-xs text-link'],
     // A small, square tag for a value that is one of a few: a mode, a source, an edition.
     [

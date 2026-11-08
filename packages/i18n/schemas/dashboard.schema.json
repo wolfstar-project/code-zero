@@ -10,13 +10,7 @@
         "header": {
           "type": "object",
           "properties": {
-            "eyebrow": {
-              "type": "string"
-            },
             "title": {
-              "type": "string"
-            },
-            "mode": {
               "type": "string"
             },
             "live": {
@@ -53,6 +47,12 @@
               "type": "string"
             },
             "settings": {
+              "type": "string"
+            },
+            "open": {
+              "type": "string"
+            },
+            "close": {
               "type": "string"
             }
           },
@@ -229,9 +229,6 @@
             "header": {
               "type": "object",
               "properties": {
-                "eyebrow": {
-                  "type": "string"
-                },
                 "title": {
                   "type": "string"
                 }
@@ -460,9 +457,6 @@
             "header": {
               "type": "object",
               "properties": {
-                "eyebrow": {
-                  "type": "string"
-                },
                 "title": {
                   "type": "string"
                 }

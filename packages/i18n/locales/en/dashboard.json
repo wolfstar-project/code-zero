@@ -2,9 +2,7 @@
   "$schema": "../../schemas/dashboard.schema.json",
   "dashboard": {
     "header": {
-      "eyebrow": "Code Zero / Operations",
       "title": "Control Plane",
-      "mode": "Local interface",
       "live": "Live",
       "stale": "Reconnecting",
       "liveAria": "Live updates connected",
@@ -16,7 +14,9 @@
       "audit": "Audit Log",
       "collapse": "Collapse",
       "expand": "Expand",
-      "settings": "Settings"
+      "settings": "Settings",
+      "open": "Open navigation",
+      "close": "Close navigation"
     },
     "metrics": {
       "aria": "Runner metrics",
@@ -75,7 +75,6 @@
     },
     "audit": {
       "header": {
-        "eyebrow": "Code Zero / Governance",
         "title": "Audit Log"
       },
       "table": {
@@ -152,7 +151,6 @@
     },
     "settings": {
       "header": {
-        "eyebrow": "Code Zero / Configuration",
         "title": "Settings"
       },
       "loading": "Loading the settings…",

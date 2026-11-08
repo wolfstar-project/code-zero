@@ -1,79 +1,59 @@
 <template>
-  <!--
-    `details` rather than a dialog with its own open state: the form is a secondary action on a
-    monitoring page, and the element already handles toggling, keyboard, and screen-reader
-    semantics without any of it being reimplemented here.
-  -->
-  <details ref="root" class="panel" @toggle="onToggle">
-    <summary
-      class="h-11 flex cursor-pointer list-none items-center gap-2 px-4 text-xs font-650 marker:hidden"
-    >
-      <Icon aria-hidden="true" class="h-3.5 w-3.5 text-muted" name="lucide:plus" />
-      {{ $t('dashboard.newTask.title') }}
-    </summary>
-
-    <form class="border-t border-line p-4" @submit.prevent="submit">
-      <div class="grid gap-3 md:grid-cols-3">
-        <label class="md:col-span-3">
-          <span class="label-upper">{{ $t('dashboard.newTask.repository') }}</span>
-          <input
-            v-model="repository"
-            class="mt-1.5 h-9 w-full border border-line bg-canvas px-2 font-mono text-xs text-ink"
-            :disabled="pending"
-            :placeholder="$t('dashboard.newTask.repositoryHint')"
-            required
-            type="text"
-          />
-        </label>
-
-        <label>
-          <span class="label-upper">{{ $t('dashboard.newTask.mode') }}</span>
-          <select
-            v-model="mode"
-            class="mt-1.5 h-9 w-full border border-line bg-canvas px-2 text-xs text-ink"
-            :disabled="pending"
-          >
-            <option v-for="option in MODES" :key="option" :value="option">
-              {{ $t(`dashboard.newTask.modes.${option}`) }}
-            </option>
-          </select>
-        </label>
-
-        <label>
-          <span class="label-upper">{{ $t('dashboard.newTask.trigger') }}</span>
-          <select
-            v-model="trigger"
-            class="mt-1.5 h-9 w-full border border-line bg-canvas px-2 text-xs text-ink"
-            :disabled="pending"
-          >
-            <option v-for="option in TRIGGERS" :key="option" :value="option">
-              {{ $t(`dashboard.newTask.triggers.${option}`) }}
-            </option>
-          </select>
-        </label>
-      </div>
-
-      <label v-if="trigger === 'feedback'" class="mt-3 block">
-        <span class="label-upper">{{ $t('dashboard.newTask.feedback') }}</span>
-        <textarea
-          v-model="feedback"
-          class="mt-1.5 w-full border border-line bg-canvas p-2 text-xs text-ink"
+  <!-- The fields only. `NewTaskDialog` decides when they are shown and mounts a fresh copy each
+       time it opens, which is what discards an earlier draft. -->
+  <form class="p-4" @submit.prevent="submit">
+    <div class="grid gap-3 sm:grid-cols-2">
+      <label class="sm:col-span-2">
+        <span class="label-upper">{{ $t('dashboard.newTask.repository') }}</span>
+        <input
+          v-model="repository"
+          class="input-field mt-1.5 w-full font-mono max-md:h-11"
           :disabled="pending"
+          :placeholder="$t('dashboard.newTask.repositoryHint')"
           required
-          rows="3"
+          type="text"
         />
       </label>
 
-      <p v-if="error" class="mb-0 mt-3 text-xs text-error">{{ error }}</p>
+      <label>
+        <span class="label-upper">{{ $t('dashboard.newTask.mode') }}</span>
+        <select v-model="mode" class="input-field mt-1.5 w-full max-md:h-11" :disabled="pending">
+          <option v-for="option in MODES" :key="option" :value="option">
+            {{ $t(`dashboard.newTask.modes.${option}`) }}
+          </option>
+        </select>
+      </label>
 
-      <div class="mt-4 flex items-center gap-3">
-        <button class="btn-primary px-3" type="submit" :disabled="pending">
-          {{ $t('dashboard.newTask.submit') }}
-        </button>
-        <p class="m-0 text-xs text-muted">{{ $t('dashboard.newTask.note') }}</p>
-      </div>
-    </form>
-  </details>
+      <label>
+        <span class="label-upper">{{ $t('dashboard.newTask.trigger') }}</span>
+        <select v-model="trigger" class="input-field mt-1.5 w-full max-md:h-11" :disabled="pending">
+          <option v-for="option in TRIGGERS" :key="option" :value="option">
+            {{ $t(`dashboard.newTask.triggers.${option}`) }}
+          </option>
+        </select>
+      </label>
+    </div>
+
+    <label v-if="trigger === 'feedback'" class="mt-3 block">
+      <span class="label-upper">{{ $t('dashboard.newTask.feedback') }}</span>
+      <textarea
+        v-model="feedback"
+        class="focus-ring mt-1.5 w-full border border-line bg-raised p-2.5 text-xs text-ink"
+        :disabled="pending"
+        required
+        rows="3"
+      />
+    </label>
+
+    <p v-if="error" class="mb-0 mt-3 text-xs text-danger" role="alert">{{ error }}</p>
+
+    <div class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+      <button class="btn-primary shrink-0 px-4 max-md:h-11" type="submit" :disabled="pending">
+        {{ $t('dashboard.newTask.submit') }}
+      </button>
+      <p class="m-0 text-xs text-muted">{{ $t('dashboard.newTask.note') }}</p>
+    </div>
+  </form>
 </template>
 
 <script setup lang="ts">
@@ -93,7 +73,6 @@ const props = defineProps<{ pending?: boolean; error?: string }>();
 /** Submitted rather than sent from here, for the reason `TaskInspector` emits its decision. */
 const emit = defineEmits<{ submit: [request: NewTaskRequest] }>();
 
-const root = useTemplateRef<HTMLDetailsElement>('root');
 const repository = ref('');
 const mode = ref<(typeof MODES)[number]>('observe');
 const trigger = ref<(typeof TRIGGERS)[number]>('proactive');
@@ -107,18 +86,5 @@ function submit(): void {
     trigger: trigger.value,
     ...(trigger.value === 'feedback' ? { feedback: feedback.value.trim() } : {}),
   });
-}
-
-/**
- * Closing discards the draft, opening starts from an empty one.
- *
- * The alternative is a form that quietly keeps a repository path from an earlier session and
- * submits it against whatever the operator typed next.
- */
-function onToggle(): void {
-  if (root.value?.open === true) {
-    repository.value = '';
-    feedback.value = '';
-  }
 }
 </script>

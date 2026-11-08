@@ -47,6 +47,17 @@ export function useShortcutsDialog(): Ref<boolean> {
 }
 
 /**
+ * Whether a native modal `dialog` (such as the new-task form) is open.
+ *
+ * `showModal()` makes the rest of the document inert, but document-wide shortcuts still fire: `g a`
+ * would navigate away and discard a draft, and `?` would open the sheet behind the modal. Every
+ * binding outside the modal stands down while this is set; the modal component sets it.
+ */
+export function useModalDialogOpen(): Ref<boolean> {
+  return useState<boolean>('modal-dialog-open', () => false);
+}
+
+/**
  * Binds the shortcuts that work on every dashboard page.
  *
  * Called from the default layout rather than from a plugin, so the bindings live and die with the
@@ -58,11 +69,12 @@ export function useAppShortcuts(): void {
   const router = useRouter();
   const collapsed = useSidebarCollapsed();
   const dialogOpen = useShortcutsDialog();
+  const modalOpen = useModalDialogOpen();
 
   // Gated on the sheet being closed: it is a modal overlay, and without the guard `g a`/`g c`
   // would still navigate and `b` would still move the sidebar out from under it while the reader
   // is looking at the sheet instead of the page it would obscure.
-  const notWhileDialogOpen = { enabled: () => !dialogOpen.value };
+  const notWhileDialogOpen = { enabled: () => !dialogOpen.value && !modalOpen.value };
 
   // Vim-style prefixes: `g` then the page's initial. A sequence rather than a bare letter because
   // single letters are the scarce namespace, and navigation is the least frequent action here.
@@ -91,6 +103,8 @@ export function useAppShortcuts(): void {
       callback: () => {
         dialogOpen.value = !dialogOpen.value;
       },
+      // A native modal would leave the sheet inert behind it.
+      options: { enabled: () => !modalOpen.value },
     },
   ]);
 }
