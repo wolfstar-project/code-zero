@@ -88,13 +88,13 @@ New procedures in `packages/api`, behind the existing `authenticated` middleware
 only. Each checks organization membership itself (the active organization on a session is a claim,
 not a grant), the way `settings.organization.*` does.
 
-| procedure                                              | role needed                             | does                                                                                            |
-| ------------------------------------------------------ | --------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `installations.start`                                  | owner or admin                          | returns the GitHub App install URL carrying a signed `state` bound to the user and organization |
-| `installations.complete`                               | owner or admin                          | verifies `state`, verifies control of `installation_id`, stores the row                         |
-| `installations.list`                                   | member                                  | the organization's installations                                                                |
-| `installations.repositories`                           | owner or admin                          | the repositories the installation can see, from the provider, never cached in the database      |
-| `repositories.organization.save` / `.remove` / `.list` | owner or admin to write, member to read | the selected repositories                                                                       |
+| procedure                                               | role needed                             | does                                                                                                                              |
+| ------------------------------------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `installations.start`                                   | owner or admin                          | returns the GitHub App install URL carrying a signed `state` bound to the user and organization                                   |
+| `installations.complete`                                | owner or admin                          | verifies `state`, verifies control of `installation_id`, stores the row                                                           |
+| `installations.list`                                    | member                                  | the organization's installations                                                                                                  |
+| `installations.repositories`                            | owner or admin                          | the repositories the installation can see, from the provider, never cached in the database                                        |
+| `organizationRepositories.select` / `.remove` / `.list` | owner or admin to write, member to read | the selected repositories; `select` names repositories by provider id and takes owner and name from what the installation can see |
 
 `packages/api` defines the contracts structurally, as it does for `RepositoryAdmin`:
 
@@ -119,8 +119,10 @@ check would let anyone attach another customer's installation by guessing an id.
 `installations.complete` therefore needs the user authorization `code` GitHub sends back when the
 app is configured to request user authorization during installation. It exchanges the code for a user
 token with the app's client id and secret, lists `GET /user/installations`, and accepts the id only if
-it appears there. `state` is signed with a Worker secret, expires in ten minutes, and is single use,
-which closes the cross-site request forgery path.
+it appears there. `state` is signed with a Worker secret, bound to the person and the organization it
+was issued for, and expires in ten minutes, which closes the cross-site request forgery path. It is
+not single use: replaying one inside its window attaches the same installation again, which is a
+no-op, so a nonce store would add state without closing anything.
 
 Open item: from `app.code-zero.dev` the Worker currently gets HTTP 525 when it calls
 `https://github.com/login/oauth/access_token`, the same endpoint this exchange needs. The same Worker
