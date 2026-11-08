@@ -1,38 +1,17 @@
 <template>
-  <header
-    class="h-16 flex items-center justify-between border-b border-line bg-canvas/92 px-4 backdrop-blur md:px-6"
-  >
-    <div>
-      <p class="m-0 text-3xs text-muted font-700 tracking-[0.18em] uppercase">
-        {{ $t('dashboard.settings.header.eyebrow') }}
-      </p>
-      <h1 class="m-0 mt-1 text-lg font-650 tracking-tight">
-        {{ $t('dashboard.settings.header.title') }}
-      </h1>
-    </div>
+  <AppNavbar :title="$t('dashboard.settings.header.title')">
+    <button
+      class="btn-subtle gap-2 px-3 max-sm:h-11 max-sm:w-11 max-sm:px-0"
+      type="button"
+      :disabled="pending"
+      @click="refresh"
+    >
+      <Icon aria-hidden="true" class="h-3.5 w-3.5 max-sm:h-4 max-sm:w-4" name="lucide:refresh-cw" />
+      <span class="max-sm:sr-only">{{ $t('common.actions.refresh') }}</span>
+    </button>
+  </AppNavbar>
 
-    <div class="flex items-center gap-3">
-      <LocaleSwitcher />
-      <ClientOnly>
-        <ColorModeToggle />
-        <template #fallback>
-          <span class="h-9 w-9 border border-line bg-raised" aria-hidden="true" />
-        </template>
-      </ClientOnly>
-      <button
-        class="btn-subtle gap-2 px-3"
-        type="button"
-        :disabled="pending"
-        :aria-label="$t('common.actions.refresh')"
-        @click="refresh"
-      >
-        <Icon aria-hidden="true" class="h-3.5 w-3.5" name="lucide:refresh-cw" />
-        <span class="hidden sm:inline">{{ $t('common.actions.refresh') }}</span>
-      </button>
-    </div>
-  </header>
-
-  <div class="p-3 sm:p-4 md:p-5">
+  <div class="p-4 sm:p-6">
     <SettingsState
       v-if="!view && (pending || !error)"
       kind="loading"

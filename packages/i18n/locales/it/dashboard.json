@@ -2,9 +2,7 @@
   "$schema": "../../schemas/dashboard.schema.json",
   "dashboard": {
     "header": {
-      "eyebrow": "Code Zero / Operazioni",
       "title": "Piano di controllo",
-      "mode": "Interfaccia locale",
       "live": "In diretta",
       "stale": "Riconnessione",
       "liveAria": "Aggiornamenti in tempo reale connessi",
@@ -16,7 +14,9 @@
       "audit": "Registro di audit",
       "collapse": "Comprimi",
       "expand": "Espandi",
-      "settings": "Impostazioni"
+      "settings": "Impostazioni",
+      "open": "Apri la navigazione",
+      "close": "Chiudi la navigazione"
     },
     "metrics": {
       "aria": "Metriche runner",
@@ -75,7 +75,6 @@
     },
     "audit": {
       "header": {
-        "eyebrow": "Code Zero / Governance",
         "title": "Registro di audit"
       },
       "table": {
@@ -152,7 +151,6 @@
     },
     "settings": {
       "header": {
-        "eyebrow": "Code Zero / Configurazione",
         "title": "Impostazioni"
       },
       "loading": "Caricamento delle impostazioni…",

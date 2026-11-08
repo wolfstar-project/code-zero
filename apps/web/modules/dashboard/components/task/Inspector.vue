@@ -1,5 +1,5 @@
 <template>
-  <aside class="panel min-h-120 overflow-hidden xl:sticky xl:top-20 xl:h-fit">
+  <aside class="panel overflow-hidden xl:sticky xl:top-22 xl:h-fit xl:min-h-120">
     <div class="section-title">
       <h2 class="m-0 text-xs font-750 tracking-[0.12em] uppercase">
         {{ $t('dashboard.inspector.title') }}
@@ -91,7 +91,7 @@
             :disabled="pending"
           />
         </label>
-        <p v-if="error" class="mb-0 mt-2 text-xs text-error">{{ error }}</p>
+        <p v-if="error" class="mb-0 mt-2 text-xs text-danger" role="alert">{{ error }}</p>
         <div class="mt-3 flex gap-2">
           <button class="btn-primary px-3" type="submit" :disabled="pending">
             {{ $t('dashboard.inspector.approval.approve') }}
@@ -124,7 +124,7 @@
       </div>
     </div>
 
-    <div v-else class="min-h-120 grid place-items-center px-6 text-center">
+    <div v-else class="min-h-52 grid place-items-center px-6 py-10 text-center xl:min-h-120">
       <div>
         <div class="mx-auto h-10 w-10 grid place-items-center border border-line bg-raised">
           <Icon aria-hidden="true" class="h-4 w-4 text-muted" name="lucide:search" />
