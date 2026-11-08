@@ -57,12 +57,11 @@ export function createCloudflareProvider(options: CloudflareProviderOptions): Ma
         text: mail.text,
       });
     } catch (error) {
-      // The message carries only the code: the service's own text can quote the recipient, and a
-      // caller needs to know why the message was refused, not who it was for. The original rides
-      // along as `cause` for whoever debugs it.
-      throw new Error(`cloudflare email rejected the message: ${failureCode(error)}`, {
-        cause: error,
-      });
+      // Only the code survives: the service's own text can quote the recipient, and a caller needs
+      // to know why the message was refused, not who it was for. The original error is not kept as
+      // `cause` either, because loggers print a nested cause and would put the address back.
+      // oxlint-disable-next-line preserve-caught-error -- the original's text can quote the recipient
+      throw new Error(`cloudflare email rejected the message: ${failureCode(error)}`);
     }
   };
 }

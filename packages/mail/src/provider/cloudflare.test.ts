@@ -55,7 +55,7 @@ describe('createCloudflareProvider', () => {
     );
   });
 
-  it('keeps the recipient and the message body out of the error', async () => {
+  it('keeps the recipient and the message body out of the error, nested causes included', async () => {
     const send = vi
       .fn<CloudflareEmailBinding['send']>()
       .mockRejectedValue(refusal('E_RECIPIENT_NOT_ALLOWED', 'operator@example.com is not allowed'));
@@ -68,6 +68,8 @@ describe('createCloudflareProvider', () => {
     if (!(error instanceof Error)) return;
     expect(error.message).not.toContain('operator@example.com');
     expect(error.message).not.toContain('secret-token');
+    // A logger prints a nested `cause`, which would bring the refused recipient back.
+    expect(error.cause).toBeUndefined();
   });
 
   it('rejects when the binding is missing from the request', async () => {
