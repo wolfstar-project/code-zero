@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'node:url';
 
+import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -14,7 +15,13 @@ import {
   selectRepositories,
   setInstallationSuspended,
 } from './installations.js';
-import { organization, schema, user } from './schema/index.js';
+import {
+  forgeInstallation,
+  organization,
+  organizationRepository,
+  schema,
+  user,
+} from './schema/index.js';
 
 const MIGRATIONS = fileURLToPath(new URL('../drizzle', import.meta.url));
 const UNSUPPORTED_MODE = /mode/;
@@ -71,6 +78,23 @@ describe('attachInstallation', () => {
       attachInstallation(database, { ...acme, organizationId: 'org-b' }),
     ).rejects.toBeInstanceOf(InstallationAlreadyAttachedError);
     await expect(listInstallations(database, 'org-b')).resolves.toEqual([]);
+  });
+
+  it('treats two simultaneous attaches by the same organization as one', async () => {
+    const input = { ...acme, externalId: '2002' };
+
+    const [first, second] = await Promise.all([
+      attachInstallation(database, input),
+      attachInstallation(database, input),
+    ]);
+
+    expect(second.id).toBe(first.id);
+    await expect(
+      listInstallations(database, 'org-a').then((rows) =>
+        rows.filter((r) => r.externalId === '2002'),
+      ),
+    ).resolves.toHaveLength(1);
+    await database.delete(forgeInstallation).where(eq(forgeInstallation.id, first.id));
   });
 
   it('keeps the same external id apart across providers', async () => {
@@ -137,6 +161,49 @@ describe('selectRepositories', () => {
     const repositories = await listOrganizationRepositories(database, 'org-a');
     expect(repositories).toHaveLength(2);
     expect(repositories.find((r) => r.name === 'api')?.mode).toBe('suggest');
+  });
+
+  it('follows a renamed repository instead of adding a second entry', async () => {
+    const [installation] = await listInstallations(database, 'org-a');
+    if (!installation) throw new Error('fixture installation missing');
+    const before = await listOrganizationRepositories(database, 'org-a');
+
+    const [renamed] = await selectRepositories(database, {
+      organizationId: 'org-a',
+      installationId: installation.id,
+      repositories: [{ externalId: '501', owner: 'acme', name: 'backend', mode: 'suggest' }],
+    });
+
+    const after = await listOrganizationRepositories(database, 'org-a');
+    expect(after).toHaveLength(before.length);
+    expect(renamed).toMatchObject({ externalId: '501', name: 'backend', mode: 'suggest' });
+    expect(after.filter((r) => r.externalId === '501')).toHaveLength(1);
+  });
+
+  it('records the installation the repository was last selected through', async () => {
+    const [installation] = await listInstallations(database, 'org-a');
+    if (!installation) throw new Error('fixture installation missing');
+    const reinstalled = await attachInstallation(database, { ...acme, externalId: '1002' });
+
+    const [saved] = await selectRepositories(database, {
+      organizationId: 'org-a',
+      installationId: reinstalled.id,
+      repositories: [{ externalId: '502', owner: 'acme', name: 'web' }],
+    });
+
+    expect(saved?.installationId).toBe(reinstalled.id);
+    expect(saved?.installationId).not.toBe(installation.id);
+  });
+
+  it('reads a stored mode it does not recognise as observe', async () => {
+    await database
+      .update(organizationRepository)
+      .set({ mode: 'fix' })
+      .where(eq(organizationRepository.externalId, '502'));
+
+    const repositories = await listOrganizationRepositories(database, 'org-a');
+
+    expect(repositories.find((r) => r.externalId === '502')?.mode).toBe('observe');
   });
 
   it('refuses a writable mode', async () => {

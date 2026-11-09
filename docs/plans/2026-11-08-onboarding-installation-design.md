@@ -76,11 +76,11 @@ Unique on `(provider, external_id)`: one installation, one organization.
 | `organization_id`           | references `organization.id`, cascade                                           |
 | `installation_id`           | references `forge_installation.id`, cascade                                     |
 | `provider`, `owner`, `name` | coordinates on the provider                                                     |
-| `external_id`               | the provider's repository id, so a rename does not lose the row                 |
+| `external_id`               | the provider's repository id; it identifies the row, so a rename updates it     |
 | `mode`                      | `observe` or `suggest`, checked where rows are written, as `repository.mode` is |
 | timestamps                  | `timestampColumns`                                                              |
 
-Unique on `(organization_id, provider, owner, name)`.
+Unique on `(organization_id, provider, external_id)`: the provider's repository id identifies the row, so a rename or a reinstall updates it instead of adding a second entry.
 
 ## API
 

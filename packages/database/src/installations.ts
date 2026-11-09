@@ -86,33 +86,22 @@ export async function attachInstallation(
   input: InstallationInput,
 ): Promise<InstallationRecord> {
   const provider = input.provider ?? 'github';
-  const [existing] = await database
-    .select()
-    .from(forgeInstallation)
-    .where(
-      and(
-        eq(forgeInstallation.provider, provider),
-        eq(forgeInstallation.externalId, input.externalId),
-      ),
-    )
-    .limit(1);
+  const find = async () => {
+    const [row] = await database
+      .select()
+      .from(forgeInstallation)
+      .where(
+        and(
+          eq(forgeInstallation.provider, provider),
+          eq(forgeInstallation.externalId, input.externalId),
+        ),
+      )
+      .limit(1);
+    return row;
+  };
 
-  if (existing) {
-    if (existing.organizationId !== input.organizationId) {
-      throw new InstallationAlreadyAttachedError();
-    }
-    const [updated] = await database
-      .update(forgeInstallation)
-      .set({
-        accountLogin: input.accountLogin,
-        accountType: input.accountType,
-        updatedAt: new Date(),
-      })
-      .where(eq(forgeInstallation.id, existing.id))
-      .returning();
-    if (!updated) throw new Error('The installation could not be updated');
-    return toInstallation(updated);
-  }
+  const existing = await find();
+  if (existing) return refreshInstallation(database, existing, input);
 
   try {
     const [created] = await database
@@ -130,10 +119,36 @@ export async function attachInstallation(
     if (!created) throw new Error('The installation could not be attached');
     return toInstallation(created);
   } catch (error) {
-    // A concurrent request attached it between the read above and this insert.
-    if (isUniqueViolation(error)) throw new InstallationAlreadyAttachedError();
-    throw error;
+    if (!isUniqueViolation(error)) throw error;
+    // A concurrent request attached it between the read above and this insert. Whose it is
+    // decides the answer: the same organization attaching twice is the idempotent case, not a
+    // conflict.
+    const winner = await find();
+    if (!winner) throw error;
+    return refreshInstallation(database, winner, input);
   }
+}
+
+/** Idempotent re-attach for the organization that holds the row; a refusal for anyone else. */
+async function refreshInstallation(
+  database: InstallationDatabase,
+  existing: typeof forgeInstallation.$inferSelect,
+  input: InstallationInput,
+): Promise<InstallationRecord> {
+  if (existing.organizationId !== input.organizationId) {
+    throw new InstallationAlreadyAttachedError();
+  }
+  const [updated] = await database
+    .update(forgeInstallation)
+    .set({
+      accountLogin: input.accountLogin,
+      accountType: input.accountType,
+      updatedAt: new Date(),
+    })
+    .where(eq(forgeInstallation.id, existing.id))
+    .returning();
+  if (!updated) throw new Error('The installation could not be updated');
+  return toInstallation(updated);
 }
 
 /** The installations an organization has attached, oldest first. */
@@ -176,8 +191,9 @@ export async function setInstallationSuspended(
  * Select repositories for an organization through one of its installations.
  *
  * The installation is looked up under the organization first, so an id belonging to someone else's
- * installation is indistinguishable from one that does not exist. A repository already selected has
- * its mode updated instead of being duplicated.
+ * installation is indistinguishable from one that does not exist. A repository is identified by the
+ * provider's id, so selecting one again, after a rename or through a reinstalled app, updates its
+ * coordinates, mode and installation instead of adding a second entry.
  */
 export async function selectRepositories(
   database: InstallationDatabase,
@@ -224,10 +240,15 @@ export async function selectRepositories(
         target: [
           organizationRepository.organizationId,
           organizationRepository.provider,
-          organizationRepository.owner,
-          organizationRepository.name,
+          organizationRepository.externalId,
         ],
-        set: { mode, externalId: repository.externalId, updatedAt: new Date() },
+        set: {
+          owner: repository.owner,
+          name: repository.name,
+          mode,
+          installationId: installation.id,
+          updatedAt: new Date(),
+        },
       })
       .returning();
     if (!row) throw new Error('The repository could not be selected');
@@ -282,7 +303,6 @@ function toInstallation(row: typeof forgeInstallation.$inferSelect): Installatio
 function toRepository(
   row: typeof organizationRepository.$inferSelect,
 ): OrganizationRepositoryRecord {
-  if (!isMode(row.mode)) throw new Error(`Stored repository has an unsupported mode: ${row.mode}`);
   return {
     id: row.id,
     organizationId: row.organizationId,
@@ -291,7 +311,8 @@ function toRepository(
     externalId: row.externalId,
     owner: row.owner,
     name: row.name,
-    mode: row.mode,
+    // A hand-edited value reads as the mode that cannot write, as `repositories.ts` does.
+    mode: isMode(row.mode) ? row.mode : 'observe',
   };
 }
 

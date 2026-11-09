@@ -1,5 +1,5 @@
 {
-  "id": "2f568e95-b94b-4601-87ea-ebacb1485e37",
+  "id": "5d352941-dd3b-469d-a8fe-2e54654e4078",
   "prevId": "4c305f87-c67c-412c-ae9e-acfdbc7b25c0",
   "version": "7",
   "dialect": "postgresql",
@@ -1382,8 +1382,8 @@
         }
       },
       "indexes": {
-        "organization_repository_coordinates_unique": {
-          "name": "organization_repository_coordinates_unique",
+        "organization_repository_external_unique": {
+          "name": "organization_repository_external_unique",
           "columns": [
             {
               "expression": "organization_id",
@@ -1398,13 +1398,7 @@
               "nulls": "last"
             },
             {
-              "expression": "owner",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "name",
+              "expression": "external_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"

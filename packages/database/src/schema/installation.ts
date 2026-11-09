@@ -52,8 +52,9 @@ export const forgeInstallation = pgTable(
 /**
  * A repository an organization chose to have Code Zero watch, reached through one installation.
  *
- * `owner` and `name` are the provider coordinates. `externalId` is the provider's own repository
- * id, so a rename on the provider does not leave the row pointing at nothing.
+ * `owner` and `name` are the provider coordinates, refreshed whenever the repository is selected
+ * again. `externalId` is the provider's own repository id and is what identifies the row, so a
+ * rename on the provider updates it instead of adding a second entry for the same repository.
  */
 export const organizationRepository = pgTable(
   'organization_repository',
@@ -77,11 +78,10 @@ export const organizationRepository = pgTable(
     ...timestampColumns,
   },
   (table) => [
-    uniqueIndex('organization_repository_coordinates_unique').on(
+    uniqueIndex('organization_repository_external_unique').on(
       table.organizationId,
       table.provider,
-      table.owner,
-      table.name,
+      table.externalId,
     ),
     index('organization_repository_installation_idx').on(table.installationId),
   ],

@@ -30,5 +30,5 @@ ALTER TABLE "organization_repository" ADD CONSTRAINT "organization_repository_or
 ALTER TABLE "organization_repository" ADD CONSTRAINT "organization_repository_installation_id_forge_installation_id_fk" FOREIGN KEY ("installation_id") REFERENCES "public"."forge_installation"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "forge_installation_provider_external_unique" ON "forge_installation" USING btree ("provider","external_id");--> statement-breakpoint
 CREATE INDEX "forge_installation_organization_idx" ON "forge_installation" USING btree ("organization_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "organization_repository_coordinates_unique" ON "organization_repository" USING btree ("organization_id","provider","owner","name");--> statement-breakpoint
+CREATE UNIQUE INDEX "organization_repository_external_unique" ON "organization_repository" USING btree ("organization_id","provider","external_id");--> statement-breakpoint
 CREATE INDEX "organization_repository_installation_idx" ON "organization_repository" USING btree ("installation_id");
