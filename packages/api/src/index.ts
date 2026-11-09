@@ -84,6 +84,20 @@ export type {
   RepositoryMode,
   RepositoryRecord,
 } from './repositories.js';
+export {
+  createInstallationState,
+  InstallationVerificationError,
+  type InstallationProvider,
+  type InstallationService,
+  type InstallationState,
+  type InstallationStateClaims,
+  type InstallationStore,
+  type InstallationView,
+  type InstalledAccount,
+  type RepositoryChoice,
+  type SelectedRepositoryView,
+  type VisibleRepository,
+} from './installations.js';
 export { deploymentServices } from './settings.js';
 export type {
   DashboardSettingsAuthority,

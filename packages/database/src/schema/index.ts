@@ -2,6 +2,7 @@ import { apiKey } from './api-key.js';
 import { account, session, user, verification } from './auth.js';
 import { deviceCode } from './device.js';
 import { invite, inviteUse } from './enrollment.js';
+import { forgeInstallation, organizationRepository } from './installation.js';
 import { invitation, member, organization } from './organization.js';
 import { passkey } from './passkey.js';
 import { repository } from './repository.js';
@@ -25,6 +26,7 @@ export { account, session, user, verification } from './auth.js';
 export { timestampColumns } from './columns.js';
 export { deviceCode } from './device.js';
 export { invite, inviteUse } from './enrollment.js';
+export { forgeInstallation, organizationRepository } from './installation.js';
 export { invitation, member, organization } from './organization.js';
 export { passkey } from './passkey.js';
 export { repository } from './repository.js';
@@ -82,6 +84,8 @@ export const schema = {
   scimGroup,
   scimGroupMember,
   repository,
+  forgeInstallation,
+  organizationRepository,
 };
 
 /** The set of tables the database client is opened with. */

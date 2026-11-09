@@ -14,6 +14,7 @@ import { z } from 'zod';
 import type { AuditLogStore } from '../audit.js';
 import type { TaskStore } from '../control-plane.js';
 import { dashboardOverview } from '../dashboard.js';
+import type { InstallationService } from '../installations.js';
 import {
   approvalInput,
   createTask,
@@ -27,6 +28,20 @@ import type { RepositoryAdmin } from '../repositories.js';
 import type { DeploymentSettingsAuthority } from '../settings.js';
 import { principalActor } from './actor.js';
 import { authMiddleware, type BetterAuthContext } from './auth.js';
+import {
+  completeInstallation,
+  completeInstallationInput,
+  installationOrganizationInput,
+  installationRepositories,
+  installationScopeInput,
+  listInstallations,
+  listOrganizationRepositories,
+  removeOrganizationRepository,
+  removeRepositoryInput,
+  selectOrganizationRepositories,
+  selectRepositoriesInput,
+  startInstallation,
+} from './installations.js';
 import { useLogger } from './logging.js';
 import {
   deploymentSettingsInput,
@@ -77,6 +92,12 @@ export interface RpcContext extends BetterAuthContext {
    * under the repository's own policy, as before settings existed.
    */
   settings?: DeploymentSettingsAuthority;
+  /**
+   * Connecting an organization's code: the provider's install flow, what an installation can see,
+   * and where the selection is kept. Optional like the capabilities above; `installations.*` and
+   * `organizationRepositories.*` report that the deployment has none rather than pretending.
+   */
+  installations?: InstallationService;
 }
 
 /**
@@ -412,6 +433,87 @@ export const rpcRouter = {
         .input(organizationLimitsInput)
         .handler(({ input, context }) => updateOrganizationSettings(context, input)),
     },
+  },
+  installations: {
+    start: authenticated
+      .meta(
+        openapi({
+          method: 'POST',
+          path: '/organizations/{organizationId}/installations/start',
+          tags: ['Installations'],
+          summary: 'Start installing the GitHub App for an organization',
+        }),
+      )
+      .input(installationOrganizationInput)
+      .handler(({ input, context }) => startInstallation(context, input)),
+    complete: authenticated
+      .meta(
+        openapi({
+          method: 'POST',
+          path: '/installations/complete',
+          tags: ['Installations'],
+          summary: 'Attach the installation the person proved they control',
+        }),
+      )
+      .input(completeInstallationInput)
+      .handler(({ input, context }) => completeInstallation(context, input)),
+    list: authenticated
+      .meta(
+        openapi({
+          method: 'GET',
+          path: '/organizations/{organizationId}/installations',
+          tags: ['Installations'],
+          summary: "List an organization's installations",
+        }),
+      )
+      .input(installationOrganizationInput)
+      .handler(({ input, context }) => listInstallations(context, input)),
+    repositories: authenticated
+      .meta(
+        openapi({
+          method: 'GET',
+          path: '/organizations/{organizationId}/installations/{installationId}/repositories',
+          tags: ['Installations'],
+          summary: 'List the repositories an installation can see',
+        }),
+      )
+      .input(installationScopeInput)
+      .handler(({ input, context }) => installationRepositories(context, input)),
+  },
+  organizationRepositories: {
+    list: authenticated
+      .meta(
+        openapi({
+          method: 'GET',
+          path: '/organizations/{organizationId}/repositories',
+          tags: ['Installations'],
+          summary: "List an organization's selected repositories",
+        }),
+      )
+      .input(installationOrganizationInput)
+      .handler(({ input, context }) => listOrganizationRepositories(context, input)),
+    select: authenticated
+      .meta(
+        openapi({
+          method: 'POST',
+          path: '/organizations/{organizationId}/repositories',
+          tags: ['Installations'],
+          summary: 'Select repositories to watch, by provider id',
+        }),
+      )
+      .input(selectRepositoriesInput)
+      .handler(({ input, context }) => selectOrganizationRepositories(context, input)),
+    remove: authenticated
+      .meta(
+        openapi({
+          method: 'DELETE',
+          path: '/organizations/{organizationId}/repositories/{id}',
+          tags: ['Installations'],
+          summary: 'Stop watching a selected repository',
+        }),
+      )
+      .input(removeRepositoryInput)
+      .handler(({ input, context }) => removeOrganizationRepository(context, input)),
   },
   approvals: {
     decide: authenticated
