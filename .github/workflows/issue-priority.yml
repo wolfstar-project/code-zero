@@ -6,13 +6,17 @@ on:
 
 permissions: {}
 
+concurrency:
+  group: issue-priority-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
 jobs:
   set-priority:
     name: Set Priority field
     if: contains(github.event.issue.body, '### Priority')
     runs-on: ubuntu-latest
     permissions:
-      issues: write
+      issues: write # Sets the Priority field on the new issue.
     steps:
       - name: Copy the form answer to the native Priority field
         env:
