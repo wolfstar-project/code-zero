@@ -1,6 +1,7 @@
 name: Feature request
 description: Propose a focused capability or improvement
 title: 'feat: '
+type: Feature
 labels: ['enhancement']
 body:
   - type: checkboxes
@@ -51,3 +52,15 @@ body:
     attributes:
       label: Alternatives considered
       description: Describe workarounds or designs you considered.
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: Select the impact on your work. Maintainers can change it during triage.
+      options:
+        - Urgent
+        - High
+        - Medium
+        - Low
+    validations:
+      required: false

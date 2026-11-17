@@ -1,0 +1,21 @@
+name: Task
+description: Track work that is not a bug report or a feature request
+title: 'chore: '
+type: Task
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe the work to do and why it is necessary.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria
+      description: List the conditions that complete the task.
+      placeholder: |
+        - [ ] ...
+    validations:
+      required: false
