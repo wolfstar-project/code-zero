@@ -1,0 +1,44 @@
+name: Issue priority
+
+on:
+  issues:
+    types: [opened]
+
+permissions: {}
+
+jobs:
+  set-priority:
+    name: Set Priority field
+    if: contains(github.event.issue.body, '### Priority')
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Copy the form answer to the native Priority field
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          OWNER: ${{ github.repository_owner }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          priority=$(printf '%s\n' "$ISSUE_BODY" | tr -d '\r' | awk '/^### Priority$/ { found = 1; next } found && NF { print; exit }')
+          if [ -z "$priority" ] || [ "$priority" = "_No response_" ]; then
+            echo "The issue has no Priority answer."
+            exit 0
+          fi
+
+          field=$(gh api "orgs/$OWNER/issue-fields" --jq '.[] | select(.name == "Priority")')
+          if [ -z "$field" ]; then
+            echo "::error::The organization has no issue field named Priority."
+            exit 1
+          fi
+          if ! jq -e --arg value "$priority" '.options[] | select(.name == $value)' <<<"$field" >/dev/null; then
+            echo "::error::The Priority field has no option named \"$priority\"."
+            exit 1
+          fi
+
+          jq -n --argjson id "$(jq '.id' <<<"$field")" --arg value "$priority" \
+            '{issue_field_values: [{field_id: $id, value: $value}]}' |
+            gh api --method POST "repos/$REPOSITORY/issues/$ISSUE_NUMBER/issue-field-values" --input -
+          echo "Set Priority to $priority on issue #$ISSUE_NUMBER."
